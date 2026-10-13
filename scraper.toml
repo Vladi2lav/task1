@@ -1,0 +1,28 @@
+# Настройки сбора данных и расписания
+
+[schedule]
+# Ежедневный запуск (время Asia/Almaty), после окончания торгов (09:00-16:00)
+hour = 18
+minute = 30
+exchanges = ["ets", "caspy"]
+# Сколько последних дней перезагружать при ежедневном запуске
+lookback_days = 3
+
+[history]
+# Глубина первоначальной загрузки истории, дней (по умолчанию ~3 месяца)
+days = 92
+
+[http]
+# Пауза между запросами, секунд
+delay_seconds = 1.5
+timeout_seconds = 30
+retries = 3
+user_agent = "Mozilla/5.0 (compatible; TradeResultsStudentBot/1.0; educational project)"
+
+[sources.ets]
+base_url = "https://ets.kz"
+results_path = "/documents/trading-results/"
+
+[sources.caspy]
+base_url = "https://ccx.kz"
+results_path = "/trading-and-analytics/trading-results"

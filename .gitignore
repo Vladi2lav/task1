@@ -1,0 +1,17 @@
+# Word documents
+*.doc
+*.docx
+*.dot
+*.dotx
+~$*
+
+# Python / Django
+__pycache__/
+*.pyc
+.venv/
+venv/
+db.sqlite3
+.pytest_cache/
+*.log
+.idea/
+.vscode/
