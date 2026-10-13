@@ -14,7 +14,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from exchanges.models import Broker, Exchange, ParseRun, Participant, Product, Trade
 
-from . import collect_runner
+from . import analytics, collect_runner
 from .excel_export import собрать_xlsx
 from .queries import (
     КОДЫ_БИРЖ,
@@ -50,6 +50,12 @@ def _ошибка(сообщение, status=400):
 def страница_торгов(request):
     """Главная: таблица итогов торгов (данные подгружает JS через /api/trades/)."""
     return render(request, 'portal/trades.html', {'page': 'trades'})
+
+
+@ensure_csrf_cookie
+def страница_аналитики(request):
+    """Аналитика: фильтры, карточки сводки и графики (данные подгружает JS через /api/analytics/)."""
+    return render(request, 'portal/analytics.html', {'page': 'analytics'})
 
 
 @ensure_csrf_cookie
@@ -95,6 +101,19 @@ def api_итоги(request):
         'amount_sum': float(сумма) if сумма is not None else None,
         'results': строки,
     })
+
+
+@require_GET
+def api_аналитика(request):
+    """Сводная аналитика: динамика цены, топы, оборот по дням, сводка.
+
+    Параметры: exchange, date_from, date_to, q (как в /api/trades/),
+    product_id или product_code — товар для графика цены.
+    """
+    try:
+        return _json(analytics.аналитика(request.GET))
+    except ОшибкаПараметров as exc:
+        return _ошибка(str(exc))
 
 
 @require_GET

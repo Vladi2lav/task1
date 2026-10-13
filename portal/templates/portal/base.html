@@ -19,6 +19,7 @@
       </a>
       <nav class="main-nav" aria-label="Разделы">
         <a href="{% url 'portal:trades' %}" class="{% if page == 'trades' %}active{% endif %}">Итоги торгов</a>
+        <a href="{% url 'portal:analytics' %}" class="{% if page == 'analytics' %}active{% endif %}">Аналитика</a>
         <a href="{% url 'portal:status' %}" class="{% if page == 'status' %}active{% endif %}">Состояние данных</a>
       </nav>
     </div>

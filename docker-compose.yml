@@ -1,0 +1,24 @@
+# Запуск: docker compose up --build
+# Портал: http://localhost:8000, ежедневный сбор — сервис scheduler
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SQLITE_PATH: /data/db.sqlite3
+    volumes:
+      - tradedata:/data
+
+  scheduler:
+    build: .
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py run_scheduler"]
+    environment:
+      SQLITE_PATH: /data/db.sqlite3
+    volumes:
+      - tradedata:/data
+    depends_on:
+      - web
+
+volumes:
+  tradedata:
