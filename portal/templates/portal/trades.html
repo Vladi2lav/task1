@@ -1,0 +1,101 @@
+{% extends 'portal/base.html' %}
+{% block title %}Итоги торгов{% endblock %}
+
+{% block content %}
+<section class="panel filters" aria-label="Фильтры">
+  <form id="filters-form" autocomplete="off" novalidate>
+    <div class="filters-grid">
+      <label class="field">
+        <span class="field-label">Биржа</span>
+        <select name="exchange" id="f-exchange">
+          <option value="">Обе биржи</option>
+          <option value="ets">ETS</option>
+          <option value="caspy">Каспий</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Период с</span>
+        <input type="date" name="date_from" id="f-date_from">
+      </label>
+      <label class="field">
+        <span class="field-label">Период по</span>
+        <input type="date" name="date_to" id="f-date_to">
+      </label>
+      <label class="field field-wide">
+        <span class="field-label">Товар (ключевое слово)</span>
+        <input type="text" name="q" id="f-q" placeholder="например, пшеница" list="dl-product">
+        <datalist id="dl-product"></datalist>
+      </label>
+      <label class="field field-wide">
+        <span class="field-label">Продавец или покупатель (название / БИН)</span>
+        <input type="text" name="party" id="f-party" placeholder="название или БИН" list="dl-party">
+        <datalist id="dl-party"></datalist>
+      </label>
+      <label class="field field-wide">
+        <span class="field-label">Брокер</span>
+        <input type="text" name="broker" id="f-broker" placeholder="название брокера" list="dl-broker">
+        <datalist id="dl-broker"></datalist>
+      </label>
+      <label class="field">
+        <span class="field-label">Сумма от, тг</span>
+        <input type="text" inputmode="decimal" name="amount_min" id="f-amount_min" placeholder="0">
+      </label>
+      <label class="field">
+        <span class="field-label">Сумма до, тг</span>
+        <input type="text" inputmode="decimal" name="amount_max" id="f-amount_max" placeholder="без ограничения">
+      </label>
+      <label class="field field-wide">
+        <span class="field-label">Место поставки</span>
+        <input type="text" name="delivery" id="f-delivery" placeholder="город, станция, склад" list="dl-delivery">
+        <datalist id="dl-delivery"></datalist>
+      </label>
+      <div class="field field-actions">
+        <button type="button" class="btn btn-ghost" id="btn-reset">Сбросить</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="panel results" aria-label="Результаты">
+  <div class="toolbar">
+    <div class="toolbar-info" aria-live="polite">
+      <span id="found-count" class="found-count">—</span>
+      <span id="found-sum" class="found-sum"></span>
+    </div>
+    <div class="toolbar-controls">
+      <label class="inline-field">
+        <span>Строк на странице</span>
+        <select id="page-size">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
+        </select>
+      </label>
+      <a class="btn btn-primary" id="btn-export" href="/api/trades/export.xlsx" download>Скачать Excel</a>
+    </div>
+  </div>
+
+  <div class="loader-bar" id="loader" hidden><span></span></div>
+
+  <div class="table-wrap" id="table-wrap">
+    <table class="data-table" id="trades-table">
+      <thead>
+        <tr id="head-row"></tr>
+      </thead>
+      <tbody id="trades-body"></tbody>
+    </table>
+    <div class="empty-state" id="empty-state" hidden>
+      <div class="empty-title">Ничего не найдено</div>
+      <div class="empty-text">Измените условия поиска или сбросьте фильтры.</div>
+    </div>
+    <div class="error-state" id="error-state" hidden>
+      <div class="empty-title">Не удалось загрузить данные</div>
+      <div class="empty-text" id="error-text"></div>
+      <button type="button" class="btn" id="btn-retry">Повторить</button>
+    </div>
+  </div>
+
+  <nav class="pagination" id="pagination" aria-label="Страницы"></nav>
+</section>
+{% endblock %}

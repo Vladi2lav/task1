@@ -80,7 +80,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # SQLITE_PATH — путь к другому файлу БД (например, для демо-данных)
+        'NAME': os.environ.get('SQLITE_PATH') or BASE_DIR / 'db.sqlite3',
     }
 }
 

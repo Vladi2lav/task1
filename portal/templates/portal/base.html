@@ -1,0 +1,37 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}Итоги торгов{% endblock %} — ETS и Каспий</title>
+  <link rel="stylesheet" href="{% static 'portal/style.css' %}">
+</head>
+<body data-page="{{ page }}">
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="{% url 'portal:trades' %}">
+        <span class="brand-mark" aria-hidden="true">₸</span>
+        <span class="brand-text">
+          <span class="brand-title">Итоги торгов</span>
+          <span class="brand-sub">биржи ETS и Каспий</span>
+        </span>
+      </a>
+      <nav class="main-nav" aria-label="Разделы">
+        <a href="{% url 'portal:trades' %}" class="{% if page == 'trades' %}active{% endif %}">Итоги торгов</a>
+        <a href="{% url 'portal:status' %}" class="{% if page == 'status' %}active{% endif %}">Состояние данных</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Данные берутся из единой базы, которую наполняют парсеры бирж ETS и Каспий.</div>
+  </footer>
+
+  <script src="{% static 'portal/app.js' %}"></script>
+</body>
+</html>

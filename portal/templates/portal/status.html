@@ -1,0 +1,71 @@
+{% extends 'portal/base.html' %}
+{% block title %}Состояние данных{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Состояние данных</h1>
+<p class="muted" id="total-line"></p>
+
+<section class="status-cards" id="exchange-cards" aria-live="polite">
+  <div class="panel card-skeleton">Загрузка…</div>
+</section>
+
+<section class="panel" aria-label="Ручной запуск сбора">
+  <h2 class="panel-title">Ручной запуск сбора</h2>
+  <p class="muted">Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически.
+    Повторный запуск недоступен, пока не завершён предыдущий.</p>
+  <form id="collect-form" class="collect-form" data-default-days="{{ глубина_по_умолчанию }}">
+    <label class="field">
+      <span class="field-label">Биржа</span>
+      <select name="exchange" id="c-exchange">
+        <option value="all">Обе биржи</option>
+        <option value="ets">ETS</option>
+        <option value="caspy">Каспий</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Глубина, дней</span>
+      <input type="number" name="days" id="c-days" min="{{ глубина_мин }}" max="{{ глубина_макс }}"
+             value="{{ глубина_по_умолчанию }}" step="1" required>
+    </label>
+    <div class="field field-actions">
+      <button type="submit" class="btn btn-primary" id="btn-collect">Запустить сбор вручную</button>
+    </div>
+    <div class="quick-days">
+      <span class="muted">Быстрый выбор:</span>
+      <button type="button" class="chip" data-days="1">1 день</button>
+      <button type="button" class="chip" data-days="3">3 дня</button>
+      <button type="button" class="chip" data-days="7">неделя</button>
+      <button type="button" class="chip" data-days="30">месяц</button>
+      <button type="button" class="chip" data-days="{{ глубина_истории }}">вся история ({{ глубина_истории }} дн.)</button>
+    </div>
+  </form>
+  <div class="collect-status" id="collect-status" role="status" aria-live="polite" hidden></div>
+</section>
+
+<section class="panel" aria-label="Последние запуски">
+  <h2 class="panel-title">Последние запуски парсеров</h2>
+  <div class="table-wrap">
+    <table class="data-table" id="runs-table">
+      <thead>
+        <tr>
+          <th>Биржа</th>
+          <th>Начало</th>
+          <th>Окончание</th>
+          <th>Запуск</th>
+          <th>Период</th>
+          <th>Статус</th>
+          <th class="num">Добавлено</th>
+          <th class="num">Пропущено</th>
+          <th>Ошибки</th>
+        </tr>
+      </thead>
+      <tbody id="runs-body"></tbody>
+    </table>
+    <div class="empty-state" id="runs-empty" hidden>
+      <div class="empty-title">Запусков ещё не было</div>
+      <div class="empty-text">Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию.</div>
+    </div>
+  </div>
+</section>
+<noscript><p class="muted">Для работы страницы необходим JavaScript.</p></noscript>
+{% endblock %}
