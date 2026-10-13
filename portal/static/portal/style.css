@@ -261,3 +261,42 @@ th.num .th-sort { flex-direction: row-reverse; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .cell-error { max-width: 340px; font-size: 0.8rem; color: var(--err); white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- Аналитика ---------- */
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.summary-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 18px; min-width: 0;
+}
+.summary-card-wide { grid-column: span 2; }
+.summary-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+.summary-value { font-size: 1.6rem; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.summary-sub { font-size: 0.82rem; color: var(--text-muted); min-height: 1.2em; margin-top: 1px; }
+
+.note { padding: 10px 14px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem; }
+.note[hidden] { display: none; }
+.note-warn { background: var(--warn-bg); color: var(--warn); }
+.note-error { background: var(--err-bg); color: var(--err); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-weight: 600; }
+
+.charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.chart-panel { margin-bottom: 0; min-width: 0; }
+.chart-panel-wide { grid-column: span 2; }
+.chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.chart-head .panel-title { margin: 0; }
+.chart-sub { color: var(--text-muted); font-size: 0.85rem; }
+.chart-switch { display: flex; gap: 6px; }
+.chip.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chart-box { position: relative; height: 340px; }
+.chart-box canvas { max-width: 100%; }
+.chart-empty {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  color: var(--text-muted); background: var(--surface); padding: 0 16px;
+}
+.chart-empty[hidden] { display: none; }
+.summary-cards.loading, .charts-grid.loading { opacity: 0.55; transition: opacity 0.15s; }
+
+@media (max-width: 1100px) {
+  .charts-grid { grid-template-columns: minmax(0, 1fr); }
+  .chart-panel-wide { grid-column: auto; }
+  .summary-card-wide { grid-column: auto; }
+}

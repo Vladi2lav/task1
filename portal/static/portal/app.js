@@ -1,6 +1,7 @@
 /* Портал итогов торгов ETS и Каспий.
  * Страница «/»      — таблица итогов торгов (fetch к /api/trades/, без перезагрузки);
- * страница «/status/» — состояние данных и ручной запуск сбора.
+ * страница «/status/» — состояние данных и ручной запуск сбора;
+ * страница «/analytics/» — сводка и графики Chart.js (fetch к /api/analytics/).
  * Данные в DOM выводятся только через textContent / createElement (без innerHTML).
  */
 (function () {
@@ -715,11 +716,445 @@
     refresh();
   }
 
+  /* ===================================================== страница «Аналитика» */
+
+  function initAnalytics() {
+    const FILTER_KEYS = ['exchange', 'date_from', 'date_to', 'q', 'product_id'];
+    const COLORS = {
+      accent: '#1d5fd0', accentSoft: 'rgba(29, 95, 208, 0.16)', accentBar: 'rgba(29, 95, 208, 0.82)',
+      caspy: '#c2701a', caspyBar: 'rgba(194, 112, 26, 0.85)',
+      text: '#667085', grid: '#e6ebf2',
+    };
+    const inputs = {};
+    FILTER_KEYS.forEach((key) => { inputs[key] = document.getElementById('a-' + key); });
+    const loader = document.getElementById('an-loader');
+    const errorBox = document.getElementById('an-error');
+    const errorText = document.getElementById('an-error-text');
+    const noteBox = document.getElementById('an-note');
+    const summaryBox = document.getElementById('an-summary');
+    const chartsBox = document.querySelector('.charts-grid');
+    const roleButtons = [...document.querySelectorAll('.chart-switch [data-role]')];
+
+    const state = { role: 'buyers', data: null };
+    const charts = {};
+    let requestSeq = 0;
+    let abortController = null;
+
+    const nfOne = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+    const nfTwo = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+
+    /* ---- форматирование ---- */
+
+    /** Короткая запись денег для осей: 1,2 млрд, 35 млн, 400 тыс. */
+    function compactMoney(value) {
+      const abs = Math.abs(value);
+      if (abs >= 1e9) return nfTwo.format(value / 1e9) + ' млрд';
+      if (abs >= 1e6) return nfTwo.format(value / 1e6) + ' млн';
+      if (abs >= 1e3) return nfOne.format(value / 1e3) + ' тыс.';
+      return nfInt.format(value);
+    }
+
+    function fullMoney(value) { return nfMoney.format(value) + ' тг'; }
+
+    function shortDate(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+      return m ? m[3] + '.' + m[2] : iso;
+    }
+
+    /** Подпись для оси: длинное название обрезается, полное — в подсказке. */
+    function truncate(text, max) {
+      const value = String(text || '');
+      return value.length > max ? value.slice(0, max - 1).trimEnd() + '…' : value;
+    }
+
+    function percent(share) {
+      const value = share * 100;
+      return (value > 0 && value < 0.1 ? '<0,1' : nfOne.format(value)) + '%';
+    }
+
+    const RECORDS = ['запись', 'записи', 'записей'];
+    const RECORDS_GEN = ['записи', 'записей', 'записей'];
+
+    /* ---- параметры и адресная строка ---- */
+
+    function readUrl() {
+      const params = new URLSearchParams(window.location.search);
+      ['exchange', 'date_from', 'date_to', 'q'].forEach((key) => {
+        const value = params.get(key) || '';
+        if (inputs[key].tagName === 'SELECT' && ![...inputs[key].options].some((o) => o.value === value)) return;
+        inputs[key].value = value;
+      });
+      const productId = params.get('product_id') || '';
+      if (/^\d+$/.test(productId)) {
+        // список товаров придёт с сервером; пока подставляем выбранный из адреса
+        inputs.product_id.appendChild(el('option', { value: productId, text: 'Товар №' + productId }));
+        inputs.product_id.value = productId;
+      }
+    }
+
+    function filterParams() {
+      const params = new URLSearchParams();
+      FILTER_KEYS.forEach((key) => {
+        const value = (inputs[key].value || '').trim();
+        if (value) params.set(key, value);
+      });
+      return params;
+    }
+
+    function syncUrl(params) {
+      const query = params.toString();
+      history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
+      FILTER_KEYS.forEach((key) => inputs[key].classList.toggle('has-value', !!(inputs[key].value || '').trim()));
+    }
+
+    /* ---- графики ---- */
+
+    function baseOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 250 },
+        interaction: { mode: 'index', intersect: false },
+      };
+    }
+
+    function ensureChart(name, config) {
+      if (!charts[name]) charts[name] = new Chart(document.getElementById('chart-' + name), config);
+      return charts[name];
+    }
+
+    function resetChart(name) {
+      const chart = charts[name];
+      if (!chart) return;
+      chart.data.labels = [];
+      chart.data.datasets.forEach((d) => { d.data = []; });
+      chart.update();
+    }
+
+    function setEmpty(name, message) {
+      const box = document.getElementById('empty-' + name);
+      box.hidden = !message;
+      box.textContent = message || '';
+      document.getElementById('chart-' + name).style.visibility = message ? 'hidden' : 'visible';
+    }
+
+    function valueAxis(extra) {
+      return Object.assign({
+        beginAtZero: true,
+        grid: { color: COLORS.grid },
+        ticks: { callback: (v) => compactMoney(v), maxRotation: 0, maxTicksLimit: 7 },
+      }, extra || {});
+    }
+
+    function renderPrice(block) {
+      const points = block.points;
+      const product = block.product;
+      document.getElementById('price-sub').textContent =
+        product ? product.name + (product.code ? ' · ' + product.code : '') : 'товар не выбран';
+      if (!points.length) {
+        setEmpty('price', product ? 'По этому товару нет цен за выбранный период' : 'Нет данных для графика');
+        resetChart('price');
+        return;
+      }
+      setEmpty('price', '');
+      const chart = ensureChart('price', {
+        type: 'line',
+        data: { labels: [], datasets: [{
+          label: 'Средневзвешенная цена, тг',
+          data: [],
+          borderColor: COLORS.accent,
+          backgroundColor: COLORS.accentSoft,
+          fill: true, tension: 0.25, borderWidth: 2.5,
+          pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: COLORS.accent,
+        }] },
+        options: Object.assign(baseOptions(), {
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 14 } },
+            y: valueAxis({ beginAtZero: false, ticks: { callback: (v) => nfInt.format(v) } }),
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              padding: 10,
+              callbacks: {
+                title: (items) => formatDate(items[0].chart.$points[items[0].dataIndex].date),
+                label: (item) => 'Цена: ' + fullMoney(item.parsed.y),
+                afterLabel: (item) => {
+                  const n = item.chart.$points[item.dataIndex].records;
+                  return n + ' ' + plural(n, RECORDS) + ' за день';
+                },
+              },
+            },
+          },
+        }),
+      });
+      chart.$points = points;
+      chart.data.labels = points.map((p) => shortDate(p.date));
+      chart.data.datasets[0].data = points.map((p) => p.price);
+      chart.update();
+    }
+
+    function renderTurnover(days) {
+      if (!days.length) {
+        setEmpty('turnover', 'Нет данных за выбранный период');
+        resetChart('turnover');
+        return;
+      }
+      setEmpty('turnover', '');
+      const chart = ensureChart('turnover', {
+        data: { labels: [], datasets: [
+          { type: 'bar', label: 'Сумма сделок', data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3, order: 2 },
+          { type: 'line', label: 'Число сделок', data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
+            borderWidth: 2, tension: 0.2, pointRadius: 2.5, order: 1 },
+        ] },
+        options: Object.assign(baseOptions(), {
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: valueAxis({ position: 'left' }),
+            y1: {
+              position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+              ticks: { callback: (v) => nfInt.format(v) },
+            },
+          },
+          plugins: {
+            legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
+            tooltip: {
+              padding: 10,
+              callbacks: {
+                title: (items) => formatDate(items[0].chart.$days[items[0].dataIndex].date),
+                label: (item) => item.dataset.label + ': ' +
+                  (item.datasetIndex === 0 ? fullMoney(item.parsed.y) : nfInt.format(item.parsed.y)),
+                afterBody: (items) => {
+                  const d = items[0].chart.$days[items[0].dataIndex];
+                  return d.records_without_amount
+                    ? 'Без суммы: ' + d.records_without_amount + ' ' + plural(d.records_without_amount, RECORDS)
+                    : '';
+                },
+              },
+            },
+          },
+        }),
+      });
+      chart.$days = days;
+      chart.data.labels = days.map((d) => shortDate(d.date));
+      chart.data.datasets[0].data = days.map((d) => d.amount);
+      // если число сделок биржа не публикует, показываем число записей
+      chart.data.datasets[1].data = days.map((d) => (d.deals > 0 ? d.deals : d.records));
+      chart.update();
+    }
+
+    /** Горизонтальные столбцы «топ по сумме» — для товаров и участников. */
+    function renderTop(name, items, color, emptyMessage) {
+      if (!items.length) {
+        setEmpty(name, emptyMessage);
+        resetChart(name);
+        return;
+      }
+      setEmpty(name, '');
+      const chart = ensureChart(name, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Сумма сделок, тг', data: [], borderRadius: 3, backgroundColor: color }] },
+        options: Object.assign(baseOptions(), {
+          indexAxis: 'y',
+          interaction: { mode: 'nearest', axis: 'y', intersect: false },
+          scales: {
+            x: valueAxis(),
+            y: {
+              grid: { display: false },
+              ticks: {
+                autoSkip: false,
+                font: { size: 11.5 },
+                // подпись занимает не больше ~40% ширины графика; полное название — в подсказке
+                callback: function (value) {
+                  const limit = Math.max(14, Math.floor((this.chart.width * 0.4) / 6.2));
+                  return truncate(this.getLabelForValue(value), limit);
+                },
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              padding: 10,
+              callbacks: {
+                title: (tips) => tips[0].chart.$items[tips[0].dataIndex].name,
+                label: (item) => fullMoney(item.parsed.x),
+                afterLabel: (item) => {
+                  const it = item.chart.$items[item.dataIndex];
+                  const lines = [it.records + ' ' + plural(it.records, RECORDS)];
+                  if (it.bin) lines.push('БИН ' + it.bin);
+                  if (it.code) lines.push('Код ' + it.code);
+                  return lines;
+                },
+              },
+            },
+          },
+        }),
+      });
+      chart.$items = items;
+      chart.data.labels = items.map((it) => it.name);
+      chart.data.datasets[0].data = items.map((it) => it.amount);
+      chart.data.datasets[0].backgroundColor = color;
+      chart.update();
+    }
+
+    function renderParties() {
+      if (!state.data) return;
+      const buyers = state.role === 'buyers';
+      renderTop(
+        'parties',
+        buyers ? state.data.top_buyers : state.data.top_sellers,
+        buyers ? COLORS.accentBar : COLORS.caspyBar,
+        buyers ? 'Нет покупателей с суммой сделок' : 'Нет продавцов с суммой сделок'
+      );
+    }
+
+    /* ---- сводка ---- */
+
+    function renderSummary(summary, days) {
+      const has = summary.records > 0;
+      document.getElementById('s-records').textContent = nfInt.format(summary.records);
+      document.getElementById('s-days').textContent = nfInt.format(summary.trading_days);
+      document.getElementById('s-days-sub').textContent =
+        days.length ? formatDate(days[0].date) + ' – ' + formatDate(days[days.length - 1].date) : '';
+      document.getElementById('s-amount').textContent = has ? compactMoney(summary.total_amount) + ' тг' : '—';
+      document.getElementById('s-amount-sub').textContent = has ? fullMoney(summary.total_amount) : '';
+      document.getElementById('s-noamount').textContent = has ? percent(summary.share_without_amount) : '—';
+      document.getElementById('s-noamount-sub').textContent = has
+        ? nfInt.format(summary.records_without_amount) + ' из ' + nfInt.format(summary.records) + ' ' +
+          plural(summary.records, RECORDS_GEN)
+        : '';
+      if (has && summary.records_without_amount > 0) {
+        noteBox.hidden = false;
+        noteBox.textContent = 'У ' + nfInt.format(summary.records_without_amount) + ' ' +
+          plural(summary.records_without_amount, RECORDS_GEN) + ' (' + percent(summary.share_without_amount) +
+          ') нет суммы сделки: они учтены в числе записей и дней, но не входят в суммы и топы.';
+      } else {
+        noteBox.hidden = true;
+      }
+    }
+
+    function renderProductSelect(products, selected) {
+      const select = inputs.product_id;
+      clear(select);
+      if (!products.length && !selected) {
+        select.appendChild(el('option', { value: '', text: 'Нет товаров' }));
+        select.disabled = true;
+        return;
+      }
+      products.forEach((p) => {
+        select.appendChild(el('option', {
+          value: String(p.id), title: p.name,
+          text: truncate(p.name, 90) + ' (' + nfInt.format(p.records) + ')',
+        }));
+      });
+      if (selected && !products.some((p) => p.id === selected.id)) {
+        select.appendChild(el('option', { value: String(selected.id), text: truncate(selected.name, 90), title: selected.name }));
+      }
+      select.disabled = false;
+      if (selected) select.value = String(selected.id);
+    }
+
+    function render(data) {
+      state.data = data;
+      renderSummary(data.summary, data.turnover_by_day);
+      renderProductSelect(data.products, data.price_dynamics.product);
+      renderPrice(data.price_dynamics);
+      renderTurnover(data.turnover_by_day);
+      renderTop('products', data.top_products, COLORS.accentBar, 'Нет товаров с суммой сделок');
+      renderParties();
+    }
+
+    /* ---- загрузка ---- */
+
+    function setLoading(on) {
+      loader.hidden = !on;
+      summaryBox.classList.toggle('loading', on);
+      chartsBox.classList.toggle('loading', on);
+      summaryBox.setAttribute('aria-busy', on ? 'true' : 'false');
+    }
+
+    async function load() {
+      const seq = ++requestSeq;
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      const params = filterParams();
+      syncUrl(params);
+      setLoading(true);
+      try {
+        const response = await fetch('/api/analytics/?' + params.toString(), {
+          signal: abortController.signal,
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const data = await response.json();
+        if (seq !== requestSeq) return;
+        errorBox.hidden = true;
+        render(data);
+        setLoading(false);
+      } catch (error) {
+        if (error.name === 'AbortError' || seq !== requestSeq) return;
+        errorText.textContent = 'Не удалось загрузить аналитику: ' + (error.message || 'нет связи с сервером');
+        errorBox.hidden = false;
+        setLoading(false);
+      }
+    }
+
+    /* ---- события ---- */
+
+    /** Смена любого фильтра, кроме самого товара, возвращает график цены к самому частому товару. */
+    function reloadWithDefaultProduct() {
+      inputs.product_id.value = '';
+      load();
+    }
+    const loadDebounced = debounce(reloadWithDefaultProduct, 350);
+    inputs.q.addEventListener('input', loadDebounced);
+    ['exchange', 'date_from', 'date_to'].forEach((key) => {
+      inputs[key].addEventListener('change', () => { loadDebounced.cancel(); reloadWithDefaultProduct(); });
+    });
+    inputs.product_id.addEventListener('change', load);
+    document.getElementById('an-filters-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      loadDebounced.cancel();
+      reloadWithDefaultProduct();
+    });
+    document.getElementById('a-reset').addEventListener('click', () => {
+      FILTER_KEYS.forEach((key) => { inputs[key].value = ''; });
+      loadDebounced.cancel();
+      load();
+    });
+    document.getElementById('an-retry').addEventListener('click', load);
+    roleButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        state.role = button.dataset.role;
+        roleButtons.forEach((b) => {
+          const active = b === button;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        renderParties();
+      });
+    });
+
+    /* ---- старт ---- */
+    if (typeof Chart === 'undefined') {
+      errorText.textContent = 'Библиотека графиков не загружена (static/portal/vendor/chart.umd.min.js).';
+      errorBox.hidden = false;
+      return;
+    }
+    Chart.defaults.font.family = '"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+    Chart.defaults.font.size = 12.5;
+    Chart.defaults.color = COLORS.text;
+    readUrl();
+    load();
+  }
+
   /* ===================================================== запуск */
 
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.page;
     if (page === 'trades') initTrades();
     else if (page === 'status') initStatus();
+    else if (page === 'analytics') initAnalytics();
   });
 })();

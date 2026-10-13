@@ -1,0 +1,127 @@
+{% extends 'portal/base.html' %}
+{% load static %}
+{% block title %}Аналитика{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Аналитика торгов</h1>
+
+<section class="panel filters" aria-label="Фильтры аналитики">
+  <form id="an-filters-form" autocomplete="off" novalidate>
+    <div class="filters-grid">
+      <label class="field">
+        <span class="field-label">Биржа</span>
+        <select name="exchange" id="a-exchange">
+          <option value="">Обе биржи</option>
+          <option value="ets">ETS</option>
+          <option value="caspy">Каспий</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">Период с</span>
+        <input type="date" name="date_from" id="a-date_from">
+      </label>
+      <label class="field">
+        <span class="field-label">Период по</span>
+        <input type="date" name="date_to" id="a-date_to">
+      </label>
+      <label class="field">
+        <span class="field-label">Товар (ключевое слово)</span>
+        <input type="text" name="q" id="a-q" placeholder="например, бензин">
+      </label>
+      <label class="field field-wide">
+        <span class="field-label">Товар для графика цены</span>
+        <select name="product_id" id="a-product_id" disabled>
+          <option value="">Загрузка…</option>
+        </select>
+      </label>
+      <div class="field field-actions">
+        <button type="button" class="btn btn-ghost" id="a-reset">Сбросить</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<div class="loader-bar" id="an-loader" hidden><span></span></div>
+
+<div class="note note-error" id="an-error" role="alert" hidden>
+  <span id="an-error-text"></span>
+  <button type="button" class="btn" id="an-retry">Повторить</button>
+</div>
+
+<section class="summary-cards" id="an-summary" aria-label="Сводка" aria-live="polite">
+  <div class="summary-card">
+    <div class="summary-label">Записей</div>
+    <div class="summary-value" id="s-records">—</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Торговых дней</div>
+    <div class="summary-value" id="s-days">—</div>
+    <div class="summary-sub" id="s-days-sub"></div>
+  </div>
+  <div class="summary-card summary-card-wide">
+    <div class="summary-label">Общая сумма сделок</div>
+    <div class="summary-value" id="s-amount">—</div>
+    <div class="summary-sub" id="s-amount-sub"></div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Записей без суммы</div>
+    <div class="summary-value" id="s-noamount">—</div>
+    <div class="summary-sub" id="s-noamount-sub"></div>
+  </div>
+</section>
+
+<div class="note note-warn" id="an-note" hidden></div>
+
+<div class="charts-grid">
+  <section class="panel chart-panel chart-panel-wide" aria-labelledby="t-price">
+    <div class="chart-head">
+      <h2 class="panel-title" id="t-price">Динамика средневзвешенной цены</h2>
+      <div class="chart-sub" id="price-sub">—</div>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-price" role="img" aria-label="График средневзвешенной цены товара по дням"></canvas>
+      <div class="chart-empty" id="empty-price" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel chart-panel" aria-labelledby="t-turnover">
+    <div class="chart-head">
+      <h2 class="panel-title" id="t-turnover">Оборот по дням</h2>
+      <div class="chart-sub">столбцы — сумма сделок, линия — число сделок</div>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-turnover" role="img" aria-label="Оборот по дням: сумма и число сделок"></canvas>
+      <div class="chart-empty" id="empty-turnover" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel chart-panel" aria-labelledby="t-products">
+    <div class="chart-head">
+      <h2 class="panel-title" id="t-products">Топ-10 товаров по сумме</h2>
+      <div class="chart-sub">сумма сделок, тг</div>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-products" role="img" aria-label="Топ-10 товаров по сумме сделок"></canvas>
+      <div class="chart-empty" id="empty-products" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel chart-panel chart-panel-wide" aria-labelledby="t-parties">
+    <div class="chart-head">
+      <h2 class="panel-title" id="t-parties">Топ-10 участников по сумме</h2>
+      <div class="chart-switch" role="group" aria-label="Роль участника">
+        <button type="button" class="chip is-active" data-role="buyers" aria-pressed="true">Покупатели</button>
+        <button type="button" class="chip" data-role="sellers" aria-pressed="false">Продавцы</button>
+      </div>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-parties" role="img" aria-label="Топ-10 участников торгов по сумме сделок"></canvas>
+      <div class="chart-empty" id="empty-parties" hidden></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'portal/vendor/chart.umd.min.js' %}"></script>
+{% endblock %}
