@@ -76,7 +76,17 @@ def test_http_404_is_not_retried(monkeypatch, no_sleep):
 
 
 @pytest.mark.django_db
-def test_collect_runs_every_exchange_even_if_one_fails():
+def test_collect_runs_every_exchange_even_if_one_fails(monkeypatch):
+    class BrokenScraper:
+        exchange_code = 'caspy'
+        exchange_name = 'Каспий'
+        website = ''
+        errors: list = []
+
+        def fetch(self, date_from, date_to):
+            raise ScraperError('сайт недоступен')
+
+    monkeypatch.setattr('scrapers.service.SCRAPERS', {'caspy': BrokenScraper}, raising=False)
     runs = collect(['caspy', 'caspy'], date(2026, 10, 1), date(2026, 10, 14), trigger='schedule')
     assert [run.status for run in runs] == [ParseRun.Status.FAILED] * 2
     assert {run.trigger for run in runs} == {'schedule'}

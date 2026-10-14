@@ -44,10 +44,28 @@
 
 ## Каспий — https://ccx.kz/trading-and-analytics/trading-results
 
-Страница рендерится сервером (Laravel, Blade), параметры в query string: `date_from`, `date_to`, `product_code`, `section_code` (CL уголь и т.д.), `instrument_regulated` (0 спот / 1 регулируемые), `tn_ved`, `broker_buyer_name`, `broker_seller_name`, `buyer_name`, `seller_name`, `delivery_term`, `page`, `per_page`.
-У сайта есть внутренний JSON: `GET /api/internal/trading-results?section_code=…&instrument_regulated=true|false&max_results=N` → `{success, message, data:[{lot_code, lot_name, day_of_trade, basis, delivery_term, …}]}`.
+Страница итогов торгов на сайте при любых фильтрах показывает «Нет данных для отображения» (проверено и из тестовой среды, и из браузера пользователя 14.10.2026). Реально данные отдаёт только внутренний JSON, которым пользуется сайт:
 
-**Статус проверки:** из тестовой среды (14.10.2026) и страница, и API возвращают пустой список («Нет данных для отображения») при любых параметрах. Пока не подтверждено, пустой ли источник на самом деле или данные закрыты по региону/сессии. Парсер Каспия пишется по известной структуре и доуточняется по реальному образцу данных.
+`GET /api/internal/trading-results?section_code=CL&instrument_regulated=true|false&max_results=20`
+
+- Возвращает **только последние 20 лотов** по секции и режиму торгов (регулируемые / спот). Любое значение `max_results`, кроме 20, даёт пустой список; параметры дат и страниц игнорируются. Истории сайт не отдаёт, она накапливается ежедневными запусками.
+- Коды секций: `CL` — уголь (данные есть), `OIL` — ГСМ и `CM` — цемент (пока пусто, парсер их опрашивает на случай появления данных).
+- Участников сделок и брокеров биржа не публикует; запись — итог по лоту за день.
+
+Поля ответа и их соответствие единому формату:
+
+| Поле API | Поле в БД |
+|---|---|
+| day_of_trade | trade_date |
+| lot_code / lot_name | product.code / product.name |
+| delivery_term (EXW, FCA, DDP) | delivery_basis |
+| basis (станция, область) | delivery_place |
+| deal_count | deals_count |
+| volume_deals («6 300 тонна») | quantity + unit |
+| avg_price_deals + vat («с НДС» / «без НДС») | price_avg и price_with_vat / price_without_vat |
+| sum_deals | amount |
+
+Не используются: цены спроса и предложения (min/max ask/bid), базовая цена, объёмы заявок.
 
 ## Единый формат (TradeRecord)
 

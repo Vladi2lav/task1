@@ -4,8 +4,7 @@
 # Ежедневный запуск (время Asia/Almaty), после окончания торгов (09:00-16:00)
 hour = 18
 minute = 30
-# "caspy" добавить, когда будет готов парсер Каспия
-exchanges = ["ets"]
+exchanges = ["ets", "caspy"]
 # Сколько последних дней перезагружать при ежедневном запуске
 lookback_days = 3
 
@@ -27,3 +26,5 @@ results_path = "/documents/trading-results/"
 [sources.caspy]
 base_url = "https://ccx.kz"
 results_path = "/trading-and-analytics/trading-results"
+# Секции API: CL — уголь, OIL — ГСМ, CM — цемент (сейчас данные отдаёт только CL)
+sections = ["CL", "OIL", "CM"]

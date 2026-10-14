@@ -4,8 +4,7 @@ from decimal import Decimal
 import pytest
 
 from exchanges.models import Broker, Exchange, ParseRun, Participant, Product, Trade
-from scrapers.base import BaseScraper, TradeRecord
-from scrapers.caspy import CaspyScraper
+from scrapers.base import BaseScraper, ScraperError, TradeRecord
 from scrapers.ets import EtsScraper
 from scrapers.runner import run_scraper
 
@@ -93,8 +92,8 @@ def test_failure_after_some_records_keeps_saved_data():
 
 
 @pytest.mark.django_db
-def test_stub_scraper_is_failed_with_message():
-    run = run_scraper(CaspyScraper(), *PERIOD)
+def test_unavailable_source_is_failed_with_message():
+    run = run_scraper(FakeScraper(fail_with=ScraperError('Сайт Каспия недоступен')), *PERIOD)
     assert run.status == ParseRun.Status.FAILED
     assert 'Каспия' in run.error
 
