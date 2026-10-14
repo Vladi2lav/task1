@@ -146,3 +146,23 @@ class Trade(models.Model):
 
     def __str__(self):
         return f'{self.trade_date} {self.exchange} {self.product}'
+
+
+class News(models.Model):
+    """Новость с сайта биржи (дополнительное задание: лента новостей)."""
+
+    exchange = models.ForeignKey(Exchange, on_delete=models.CASCADE, related_name='news', verbose_name='Биржа')
+    title = models.CharField('Заголовок', max_length=500)
+    published_at = models.DateField('Дата публикации', db_index=True)
+    url = models.URLField('Ссылка', max_length=500, unique=True)
+    summary = models.TextField('Анонс', blank=True)
+    image_url = models.URLField('Картинка', max_length=500, blank=True)
+    created_at = models.DateTimeField('Загружено', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Новость'
+        verbose_name_plural = 'Новости'
+        ordering = ['-published_at', '-id']
+
+    def __str__(self):
+        return self.title

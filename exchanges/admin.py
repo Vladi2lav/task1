@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from .models import Broker, Exchange, ParseRun, Participant, Product, Trade
+from .models import Broker, Exchange, News, ParseRun, Participant, Product, Trade
 
-admin.site.register([Exchange, Product, Participant, Broker])
+admin.site.register([Exchange, Product, Participant, Broker, News])
 
 
 @admin.register(ParseRun)
