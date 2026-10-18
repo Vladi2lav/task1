@@ -28,8 +28,10 @@ news_path = "/press_centre/news/"
 [sources.caspy]
 base_url = "https://ccx.kz"
 results_path = "/trading-and-analytics/trading-results"
-# Секции API: CL — уголь, OIL — ГСМ, CM — цемент (сейчас данные отдаёт только CL)
-sections = ["CL", "OIL", "CM"]
+# Строк на странице итогов (максимум сайта — 1000); период обходится по месяцам
+page_size = 1000
+# Секции запасного API (если страница итогов не работает): CL — уголь, OIL — ГСМ, CM — цемент, SG — сахар
+sections = ["CL", "OIL", "CM", "SG"]
 # лента новостей: /news/category/<категория>?lang=ru&per_page=N&page=M
 news_path = "/news/category/"
 # announcement — объявления (торговые сессии, закупки), corporate — корпоративные новости
