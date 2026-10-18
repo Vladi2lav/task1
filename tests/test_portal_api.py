@@ -53,11 +53,11 @@ def создать_сделку(биржа, товар, дата, **поля):
 @pytest.fixture(autouse=True)
 def чистое_состояние_сбора():
     """Состояние ручного запуска хранится в памяти процесса — сбрасываем между тестами."""
-    collect_runner.дождаться_завершения(2)
-    collect_runner.сбросить_состояние()
+    collect_runner.wait_finished(2)
+    collect_runner.reset_state()
     yield
-    collect_runner.дождаться_завершения(2)
-    collect_runner.сбросить_состояние()
+    collect_runner.wait_finished(2)
+    collect_runner.reset_state()
 
 
 @pytest.fixture
@@ -626,7 +626,7 @@ def подмена_сервиса(monkeypatch):
     monkeypatch.setitem(sys.modules, 'scrapers.service', модуль)
     yield управление
     управление.отпустить.set()
-    collect_runner.дождаться_завершения(3)
+    collect_runner.wait_finished(3)
 
 
 def отправить_сбор(клиент, **тело):
@@ -671,7 +671,7 @@ def test_повторный_запуск_пока_идёт_предыдущий_
     assert len(подмена_сервиса.вызовы) == 1
     # после завершения запуск снова возможен
     подмена_сервиса.отпустить.set()
-    collect_runner.дождаться_завершения(3)
+    collect_runner.wait_finished(3)
     состояние = клиент.get('/api/status/').json()['collect']
     assert состояние['running'] is False and состояние['finished_at'] and состояние['error'] == ''
     подмена_сервиса.начат.clear()
@@ -682,7 +682,7 @@ def test_ошибка_в_collect_не_роняет_портал_и_видна_в
     подмена_сервиса.ошибка = RuntimeError('источник недоступен')
     подмена_сервиса.отпустить.set()
     assert отправить_сбор(клиент).status_code == 202
-    collect_runner.дождаться_завершения(3)
+    collect_runner.wait_finished(3)
     состояние = клиент.get('/api/status/').json()['collect']
     assert состояние['running'] is False
     assert 'источник недоступен' in состояние['error']
@@ -709,7 +709,7 @@ def test_сервис_сбора_недоступен_даёт_503(клиент,
     ответ = отправить_сбор(клиент)
     assert ответ.status_code == 503
     assert 'error' in ответ.json()
-    assert collect_runner.запущен() is False
+    assert collect_runner.is_running() is False
 
 
 @pytest.mark.parametrize('тело', [

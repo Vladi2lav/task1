@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ошибка сервера — ETS и Каспий</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d5fd0'/%3E%3Cpath d='M9 8h14M9 12.5h14M16 12.5V25' stroke='white' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'portal/style.css' %}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">₸</span>
+        <span class="brand-text">
+          <span class="brand-title">Итоги торгов</span>
+          <span class="brand-sub">биржи ETS и Каспий</span>
+        </span>
+      </a>
+    </div>
+  </header>
+  <main class="container" id="main">
+    <section class="panel error-page" aria-labelledby="error-title">
+      <div class="error-code" aria-hidden="true">500</div>
+      <h1 class="page-title" id="error-title">Внутренняя ошибка сервера</h1>
+      <p class="muted">Что-то пошло не так. Попробуйте обновить страницу через минуту.
+        Ранее собранные данные не пострадали.</p>
+      <div class="error-actions">
+        <a class="btn btn-primary" href="/">На главную</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

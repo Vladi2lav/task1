@@ -1,7 +1,9 @@
 {% extends 'portal/base.html' %}
+{% load portal_extras %}
 {% block title %}Итоги торгов{% endblock %}
 
 {% block content %}
+<h1 class="visually-hidden">Итоги торгов бирж ETS и Каспий</h1>
 <section class="panel filters" aria-label="Фильтры">
   <form id="filters-form" autocomplete="off" novalidate>
     <div class="filters-grid">
@@ -45,8 +47,9 @@
         <input type="text" inputmode="decimal" name="amount_max" id="f-amount_max" placeholder="без ограничения">
       </label>
       <label class="field field-wide">
-        <span class="field-label">Место поставки</span>
-        <input type="text" name="delivery" id="f-delivery" placeholder="город, станция, склад" list="dl-delivery">
+        <span class="field-label">Место или базис поставки</span>
+        <input type="text" name="delivery" id="f-delivery" placeholder="город, станция, базис (FCA, EXW…)" list="dl-delivery"
+               title="Ищется в месте поставки, базисе поставки, а у записей без места — в названии товара">
         <datalist id="dl-delivery"></datalist>
       </label>
       <div class="field field-actions">
@@ -97,5 +100,25 @@
   </div>
 
   <nav class="pagination" id="pagination" aria-label="Страницы"></nav>
+</section>
+
+<section class="panel latest-news" aria-labelledby="latest-news-title">
+  <div class="panel-head">
+    <h2 class="panel-title" id="latest-news-title">Последние новости</h2>
+    <a class="panel-link" href="{% url 'portal:news' %}">Все новости →</a>
+  </div>
+  {% if latest_news %}
+  <ul class="latest-news-list">
+    {% for item in latest_news %}
+    <li class="latest-news-item">
+      <time class="news-date" datetime="{{ item.published_at|date:'Y-m-d' }}">{{ item.published_at|date:'d.m.Y' }}</time>
+      <span class="badge badge-{% if item.exchange.code == 'caspy' %}caspy{% else %}ets{% endif %}">{{ item.exchange.name }}</span>
+      {% with link=item.url|http_url %}{% if link %}<a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>{% else %}<span>{{ item.title }}</span>{% endif %}{% endwith %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Новостей пока нет — запустите сбор новостей.</p>
+  {% endif %}
 </section>
 {% endblock %}

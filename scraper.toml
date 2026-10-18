@@ -22,9 +22,28 @@ user_agent = "Mozilla/5.0 (compatible; TradeResultsStudentBot/1.0; educational p
 [sources.ets]
 base_url = "https://ets.kz"
 results_path = "/documents/trading-results/"
+# лента новостей (Битрикс, страницы ?PAGEN_1=N)
+news_path = "/press_centre/news/"
 
 [sources.caspy]
 base_url = "https://ccx.kz"
 results_path = "/trading-and-analytics/trading-results"
 # Секции API: CL — уголь, OIL — ГСМ, CM — цемент (сейчас данные отдаёт только CL)
 sections = ["CL", "OIL", "CM"]
+# лента новостей: /news/category/<категория>?lang=ru&per_page=N&page=M
+news_path = "/news/category/"
+# announcement — объявления (торговые сессии, закупки), corporate — корпоративные новости
+news_categories = ["announcement", "corporate"]
+# новостей на странице списка (сайт принимает 10, 20, 30, 50)
+news_per_page = 50
+
+[news]
+# Сбор новостей с сайтов бирж (python manage.py collect_news)
+# Включить сбор новостей в ежедневный планировщик (после сбора итогов торгов)
+enabled = true
+# За сколько последних дней собирать новости по умолчанию
+days = 92
+# Не больше стольких страниц списка на одну ленту (защита от бесконечного обхода)
+max_pages = 10
+# Открывать страницу каждой новой новости, чтобы взять анонс и картинку (1 запрос на новость)
+details = true

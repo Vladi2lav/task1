@@ -2,9 +2,13 @@
 import json
 import logging
 import math
+from collections import Counter
 from datetime import date, timedelta
+from urllib.parse import urlencode
 
 from django.conf import settings
+from django.core.management import get_commands
+from django.core.paginator import Paginator
 from django.db.models import Count, Max, Min, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
@@ -12,310 +16,473 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from exchanges.models import Broker, Exchange, ParseRun, Participant, Product, Trade
+from exchanges.models import Broker, Exchange, News, ParseRun, Participant, Product, Trade
 
-from . import analytics, collect_runner
-from .excel_export import собрать_xlsx
+from . import analytics, collect_runner, legal
+from .excel_export import build_xlsx
 from .queries import (
-    КОДЫ_БИРЖ,
-    ОшибкаПараметров,
-    выборка_итогов,
-    разобрать_страницу,
+    EXCHANGE_CODES,
+    NEWS_PAGE_SIZE_DEFAULT,
+    NEWS_PAGE_SIZE_MAX,
+    NEWS_PAGE_SIZE_MIN,
+    ParamError,
+    parse_page,
+    select_news,
+    select_trades,
 )
-from .serializers import запуск_в_словарь, итог_в_словарь
+from .serializers import news_to_dict, run_to_dict, trade_to_dict
 
 logger = logging.getLogger(__name__)
 
 # Названия бирж по умолчанию (пока в БД нет записей Exchange)
-НАЗВАНИЯ_БИРЖ = {'ets': 'ETS', 'caspy': 'Каспий'}
+DEFAULT_EXCHANGE_NAMES = {'ets': 'ETS', 'caspy': 'Каспий'}
 
 # Глубина ручного запуска, дней
-ГЛУБИНА_МИН, ГЛУБИНА_МАКС = 1, 366
+COLLECT_DAYS_MIN, COLLECT_DAYS_MAX = 1, 366
 
-ПОЛЯ_ПОДСКАЗОК = ('product', 'party', 'broker', 'delivery')
+SUGGEST_FIELDS = ('product', 'party', 'broker', 'delivery')
+
+# Сколько новостей показывать в блоке «Последние новости»
+LATEST_NEWS_COUNT = 5
+
+READ_ONLY_MESSAGE = (
+    'Демо-версия: сбор данных отключён. Запустите проект локально, '
+    'чтобы собирать данные с сайтов бирж.'
+)
 
 
-def _json(данные, status=200):
+def is_read_only() -> bool:
+    """Режим «только чтение» (демо-развёртывание): ручной сбор недоступен."""
+    return bool(getattr(settings, 'PORTAL_READ_ONLY', False))
+
+
+# Значок сайта (тот же, что inline в base.html) — для браузеров, запрашивающих /favicon.ico
+FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    '<rect width="32" height="32" rx="8" fill="#1d5fd0"/>'
+    '<path d="M9 8h14M9 12.5h14M16 12.5V25" stroke="white" stroke-width="3" '
+    'stroke-linecap="round" fill="none"/></svg>'
+)
+
+
+@require_GET
+def favicon(request):
+    response = HttpResponse(FAVICON_SVG, content_type='image/svg+xml')
+    response['Cache-Control'] = 'public, max-age=604800'
+    return response
+
+
+def _json(data, status=200):
     """JsonResponse с русским текстом без \\uXXXX."""
-    return JsonResponse(данные, status=status, json_dumps_params={'ensure_ascii': False})
+    return JsonResponse(data, status=status, json_dumps_params={'ensure_ascii': False})
 
 
-def _ошибка(сообщение, status=400):
-    return _json({'error': сообщение}, status=status)
+def _error(message, status=400):
+    return _json({'error': message}, status=status)
+
+
+def _exchange_names() -> dict:
+    """Код биржи -> название: из БД, недостающие — по умолчанию."""
+    names = {e.code: e.name for e in Exchange.objects.order_by('id')}
+    for code, name in DEFAULT_EXCHANGE_NAMES.items():
+        names.setdefault(code, name)
+    return names
+
+
+def _latest_news(limit=LATEST_NEWS_COUNT) -> list:
+    return list(News.objects.select_related('exchange').order_by('-published_at', '-id')[:limit])
+
+
+def _news_commands() -> list:
+    """Management-команды сбора новостей, если они есть в проекте."""
+    return sorted(name for name in get_commands() if 'news' in name)
 
 
 # ----------------------------------------------------------------- страницы
 
 @ensure_csrf_cookie
-def страница_торгов(request):
+def trades_page(request):
     """Главная: таблица итогов торгов (данные подгружает JS через /api/trades/)."""
-    return render(request, 'portal/trades.html', {'page': 'trades'})
+    return render(request, 'portal/trades.html', {
+        'page': 'trades',
+        'latest_news': _latest_news(),
+    })
 
 
 @ensure_csrf_cookie
-def страница_аналитики(request):
+def analytics_page(request):
     """Аналитика: фильтры, карточки сводки и графики (данные подгружает JS через /api/analytics/)."""
     return render(request, 'portal/analytics.html', {'page': 'analytics'})
 
 
 @ensure_csrf_cookie
-def страница_состояния(request):
+def status_page(request):
     """Состояние данных и ручной запуск сбора."""
-    конфиг = getattr(settings, 'SCRAPER_CONFIG', {})
+    config = getattr(settings, 'SCRAPER_CONFIG', {})
     return render(
         request,
         'portal/status.html',
         {
             'page': 'status',
-            'глубина_по_умолчанию': конфиг.get('schedule', {}).get('lookback_days', 3),
-            'глубина_истории': конфиг.get('history', {}).get('days', 92),
-            'глубина_мин': ГЛУБИНА_МИН,
-            'глубина_макс': ГЛУБИНА_МАКС,
+            'read_only': is_read_only(),
+            'default_days': config.get('schedule', {}).get('lookback_days', 3),
+            'history_days': config.get('history', {}).get('days', 92),
+            'days_min': COLLECT_DAYS_MIN,
+            'days_max': COLLECT_DAYS_MAX,
+            'news_commands': _news_commands(),
         },
     )
+
+
+def _page_numbers(current: int, total: int) -> list:
+    """Номера страниц для пагинации: первая, последняя и ±2 от текущей; None — разрыв «…»."""
+    visible = {1, total} | {p for p in range(current - 2, current + 3) if 1 <= p <= total}
+    numbers, previous = [], 0
+    for number in sorted(visible):
+        if number - previous > 1:
+            numbers.append(None)
+        numbers.append(number)
+        previous = number
+    return numbers
+
+
+def news_page(request):
+    """Лента новостей бирж: фильтр по бирже, поиск по заголовку, пагинация (без JS)."""
+    try:
+        qs, exchange, q = select_news(request.GET)
+    except ParamError:
+        # неизвестная биржа в адресе — показываем все новости
+        qs, exchange, q = select_news({'q': request.GET.get('q', '')})
+    paginator = Paginator(qs, NEWS_PAGE_SIZE_DEFAULT)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    filters_query = urlencode([(key, value) for key, value in (('exchange', exchange), ('q', q)) if value])
+    return render(request, 'portal/news.html', {
+        'page': 'news',
+        'news_list': page_obj.object_list,
+        'page_obj': page_obj,
+        'page_numbers': _page_numbers(page_obj.number, paginator.num_pages) if paginator.num_pages > 1 else [],
+        'filters_query': filters_query,
+        'exchange': exchange,
+        'q': q,
+        'exchanges': list(_exchange_names().items()),
+        'has_any_news': News.objects.exists(),
+        'news_commands': _news_commands(),
+    })
+
+
+def _legal_page(template, page):
+    def view(request):
+        return render(request, template, {'page': page, **legal.legal_context()})
+    view.__name__ = page.replace('-', '_') + '_page'
+    view.__doc__ = f'Юридическая страница ({template}).'
+    return view
+
+
+legal_terms_page = _legal_page('portal/legal/terms.html', 'legal-terms')
+legal_privacy_page = _legal_page('portal/legal/privacy.html', 'legal-privacy')
+
+
+def legal_cookies_page(request):
+    """Политика использования cookie: сроки берутся из фактических настроек Django."""
+    return render(request, 'portal/legal/cookies.html', {
+        'page': 'legal-cookies',
+        'csrf_cookie_name': settings.CSRF_COOKIE_NAME,
+        'csrf_cookie_days': round(settings.CSRF_COOKIE_AGE / 86400),
+        'session_cookie_name': settings.SESSION_COOKIE_NAME,
+        'session_cookie_days': round(settings.SESSION_COOKIE_AGE / 86400),
+        **legal.legal_context(),
+    })
+
+
+def legal_sources_page(request):
+    """Источники данных и лицензии используемых библиотек."""
+    config = getattr(settings, 'SCRAPER_CONFIG', {})
+    return render(request, 'portal/legal/sources.html', {
+        'page': 'legal-sources',
+        'libraries': legal.used_libraries(),
+        'http_config': config.get('http', {}),
+        'schedule_config': config.get('schedule', {}),
+        **legal.legal_context(),
+    })
 
 
 # ---------------------------------------------------------------------- API
 
 @require_GET
-def api_итоги(request):
+def api_trades(request):
     """Список итогов торгов: фильтры, сортировка, пагинация."""
     try:
-        qs, _, ordering = выборка_итогов(request.GET)
-        страница, размер = разобрать_страницу(request.GET)
-    except ОшибкаПараметров as exc:
-        return _ошибка(str(exc))
+        qs, _, ordering = select_trades(request.GET)
+        page, size = parse_page(request.GET)
+    except ParamError as exc:
+        return _error(str(exc))
 
-    всего = qs.count()
-    страниц = max(1, math.ceil(всего / размер))
-    страница = min(страница, страниц)
-    начало = (страница - 1) * размер
-    строки = [итог_в_словарь(t) for t in qs[начало:начало + размер]]
-    сумма = qs.aggregate(s=Sum('amount'))['s'] if всего else None
+    total = qs.count()
+    pages = max(1, math.ceil(total / size))
+    page = min(page, pages)
+    start = (page - 1) * size
+    rows = [trade_to_dict(t) for t in qs[start:start + size]]
+    amount_sum = qs.aggregate(s=Sum('amount'))['s'] if total else None
     return _json({
-        'count': всего,
-        'page': страница,
-        'pages': страниц,
-        'page_size': размер,
+        'count': total,
+        'page': page,
+        'pages': pages,
+        'page_size': size,
         'ordering': ordering,
-        'amount_sum': float(сумма) if сумма is not None else None,
-        'results': строки,
+        'amount_sum': float(amount_sum) if amount_sum is not None else None,
+        'results': rows,
     })
 
 
 @require_GET
-def api_аналитика(request):
+def api_analytics(request):
     """Сводная аналитика: динамика цены, топы, оборот по дням, сводка.
 
     Параметры: exchange, date_from, date_to, q (как в /api/trades/),
     product_id или product_code — товар для графика цены.
     """
     try:
-        return _json(analytics.аналитика(request.GET))
-    except ОшибкаПараметров as exc:
-        return _ошибка(str(exc))
+        return _json(analytics.build_analytics(request.GET))
+    except ParamError as exc:
+        return _error(str(exc))
 
 
 @require_GET
-def api_экспорт_xlsx(request):
+def api_trades_export(request):
     """Экспорт текущей выборки (те же фильтры и сортировка) в Excel."""
     try:
-        qs, фильтры, ordering = выборка_итогов(request.GET)
-    except ОшибкаПараметров as exc:
-        return _ошибка(str(exc))
-    данные, строк, усечено = собрать_xlsx(qs, фильтры, ordering)
-    ответ = HttpResponse(
-        данные,
+        qs, filters, ordering = select_trades(request.GET)
+    except ParamError as exc:
+        return _error(str(exc))
+    data, rows, truncated = build_xlsx(qs, filters, ordering)
+    response = HttpResponse(
+        data,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    имя = f'itogi_torgov_{timezone.localdate():%Y%m%d}.xlsx'
-    ответ['Content-Disposition'] = f'attachment; filename="{имя}"'
-    ответ['X-Export-Rows'] = str(строк)
-    ответ['X-Export-Truncated'] = '1' if усечено else '0'
-    return ответ
+    filename = f'itogi_torgov_{timezone.localdate():%Y%m%d}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['X-Export-Rows'] = str(rows)
+    response['X-Export-Truncated'] = '1' if truncated else '0'
+    return response
 
 
-def _подсказки(поле: str, текст: str, лимит: int = 10) -> list:
+def _sort_key(text: str):
+    return text.lower(), text
+
+
+def _suggestions(field: str, text: str, limit: int = 10) -> list:
     """Подсказки для текстовых фильтров по введённым буквам (без учёта регистра)."""
-    if поле == 'product':
-        qs, имя_поля = Product.objects.filter(name__rucontains=текст), 'name'
-    elif поле == 'party':
-        qs, имя_поля = Participant.objects.filter(name__rucontains=текст), 'name'
-    elif поле == 'broker':
-        qs, имя_поля = Broker.objects.filter(name__rucontains=текст), 'name'
-    else:  # delivery
-        qs = Trade.objects.exclude(delivery_place='').filter(delivery_place__rucontains=текст)
-        имя_поля = 'delivery_place'
-    return list(qs.values_list(имя_поля, flat=True).distinct().order_by(имя_поля)[:лимит])
+    if field == 'delivery':
+        # Место поставки и базис поставки — одним списком
+        values = set()
+        for column in ('delivery_place', 'delivery_basis'):
+            qs = Trade.objects.exclude(**{column: ''}).filter(**{f'{column}__rucontains': text})
+            values.update(qs.values_list(column, flat=True).distinct().order_by(column)[:limit])
+        return sorted(values, key=_sort_key)[:limit]
+    if field == 'product':
+        qs = Product.objects.filter(name__rucontains=text)
+    elif field == 'party':
+        qs = Participant.objects.filter(name__rucontains=text)
+    else:  # broker
+        qs = Broker.objects.filter(name__rucontains=text)
+    return list(qs.values_list('name', flat=True).distinct().order_by('name')[:limit])
+
+
+def _top_delivery_places(limit: int = 30) -> list:
+    """Самые частые места и базисы поставки: [(название, число записей)]."""
+    counts = Counter()
+    for column in ('delivery_place', 'delivery_basis'):
+        rows = Trade.objects.exclude(**{column: ''}).values(column).annotate(n=Count('id'))
+        for row in rows:
+            counts[row[column]] += row['n']
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
 
 
 @require_GET
-def api_фильтры(request):
+def api_filters(request):
     """Данные для выпадающих списков.
 
-    Без параметров: биржи, топ мест поставки, границы дат.
+    Без параметров: биржи, топ мест (и базисов) поставки, границы дат.
     ``?field=product|party|broker|delivery&term=...`` — подсказки по введённому тексту.
     """
-    поле = request.GET.get('field', '').strip()
-    if поле:
-        if поле not in ПОЛЯ_ПОДСКАЗОК:
-            return _ошибка('Параметр field: допустимы ' + ', '.join(ПОЛЯ_ПОДСКАЗОК))
-        текст = request.GET.get('term', '').strip()
-        if len(текст) < 2:
-            return _json({'field': поле, 'suggestions': []})
-        return _json({'field': поле, 'suggestions': _подсказки(поле, текст)})
+    field = request.GET.get('field', '').strip()
+    if field:
+        if field not in SUGGEST_FIELDS:
+            return _error('Параметр field: допустимы ' + ', '.join(SUGGEST_FIELDS))
+        text = request.GET.get('term', '').strip()
+        if len(text) < 2:
+            return _json({'field': field, 'suggestions': []})
+        return _json({'field': field, 'suggestions': _suggestions(field, text)})
 
-    биржи = {e.code: e.name for e in Exchange.objects.order_by('id')}
-    for код, название in НАЗВАНИЯ_БИРЖ.items():
-        биржи.setdefault(код, название)
-    места = (
-        Trade.objects.exclude(delivery_place='')
-        .values('delivery_place')
-        .annotate(n=Count('id'))
-        .order_by('-n', 'delivery_place')[:30]
-    )
-    границы = Trade.objects.aggregate(first=Min('trade_date'), last=Max('trade_date'))
+    bounds = Trade.objects.aggregate(first=Min('trade_date'), last=Max('trade_date'))
     return _json({
-        'exchanges': [{'code': код, 'name': название} for код, название in биржи.items()],
-        'delivery_places': [{'name': м['delivery_place'], 'count': м['n']} for м in места],
-        'date_min': границы['first'].isoformat() if границы['first'] else None,
-        'date_max': границы['last'].isoformat() if границы['last'] else None,
+        'exchanges': [{'code': code, 'name': name} for code, name in _exchange_names().items()],
+        'delivery_places': [{'name': name, 'count': n} for name, n in _top_delivery_places()],
+        'date_min': bounds['first'].isoformat() if bounds['first'] else None,
+        'date_max': bounds['last'].isoformat() if bounds['last'] else None,
     })
 
 
 @require_GET
-def api_состояние(request):
+def api_status(request):
     """Состояние данных: по каждой бирже и журнал запусков."""
-    итоги = {
+    totals = {
         r['exchange__code']: r
         for r in Trade.objects.values('exchange__code').annotate(n=Count('id'), last=Max('trade_date'))
     }
-    биржи = list(Exchange.objects.order_by('id'))
-    известные = {e.code for e in биржи}
-    элементы = [(e.code, e.name, e) for e in биржи] + [
-        (код, название, None) for код, название in НАЗВАНИЯ_БИРЖ.items() if код not in известные
+    exchanges = list(Exchange.objects.order_by('id'))
+    known = {e.code for e in exchanges}
+    items = [(e.code, e.name, e) for e in exchanges] + [
+        (code, name, None) for code, name in DEFAULT_EXCHANGE_NAMES.items() if code not in known
     ]
-    данные_бирж = []
-    for код, название, биржа in элементы:
-        сводка = итоги.get(код, {})
-        последний = успешный = None
-        if биржа is not None:
-            запуски = ParseRun.objects.filter(exchange=биржа).select_related('exchange').order_by('-started_at', '-id')
-            последний = запуски.first()
-            успешный = запуски.filter(status__in=[ParseRun.Status.SUCCESS, ParseRun.Status.PARTIAL]).first()
-        данные_бирж.append({
-            'code': код,
-            'name': название,
-            'trades_count': сводка.get('n', 0),
-            'last_trade_date': сводка['last'].isoformat() if сводка.get('last') else None,
-            'last_run': запуск_в_словарь(последний) if последний else None,
+    exchanges_data = []
+    for code, name, exchange in items:
+        stats = totals.get(code, {})
+        last_run = last_success = None
+        if exchange is not None:
+            runs = ParseRun.objects.filter(exchange=exchange).select_related('exchange').order_by('-started_at', '-id')
+            last_run = runs.first()
+            last_success = runs.filter(status__in=[ParseRun.Status.SUCCESS, ParseRun.Status.PARTIAL]).first()
+        exchanges_data.append({
+            'code': code,
+            'name': name,
+            'trades_count': stats.get('n', 0),
+            'last_trade_date': stats['last'].isoformat() if stats.get('last') else None,
+            'last_run': run_to_dict(last_run) if last_run else None,
             'last_success_at': (
-                timezone.localtime(успешный.finished_at or успешный.started_at).isoformat() if успешный else None
+                timezone.localtime(last_success.finished_at or last_success.started_at).isoformat()
+                if last_success else None
             ),
         })
-    последние = ParseRun.objects.select_related('exchange').order_by('-started_at', '-id')[:10]
+    recent_runs = ParseRun.objects.select_related('exchange').order_by('-started_at', '-id')[:10]
     return _json({
-        'exchanges': данные_бирж,
-        'total_trades': sum(e['trades_count'] for e in данные_бирж),
-        'runs': [запуск_в_словарь(r) for r in последние],
+        'exchanges': exchanges_data,
+        'total_trades': sum(e['trades_count'] for e in exchanges_data),
+        'runs': [run_to_dict(r) for r in recent_runs],
         'collect': {
-            **collect_runner.получить_состояние(),
+            **collect_runner.get_state(),
             # Идёт запуск из другого процесса (планировщик, командная строка)
             'running_elsewhere': (
-                not collect_runner.запущен() and collect_runner.есть_активный_запуск_в_журнале()
+                not collect_runner.is_running() and collect_runner.has_active_run_in_log()
             ),
         },
+        'read_only': is_read_only(),
         'server_time': timezone.localtime().isoformat(),
+    })
+
+
+@require_GET
+def api_news(request):
+    """Лента новостей: exchange, q (поиск по заголовку), page, page_size (1–100, по умолчанию 20)."""
+    try:
+        qs, _, _ = select_news(request.GET)
+        page, size = parse_page(request.GET, NEWS_PAGE_SIZE_DEFAULT, NEWS_PAGE_SIZE_MIN, NEWS_PAGE_SIZE_MAX)
+    except ParamError as exc:
+        return _error(str(exc))
+    total = qs.count()
+    pages = max(1, math.ceil(total / size))
+    page = min(page, pages)
+    start = (page - 1) * size
+    return _json({
+        'count': total,
+        'page': page,
+        'pages': pages,
+        'page_size': size,
+        'results': [news_to_dict(item) for item in qs[start:start + size]],
     })
 
 
 # ----------------------------------------------------------- ручной запуск
 
-def _разобрать_тело(request) -> dict:
+def _parse_body(request) -> dict:
     """Параметры запуска из JSON-тела или из формы."""
     if 'json' in (request.content_type or ''):
         try:
-            данные = json.loads(request.body or b'{}')
+            data = json.loads(request.body or b'{}')
         except ValueError:
-            raise ОшибкаПараметров('Тело запроса: некорректный JSON')
-        if not isinstance(данные, dict):
-            raise ОшибкаПараметров('Тело запроса: ожидается JSON-объект')
-        return данные
-    данные = {ключ: request.POST.get(ключ) for ключ in request.POST}
+            raise ParamError('Тело запроса: некорректный JSON')
+        if not isinstance(data, dict):
+            raise ParamError('Тело запроса: ожидается JSON-объект')
+        return data
+    data = {key: request.POST.get(key) for key in request.POST}
     if 'exchanges' in request.POST:
-        данные['exchanges'] = request.POST.getlist('exchanges')
-    return данные
+        data['exchanges'] = request.POST.getlist('exchanges')
+    return data
 
 
-def _коды_бирж(данные: dict) -> list:
+def _exchange_codes(data: dict) -> list:
     """Коды бирж для запуска: exchanges (список) или exchange (ets|caspy|all)."""
-    сырые = данные.get('exchanges')
-    if сырые in (None, '', []):
-        сырые = данные.get('exchange')
-    if сырые in (None, '', []):
-        return list(КОДЫ_БИРЖ)
-    if isinstance(сырые, str):
-        сырые = сырые.split(',')
-    if not isinstance(сырые, list):
-        raise ОшибкаПараметров('Биржа: допустимы ets, caspy или all')
-    коды = []
-    for код in сырые:
-        код = str(код).strip().lower()
-        if код == 'all':
-            return list(КОДЫ_БИРЖ)
-        if код not in КОДЫ_БИРЖ:
-            raise ОшибкаПараметров('Биржа: допустимы ets, caspy или all')
-        if код not in коды:
-            коды.append(код)
-    return коды
+    raw = data.get('exchanges')
+    if raw in (None, '', []):
+        raw = data.get('exchange')
+    if raw in (None, '', []):
+        return list(EXCHANGE_CODES)
+    if isinstance(raw, str):
+        raw = raw.split(',')
+    if not isinstance(raw, list):
+        raise ParamError('Биржа: допустимы ets, caspy или all')
+    codes = []
+    for code in raw:
+        code = str(code).strip().lower()
+        if code == 'all':
+            return list(EXCHANGE_CODES)
+        if code not in EXCHANGE_CODES:
+            raise ParamError('Биржа: допустимы ets, caspy или all')
+        if code not in codes:
+            codes.append(code)
+    return codes
 
 
-def _период(данные: dict) -> tuple:
+def _collect_period(data: dict) -> tuple:
     """Период сбора: либо date_from/date_to, либо глубина в днях (days)."""
     try:
-        if данные.get('date_from') or данные.get('date_to'):
-            конец = date.fromisoformat(str(данные.get('date_to') or timezone.localdate().isoformat()))
-            начало = date.fromisoformat(str(данные.get('date_from') or конец.isoformat()))
+        if data.get('date_from') or data.get('date_to'):
+            end = date.fromisoformat(str(data.get('date_to') or timezone.localdate().isoformat()))
+            begin = date.fromisoformat(str(data.get('date_from') or end.isoformat()))
         else:
-            сырые_дни = данные.get('days')
-            дни = 3 if сырые_дни in (None, '') else int(сырые_дни)
-            if not ГЛУБИНА_МИН <= дни <= ГЛУБИНА_МАКС:
-                raise ОшибкаПараметров(f'Глубина: от {ГЛУБИНА_МИН} до {ГЛУБИНА_МАКС} дней')
-            конец = timezone.localdate()
-            начало = конец - timedelta(days=дни - 1)
-    except (ValueError, TypeError):
-        raise ОшибкаПараметров('Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней')
-    if начало > конец:
-        raise ОшибкаПараметров('Дата начала позже даты окончания')
-    if (конец - начало).days + 1 > ГЛУБИНА_МАКС:
-        raise ОшибкаПараметров(f'Период не должен превышать {ГЛУБИНА_МАКС} дней')
-    return начало, конец
+            raw_days = data.get('days')
+            days = 3 if raw_days in (None, '') else int(raw_days)
+            if not COLLECT_DAYS_MIN <= days <= COLLECT_DAYS_MAX:
+                raise ParamError(f'Глубина: от {COLLECT_DAYS_MIN} до {COLLECT_DAYS_MAX} дней')
+            end = timezone.localdate()
+            begin = end - timedelta(days=days - 1)
+    except (ValueError, TypeError) as exc:
+        if isinstance(exc, ParamError):
+            raise
+        raise ParamError('Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней')
+    if begin > end:
+        raise ParamError('Дата начала позже даты окончания')
+    if (end - begin).days + 1 > COLLECT_DAYS_MAX:
+        raise ParamError(f'Период не должен превышать {COLLECT_DAYS_MAX} дней')
+    return begin, end
 
 
 @require_POST
-def api_запуск_сбора(request):
+def api_collect(request):
     """Ручной запуск сбора в фоновом потоке (нужен CSRF-токен)."""
+    if is_read_only():
+        return _error(READ_ONLY_MESSAGE, status=403)
     try:
-        данные = _разобрать_тело(request)
-        коды = _коды_бирж(данные)
-        начало, конец = _период(данные)
-    except ОшибкаПараметров as exc:
-        return _ошибка(str(exc))
+        data = _parse_body(request)
+        codes = _exchange_codes(data)
+        begin, end = _collect_period(data)
+    except ParamError as exc:
+        return _error(str(exc))
 
     # Ленивый импорт: функцию сбора пишет отдельный модуль, он может быть недоступен
     try:
         from scrapers.service import collect
     except ImportError as exc:
         logger.warning('Сервис сбора недоступен: %s', exc)
-        return _ошибка('Сервис сбора данных пока не подключён (scrapers.service.collect)', status=503)
+        return _error('Сервис сбора данных пока не подключён (scrapers.service.collect)', status=503)
 
-    if collect_runner.запущен() or collect_runner.есть_активный_запуск_в_журнале():
-        return _ошибка('Сбор уже выполняется — дождитесь завершения', status=409)
-    if not collect_runner.запустить(collect, коды, начало, конец):
-        return _ошибка('Сбор уже выполняется — дождитесь завершения', status=409)
+    if collect_runner.is_running() or collect_runner.has_active_run_in_log():
+        return _error('Сбор уже выполняется — дождитесь завершения', status=409)
+    if not collect_runner.start(collect, codes, begin, end):
+        return _error('Сбор уже выполняется — дождитесь завершения', status=409)
     return _json({
         'started': True,
-        'exchanges': коды,
-        'date_from': начало.isoformat(),
-        'date_to': конец.isoformat(),
+        'exchanges': codes,
+        'date_from': begin.isoformat(),
+        'date_to': end.isoformat(),
     }, status=202)

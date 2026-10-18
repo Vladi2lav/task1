@@ -64,6 +64,45 @@ def parse_date(value: Any) -> Optional[date]:
     return None
 
 
+# родительный падеж («14 октября») и именительный («октябрь 2026»), а также сокращения «окт.»
+_RU_MONTHS = {
+    'январ': 1, 'янв': 1, 'феврал': 2, 'фев': 2, 'март': 3, 'мар': 3, 'апрел': 4, 'апр': 4,
+    'мая': 5, 'май': 5, 'июн': 6, 'июл': 7, 'август': 8, 'авг': 8, 'сентябр': 9, 'сен': 9, 'сент': 9,
+    'октябр': 10, 'окт': 10, 'ноябр': 11, 'ноя': 11, 'декабр': 12, 'дек': 12,
+}
+_RU_DATE = re.compile(r'(\d{1,2})\s+([а-яё]+)\.?\s+(\d{4})', re.IGNORECASE)
+
+
+def _ru_month(word: str) -> Optional[int]:
+    word = word.lower()
+    for stem in sorted(_RU_MONTHS, key=len, reverse=True):  # длинные основы раньше коротких
+        if word.startswith(stem):
+            return _RU_MONTHS[stem]
+    return None
+
+
+def parse_ru_date(value: Any) -> Optional[date]:
+    """Дата с месяцем словом («14 октября 2026», «3 окт. 2026 г.») или в цифрах («14.10.2026»).
+
+    Сначала пробуется parse_date (цифровые форматы), затем поиск «число месяц год» в тексте.
+    """
+    parsed = parse_date(value)
+    if parsed or value is None or isinstance(value, date):
+        return parsed
+    text = clean_text(value)
+    match = _RU_DATE.search(text)
+    if not match:
+        found = re.search(r'\b(\d{1,2}[./]\d{1,2}[./]\d{4})\b', text)  # дата внутри строки
+        return parse_date(found.group(1)) if found else None
+    month = _ru_month(match.group(2))
+    if not month:
+        return None
+    try:
+        return date(int(match.group(3)), month, int(match.group(1)))
+    except ValueError:
+        return None
+
+
 # --- текст ---------------------------------------------------------------
 
 def clean_text(value: Any, max_length: Optional[int] = None) -> str:

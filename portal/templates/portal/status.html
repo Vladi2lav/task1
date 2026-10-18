@@ -9,11 +9,18 @@
   <div class="panel card-skeleton">Загрузка…</div>
 </section>
 
-<section class="panel" aria-label="Ручной запуск сбора">
-  <h2 class="panel-title">Ручной запуск сбора</h2>
+<section class="panel" aria-labelledby="collect-title">
+  <h2 class="panel-title" id="collect-title">Ручной запуск сбора</h2>
+  {% if read_only %}
+  <div class="note note-info" id="read-only-note">
+    <strong>Демо-версия: сбор данных отключён.</strong>
+    Здесь показаны ранее собранные данные. Чтобы собирать новые итоги торгов, запустите проект локально
+    (команды — ниже).
+  </div>
+  {% else %}
   <p class="muted">Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически.
     Повторный запуск недоступен, пока не завершён предыдущий.</p>
-  <form id="collect-form" class="collect-form" data-default-days="{{ глубина_по_умолчанию }}">
+  <form id="collect-form" class="collect-form" data-default-days="{{ default_days }}">
     <label class="field">
       <span class="field-label">Биржа</span>
       <select name="exchange" id="c-exchange">
@@ -24,8 +31,8 @@
     </label>
     <label class="field">
       <span class="field-label">Глубина, дней</span>
-      <input type="number" name="days" id="c-days" min="{{ глубина_мин }}" max="{{ глубина_макс }}"
-             value="{{ глубина_по_умолчанию }}" step="1" required>
+      <input type="number" name="days" id="c-days" min="{{ days_min }}" max="{{ days_max }}"
+             value="{{ default_days }}" step="1" required>
     </label>
     <div class="field field-actions">
       <button type="submit" class="btn btn-primary" id="btn-collect">Запустить сбор вручную</button>
@@ -36,14 +43,36 @@
       <button type="button" class="chip" data-days="3">3 дня</button>
       <button type="button" class="chip" data-days="7">неделя</button>
       <button type="button" class="chip" data-days="30">месяц</button>
-      <button type="button" class="chip" data-days="{{ глубина_истории }}">вся история ({{ глубина_истории }} дн.)</button>
+      <button type="button" class="chip" data-days="{{ history_days }}">вся история ({{ history_days }} дн.)</button>
     </div>
   </form>
   <div class="collect-status" id="collect-status" role="status" aria-live="polite" hidden></div>
+  {% endif %}
+
+  <details class="cli-help"{% if read_only %} open{% endif %}>
+    <summary>Как запустить сбор из консоли</summary>
+    <p class="muted">В папке проекта, с активированным виртуальным окружением:</p>
+    <dl class="cli-list">
+      <div><dt>Обе биржи за последние {{ history_days }} дней (по умолчанию)</dt>
+        <dd><code>python manage.py collect_trades</code></dd></div>
+      <div><dt>Одна биржа за последние N дней</dt>
+        <dd><code>python manage.py collect_trades --exchange ets --days 7</code></dd></div>
+      <div><dt>За произвольный период</dt>
+        <dd><code>python manage.py collect_trades --exchange caspy --since 2026-10-01 --until 2026-10-14</code></dd></div>
+      <div><dt>Ежедневный сбор по расписанию (процесс работает постоянно)</dt>
+        <dd><code>python manage.py run_scheduler</code></dd></div>
+      {% for command in news_commands %}
+      <div><dt>Сбор новостей</dt>
+        <dd><code>python manage.py {{ command }}</code></dd></div>
+      {% endfor %}
+    </dl>
+    <p class="muted">Повторный запуск безопасен: уже сохранённые записи не дублируются. Расписание и паузы между
+      запросами настраиваются в файле <code>scraper.toml</code>.</p>
+  </details>
 </section>
 
-<section class="panel" aria-label="Последние запуски">
-  <h2 class="panel-title">Последние запуски парсеров</h2>
+<section class="panel" aria-labelledby="runs-title">
+  <h2 class="panel-title" id="runs-title">Последние запуски парсеров</h2>
   <div class="table-wrap">
     <table class="data-table" id="runs-table">
       <thead>
@@ -63,7 +92,7 @@
     </table>
     <div class="empty-state" id="runs-empty" hidden>
       <div class="empty-title">Запусков ещё не было</div>
-      <div class="empty-text">Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию.</div>
+      <div class="empty-text">{% if read_only %}В демо-версии сбор не запускается.{% else %}Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию.{% endif %}</div>
     </div>
   </div>
 </section>

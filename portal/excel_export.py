@@ -12,23 +12,24 @@ from openpyxl.utils import get_column_letter
 # Максимум строк в файле по умолчанию (защита от выгрузки всей базы).
 # Можно переопределить в settings.py: PORTAL_EXPORT_MAX_ROWS = 20000.
 # Ориентир по времени: openpyxl записывает около 1000 строк в секунду.
-МАКС_СТРОК_ЭКСПОРТА = 50_000
+EXPORT_MAX_ROWS = 50_000
 
 
-def макс_строк_экспорта() -> int:
-    return int(getattr(settings, 'PORTAL_EXPORT_MAX_ROWS', МАКС_СТРОК_ЭКСПОРТА))
+def export_max_rows() -> int:
+    return int(getattr(settings, 'PORTAL_EXPORT_MAX_ROWS', EXPORT_MAX_ROWS))
 
-ФОРМАТ_ДАТЫ = 'DD.MM.YYYY'
-ФОРМАТ_ВРЕМЕНИ = 'HH:MM:SS'
-ФОРМАТ_ЦЕНЫ = '#,##0.00'
-ФОРМАТ_ОБЪЁМА = '#,##0.000'
-ФОРМАТ_ЦЕЛОГО = '#,##0'
+
+DATE_FORMAT = 'DD.MM.YYYY'
+TIME_FORMAT = 'HH:MM:SS'
+PRICE_FORMAT = '#,##0.00'
+QUANTITY_FORMAT = '#,##0.000'
+INT_FORMAT = '#,##0'
 
 # (заголовок, ширина, функция получения значения из записи Trade, формат ячейки)
-КОЛОНКИ = [
+COLUMNS = [
     ('Биржа', 10, lambda t: t.exchange.name, None),
-    ('Дата торгов', 13, lambda t: t.trade_date, ФОРМАТ_ДАТЫ),
-    ('Время', 10, lambda t: t.trade_time, ФОРМАТ_ВРЕМЕНИ),
+    ('Дата торгов', 13, lambda t: t.trade_date, DATE_FORMAT),
+    ('Время', 10, lambda t: t.trade_time, TIME_FORMAT),
     ('Товар', 50, lambda t: t.product.name, None),
     ('Код товара', 14, lambda t: t.product.code, None),
     ('Код ТН ВЭД', 14, lambda t: t.product.tnved, None),
@@ -38,17 +39,17 @@ def макс_строк_экспорта() -> int:
     ('БИН покупателя', 15, lambda t: t.buyer.bin if t.buyer else '', None),
     ('Брокер продавца', 32, lambda t: t.seller_broker.name if t.seller_broker else '', None),
     ('Брокер покупателя', 32, lambda t: t.buyer_broker.name if t.buyer_broker else '', None),
-    ('Число сделок', 10, lambda t: t.deals_count, ФОРМАТ_ЦЕЛОГО),
-    ('Объём', 14, lambda t: t.quantity, ФОРМАТ_ОБЪЁМА),
+    ('Число сделок', 10, lambda t: t.deals_count, INT_FORMAT),
+    ('Объём', 14, lambda t: t.quantity, QUANTITY_FORMAT),
     ('Ед. изм.', 10, lambda t: t.unit, None),
-    ('Цена открытия, тг', 16, lambda t: t.price_open, ФОРМАТ_ЦЕНЫ),
-    ('Цена закрытия, тг', 16, lambda t: t.price_close, ФОРМАТ_ЦЕНЫ),
-    ('Мин. цена, тг', 16, lambda t: t.price_min, ФОРМАТ_ЦЕНЫ),
-    ('Макс. цена, тг', 16, lambda t: t.price_max, ФОРМАТ_ЦЕНЫ),
-    ('Средневзв. цена, тг', 18, lambda t: t.price_avg, ФОРМАТ_ЦЕНЫ),
-    ('Цена с НДС, тг', 16, lambda t: t.price_with_vat, ФОРМАТ_ЦЕНЫ),
-    ('Цена без НДС, тг', 16, lambda t: t.price_without_vat, ФОРМАТ_ЦЕНЫ),
-    ('Сумма сделки, тг', 20, lambda t: t.amount, ФОРМАТ_ЦЕНЫ),
+    ('Цена открытия, тг', 16, lambda t: t.price_open, PRICE_FORMAT),
+    ('Цена закрытия, тг', 16, lambda t: t.price_close, PRICE_FORMAT),
+    ('Мин. цена, тг', 16, lambda t: t.price_min, PRICE_FORMAT),
+    ('Макс. цена, тг', 16, lambda t: t.price_max, PRICE_FORMAT),
+    ('Средневзв. цена, тг', 18, lambda t: t.price_avg, PRICE_FORMAT),
+    ('Цена с НДС, тг', 16, lambda t: t.price_with_vat, PRICE_FORMAT),
+    ('Цена без НДС, тг', 16, lambda t: t.price_without_vat, PRICE_FORMAT),
+    ('Сумма сделки, тг', 20, lambda t: t.amount, PRICE_FORMAT),
     ('Базис поставки', 22, lambda t: t.delivery_basis, None),
     ('Место поставки', 30, lambda t: t.delivery_place, None),
     ('Срок поставки', 22, lambda t: t.delivery_term, None),
@@ -56,108 +57,108 @@ def макс_строк_экспорта() -> int:
 ]
 
 
-_СТИЛИ_ФОРМАТОВ = {}
+_FORMAT_STYLES = {}
 
 
-def _стиль_формата(лист, формат):
+def _format_style(sheet, number_format):
     """Готовый «стиль ячейки» для числового формата (создаётся один раз на формат).
 
     Присвоение готового стиля намного быстрее, чем выставление number_format
     в каждой из миллиона ячеек.
     """
-    ключ = (id(лист.parent), формат)
-    if ключ not in _СТИЛИ_ФОРМАТОВ:
-        образец = WriteOnlyCell(лист)
-        образец.number_format = формат
-        _СТИЛИ_ФОРМАТОВ[ключ] = образец._style
-    return _СТИЛИ_ФОРМАТОВ[ключ]
+    key = (id(sheet.parent), number_format)
+    if key not in _FORMAT_STYLES:
+        sample = WriteOnlyCell(sheet)
+        sample.number_format = number_format
+        _FORMAT_STYLES[key] = sample._style
+    return _FORMAT_STYLES[key]
 
 
-def _ячейка(лист, значение, формат=None):
+def _cell(sheet, value, number_format=None):
     """Значение для записи в строку: простые значения — как есть, с форматом — ячейка со стилем.
 
     Decimal переводится в float, пустое — в None. Строки, начинающиеся с «=»,
     явно помечаются как текст, чтобы Excel не воспринял данные биржи как формулу.
     """
-    if значение == '' or значение is None:
+    if value == '' or value is None:
         return None
-    if hasattr(значение, 'as_tuple'):  # Decimal
-        значение = float(значение)
-    if isinstance(значение, str):
-        if значение[:1] == '=':
-            ячейка = WriteOnlyCell(лист, value=значение)
-            ячейка.data_type = 's'
-            return ячейка
-        return значение
-    if формат:
-        ячейка = WriteOnlyCell(лист, value=значение)
-        ячейка._style = copy(_стиль_формата(лист, формат))
-        return ячейка
-    return значение
+    if hasattr(value, 'as_tuple'):  # Decimal
+        value = float(value)
+    if isinstance(value, str):
+        if value[:1] == '=':
+            cell = WriteOnlyCell(sheet, value=value)
+            cell.data_type = 's'
+            return cell
+        return value
+    if number_format:
+        cell = WriteOnlyCell(sheet, value=value)
+        cell._style = copy(_format_style(sheet, number_format))
+        return cell
+    return value
 
 
-def описание_фильтров(фильтры, ordering, выгружено, усечено, предел):
+def describe_filters(filters, ordering, exported, truncated, limit):
     """Строки для листа «Параметры»: какие фильтры были применены."""
-    названия_бирж = {'ets': 'ETS', 'caspy': 'Каспий', '': 'Обе биржи'}
-    строки = [
+    exchange_names = {'ets': 'ETS', 'caspy': 'Каспий', '': 'Обе биржи'}
+    rows = [
         ('Дата выгрузки', timezone.localtime().strftime('%d.%m.%Y %H:%M')),
-        ('Биржа', названия_бирж.get(фильтры.exchange, фильтры.exchange)),
-        ('Период с', фильтры.date_from.strftime('%d.%m.%Y') if фильтры.date_from else ''),
-        ('Период по', фильтры.date_to.strftime('%d.%m.%Y') if фильтры.date_to else ''),
-        ('Товар (ключевое слово)', фильтры.q),
-        ('Продавец / покупатель', фильтры.party),
-        ('Брокер', фильтры.broker),
-        ('Сумма от, тг', float(фильтры.amount_min) if фильтры.amount_min is not None else ''),
-        ('Сумма до, тг', float(фильтры.amount_max) if фильтры.amount_max is not None else ''),
-        ('Место поставки', фильтры.delivery),
+        ('Биржа', exchange_names.get(filters.exchange, filters.exchange)),
+        ('Период с', filters.date_from.strftime('%d.%m.%Y') if filters.date_from else ''),
+        ('Период по', filters.date_to.strftime('%d.%m.%Y') if filters.date_to else ''),
+        ('Товар (ключевое слово)', filters.q),
+        ('Продавец / покупатель', filters.party),
+        ('Брокер', filters.broker),
+        ('Сумма от, тг', float(filters.amount_min) if filters.amount_min is not None else ''),
+        ('Сумма до, тг', float(filters.amount_max) if filters.amount_max is not None else ''),
+        ('Место поставки', filters.delivery),
         ('Сортировка', ordering),
-        ('Строк в файле', выгружено),
+        ('Строк в файле', exported),
     ]
-    if усечено:
-        строки.append(
-            ('Внимание', f'Выгрузка ограничена {предел:,} строками — уточните фильтры'.replace(',', ' '))
+    if truncated:
+        rows.append(
+            ('Внимание', f'Выгрузка ограничена {limit:,} строками — уточните фильтры'.replace(',', ' '))
         )
-    return строки
+    return rows
 
 
-def собрать_xlsx(qs, фильтры, ordering) -> tuple:
+def build_xlsx(qs, filters, ordering) -> tuple:
     """Строит xlsx по queryset (с select_related). Возвращает (байты, число_строк, усечено)."""
-    книга = Workbook(write_only=True)
-    лист = книга.create_sheet('Итоги торгов')
-    for номер, (_, ширина, _, _) in enumerate(КОЛОНКИ, start=1):
-        лист.column_dimensions[get_column_letter(номер)].width = ширина
-    лист.freeze_panes = 'A2'
+    book = Workbook(write_only=True)
+    sheet = book.create_sheet('Итоги торгов')
+    for number, (_, width, _, _) in enumerate(COLUMNS, start=1):
+        sheet.column_dimensions[get_column_letter(number)].width = width
+    sheet.freeze_panes = 'A2'
 
-    шрифт = Font(bold=True, color='FFFFFF')
-    заливка = PatternFill('solid', fgColor='1F4E79')
-    выравнивание = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    заголовок = []
-    for название, *_ in КОЛОНКИ:
-        ячейка = WriteOnlyCell(лист, value=название)
-        ячейка.font = шрифт
-        ячейка.fill = заливка
-        ячейка.alignment = выравнивание
-        заголовок.append(ячейка)
-    лист.append(заголовок)
+    font = Font(bold=True, color='FFFFFF')
+    fill = PatternFill('solid', fgColor='1F4E79')
+    alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    header = []
+    for title, *_ in COLUMNS:
+        cell = WriteOnlyCell(sheet, value=title)
+        cell.font = font
+        cell.fill = fill
+        cell.alignment = alignment
+        header.append(cell)
+    sheet.append(header)
 
-    выгружено = 0
-    усечено = False
+    exported = 0
+    truncated = False
     # Берём на одну строку больше лимита, чтобы понять, что выборка обрезана
-    предел = макс_строк_экспорта()
-    for t in qs[: предел + 1].iterator(chunk_size=2000):
-        if выгружено >= предел:
-            усечено = True
+    limit = export_max_rows()
+    for t in qs[: limit + 1].iterator(chunk_size=2000):
+        if exported >= limit:
+            truncated = True
             break
-        лист.append([_ячейка(лист, получить(t), формат) for _, _, получить, формат in КОЛОНКИ])
-        выгружено += 1
-    лист.auto_filter.ref = f'A1:{get_column_letter(len(КОЛОНКИ))}{max(выгружено, 1) + 1}'
+        sheet.append([_cell(sheet, getter(t), fmt) for _, _, getter, fmt in COLUMNS])
+        exported += 1
+    sheet.auto_filter.ref = f'A1:{get_column_letter(len(COLUMNS))}{max(exported, 1) + 1}'
 
-    параметры = книга.create_sheet('Параметры')
-    параметры.column_dimensions['A'].width = 28
-    параметры.column_dimensions['B'].width = 60
-    for строка in описание_фильтров(фильтры, ordering, выгружено, усечено, предел):
-        параметры.append([_ячейка(параметры, значение) for значение in строка])
+    params_sheet = book.create_sheet('Параметры')
+    params_sheet.column_dimensions['A'].width = 28
+    params_sheet.column_dimensions['B'].width = 60
+    for row in describe_filters(filters, ordering, exported, truncated, limit):
+        params_sheet.append([_cell(params_sheet, value) for value in row])
 
-    буфер = BytesIO()
-    книга.save(буфер)
-    return буфер.getvalue(), выгружено, усечено
+    buffer = BytesIO()
+    book.save(buffer)
+    return buffer.getvalue(), exported, truncated

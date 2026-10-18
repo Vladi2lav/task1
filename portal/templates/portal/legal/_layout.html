@@ -1,0 +1,20 @@
+{% extends 'portal/base.html' %}
+
+{% block content %}
+<div class="legal-layout">
+  <nav class="legal-nav panel" aria-label="Правовые документы">
+    <h2 class="legal-nav-title">Правовая информация</h2>
+    <a href="{% url 'portal:legal_terms' %}" {% if page == 'legal-terms' %}aria-current="page" class="active"{% endif %}>Пользовательское соглашение</a>
+    <a href="{% url 'portal:legal_privacy' %}" {% if page == 'legal-privacy' %}aria-current="page" class="active"{% endif %}>Политика конфиденциальности</a>
+    <a href="{% url 'portal:legal_cookies' %}" {% if page == 'legal-cookies' %}aria-current="page" class="active"{% endif %}>Политика cookie</a>
+    <a href="{% url 'portal:legal_sources' %}" {% if page == 'legal-sources' %}aria-current="page" class="active"{% endif %}>Источники данных и лицензии</a>
+  </nav>
+  <article class="legal-doc panel">
+    {% block legal_body %}{% endblock %}
+    <footer class="legal-meta">
+      <p>Дата редакции: {{ edition_date }}</p>
+      <p>Владелец сайта: {{ site_owner }}. Контакт: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+    </footer>
+  </article>
+</div>
+{% endblock %}

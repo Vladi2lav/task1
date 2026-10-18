@@ -1,0 +1,61 @@
+{% extends 'portal/legal/_layout.html' %}
+{% block title %}Источники данных и лицензии{% endblock %}
+{% block description %}Откуда берутся данные портала «Итоги торгов бирж ETS и Каспий» и какие открытые библиотеки он использует.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Источники данных и лицензии</h1>
+
+<h2>1. Биржи — источники данных</h2>
+<div class="sources-grid">
+  {% for source in data_sources %}
+  <section class="source-card">
+    <h3><span class="badge badge-{{ source.code }}">{{ source.short }}</span> {{ source.name }}</h3>
+    <dl>
+      <div><dt>Сайт</dt><dd><a href="{{ source.site }}" target="_blank" rel="noopener noreferrer">{{ source.site }}</a></dd></div>
+      <div><dt>Итоги торгов</dt><dd><a href="{{ source.page }}" target="_blank" rel="noopener noreferrer">{{ source.page }}</a></dd></div>
+      <div><dt>Что берётся</dt><dd>{{ source.how }}</dd></div>
+    </dl>
+  </section>
+  {% endfor %}
+</div>
+<p>Права на исходные сведения принадлежат биржам. Портал не является официальным ресурсом бирж; при
+  расхождениях верными считаются сведения на сайте биржи.</p>
+
+<h2>2. Как собираются данные</h2>
+<ul>
+  <li>используются только публичные страницы и файлы, доступные любому посетителю без регистрации и входа;
+    технические ограничения сайтов не обходятся;</li>
+  <li>запросы выполняются последовательно в один поток, с паузой
+    {% if http_config.delay_seconds %}{{ http_config.delay_seconds }} с{% else %}не менее секунды{% endif %}
+    между запросами и ограниченным числом повторов при ошибках;</li>
+  <li>запросы подписаны понятным заголовком User-Agent{% if http_config.user_agent %}
+    (<code>{{ http_config.user_agent }}</code>){% endif %}, указывающим на учебный проект;</li>
+  <li>сбор выполняется один раз в день{% if schedule_config.hour is not None %} (около {{ schedule_config.hour|stringformat:"02d" }}:{{ schedule_config.minute|default:0|stringformat:"02d" }} по времени Казахстана){% endif %}
+    после окончания торгов, повторно загружаются только последние дни; дубли не сохраняются;</li>
+  <li>сведения приводятся к единому формату (даты, числа, регистр, БИН) без изменения их смысла;</li>
+  <li>портал при открытии страниц к сайтам бирж не обращается — он показывает только сохранённую базу.</li>
+</ul>
+
+<h2>3. Открытые библиотеки</h2>
+<p>Портал создан с использованием свободного программного обеспечения. Библиотеки распространяются на
+  условиях их лицензий; авторские права принадлежат их авторам.</p>
+<div class="table-wrap legal-table">
+  <table class="data-table" id="licenses-table">
+    <thead>
+      <tr><th scope="col">Библиотека</th><th scope="col">Назначение</th><th scope="col">Лицензия</th></tr>
+    </thead>
+    <tbody>
+      {% for lib in libraries %}
+      <tr>
+        <td>{{ lib.name }}</td>
+        <td>{{ lib.purpose }}</td>
+        <td><a href="{{ lib.url }}" target="_blank" rel="noopener noreferrer">{{ lib.license }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p>Полные тексты лицензий и уведомления об авторских правах собраны в файле
+  <a href="{{ third_party_url }}" target="_blank" rel="noopener noreferrer">THIRD_PARTY_LICENSES.md</a>
+  в <a href="{{ repo_url }}" target="_blank" rel="noopener noreferrer">репозитории проекта</a>.</p>
+{% endblock %}

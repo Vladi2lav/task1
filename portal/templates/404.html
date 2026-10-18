@@ -1,0 +1,15 @@
+{% extends 'portal/base.html' %}
+{% block title %}Страница не найдена{% endblock %}
+
+{% block content %}
+<section class="panel error-page" aria-labelledby="error-title">
+  <div class="error-code" aria-hidden="true">404</div>
+  <h1 class="page-title" id="error-title">Страница не найдена</h1>
+  <p class="muted">Возможно, адрес набран с ошибкой или страница была перемещена.</p>
+  <div class="error-actions">
+    <a class="btn btn-primary" href="{% url 'portal:trades' %}">К итогам торгов</a>
+    <a class="btn" href="{% url 'portal:news' %}">Новости</a>
+    <a class="btn" href="{% url 'portal:status' %}">Состояние данных</a>
+  </div>
+</section>
+{% endblock %}

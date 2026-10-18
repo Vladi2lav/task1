@@ -1,0 +1,8 @@
+# bat-файлы Windows — только CRLF (с LF cmd.exe ошибается в переходах по меткам)
+*.bat text eol=crlf
+# скрипты для Linux-контейнера — только LF
+*.sh text eol=lf
+Dockerfile text eol=lf
+# двоичные файлы
+*.sqlite3 binary
+*.xlsx binary

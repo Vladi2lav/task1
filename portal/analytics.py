@@ -16,231 +16,231 @@ from django.db.models import Count, Q, QuerySet, Sum
 
 from exchanges.models import Product, Trade
 
-from .queries import ОшибкаПараметров, Фильтры, применить_фильтры, разобрать_фильтры
+from .queries import ParamError, TradeFilters, apply_filters, parse_filters
 
 # Размеры списков в ответе
-ТОП_ТОВАРОВ = 10
-ТОП_УЧАСТНИКОВ = 10
-ТОВАРОВ_В_СПИСКЕ = 30
+TOP_PRODUCTS_LIMIT = 10
+TOP_PARTICIPANTS_LIMIT = 10
+PRODUCT_LIST_LIMIT = 30
 
 
-def _сумма(значение) -> float:
+def _amount_or_zero(value) -> float:
     """Сумма из агрегата; NULL (нет ни одной суммы) считаем нулём."""
-    return float(значение) if значение is not None else 0.0
+    return float(value) if value is not None else 0.0
 
 
-def выборка_для_аналитики(params) -> tuple:
+def analytics_queryset(params) -> tuple:
     """Разбирает параметры -> (queryset сделок с фильтрами, фильтры).
 
     Используются только биржа, период и ключевое слово ``q``; остальные
     фильтры /api/trades/ тоже работают, если их передать.
     """
-    фильтры = разобрать_фильтры(params)
-    if фильтры.date_from and фильтры.date_to and фильтры.date_from > фильтры.date_to:
-        raise ОшибкаПараметров('Дата начала позже даты окончания')
-    return применить_фильтры(Trade.objects.all(), фильтры), фильтры
+    filters = parse_filters(params)
+    if filters.date_from and filters.date_to and filters.date_from > filters.date_to:
+        raise ParamError('Дата начала позже даты окончания')
+    return apply_filters(Trade.objects.all(), filters), filters
 
 
-def _разобрать_товар(params) -> tuple:
+def _parse_product(params) -> tuple:
     """product_id / product_code -> (id или None, код или '')."""
-    сырой_id = (params.get('product_id') or '').strip()
-    код = (params.get('product_code') or '').strip()
-    if not сырой_id:
-        return None, код
+    raw_id = (params.get('product_id') or '').strip()
+    code = (params.get('product_code') or '').strip()
+    if not raw_id:
+        return None, code
     try:
-        return int(сырой_id), код
+        return int(raw_id), code
     except ValueError:
-        raise ОшибкаПараметров('Параметр product_id: ожидается целое число')
+        raise ParamError('Параметр product_id: ожидается целое число')
 
 
 # --------------------------------------------------------------- секции ответа
 
-def сводка(qs: QuerySet) -> dict:
+def summary(qs: QuerySet) -> dict:
     """Число записей, торговых дней, общая сумма и доля записей без суммы."""
-    данные = qs.aggregate(
-        записей=Count('id'),
-        дней=Count('trade_date', distinct=True),
-        сумма=Sum('amount'),
-        без_суммы=Count('id', filter=Q(amount__isnull=True)),
-        сделок=Sum('deals_count'),
+    data = qs.aggregate(
+        records=Count('id'),
+        days=Count('trade_date', distinct=True),
+        total=Sum('amount'),
+        without_amount=Count('id', filter=Q(amount__isnull=True)),
+        deals=Sum('deals_count'),
     )
-    записей = данные['записей']
-    без_суммы = данные['без_суммы']
+    records = data['records']
+    without_amount = data['without_amount']
     return {
-        'records': записей,
-        'trading_days': данные['дней'],
-        'total_amount': _сумма(данные['сумма']),
-        'deals_total': int(данные['сделок'] or 0),
-        'records_without_amount': без_суммы,
-        'share_without_amount': round(без_суммы / записей, 4) if записей else 0.0,
+        'records': records,
+        'trading_days': data['days'],
+        'total_amount': _amount_or_zero(data['total']),
+        'deals_total': int(data['deals'] or 0),
+        'records_without_amount': without_amount,
+        'share_without_amount': round(without_amount / records, 4) if records else 0.0,
     }
 
 
-def список_товаров(qs: QuerySet, лимит: int = ТОВАРОВ_В_СПИСКЕ) -> list:
+def product_list(qs: QuerySet, limit: int = PRODUCT_LIST_LIMIT) -> list:
     """Товары для выбора графика цены: топ по числу записей."""
-    строки = (
+    rows = (
         qs.values('product_id', 'product__name', 'product__code')
         .annotate(n=Count('id'))
-        .order_by('-n', 'product__name', 'product_id')[:лимит]
+        .order_by('-n', 'product__name', 'product_id')[:limit]
     )
     return [
         {'id': r['product_id'], 'code': r['product__code'], 'name': r['product__name'], 'records': r['n']}
-        for r in строки
+        for r in rows
     ]
 
 
-def _выбрать_товар(qs: QuerySet, товары: list, product_id: Optional[int], product_code: str):
+def _pick_product(qs: QuerySet, products: list, product_id: Optional[int], product_code: str):
     """Товар для графика цены: заданный параметром, иначе самый частый в выборке."""
     if product_id is not None:
         return Product.objects.filter(pk=product_id).first()
     if product_code:
         # Код не обязан быть уникальным: берём самый частый товар с этим кодом в выборке
-        найден = (
+        found = (
             qs.filter(product__code=product_code)
             .values('product_id')
             .annotate(n=Count('id'))
             .order_by('-n', 'product_id')
             .first()
         )
-        if найден:
-            return Product.objects.filter(pk=найден['product_id']).first()
+        if found:
+            return Product.objects.filter(pk=found['product_id']).first()
         return Product.objects.filter(code=product_code).order_by('id').first()
-    if товары:
-        return Product.objects.filter(pk=товары[0]['id']).first()
+    if products:
+        return Product.objects.filter(pk=products[0]['id']).first()
     return None
 
 
-def динамика_цены(qs: QuerySet, товар: Optional[Product]) -> dict:
+def price_dynamics(qs: QuerySet, product: Optional[Product]) -> dict:
     """Средневзвешенная цена товара по дням.
 
     Вес записи — её объём. Если объёма нет (ETS его не публикует), объём выводится
     как сумма / цена; если нет и суммы, запись весит как единица (для такого дня
     берётся обычное среднее). Записи без цены пропускаются.
     """
-    if товар is None:
+    if product is None:
         return {'product': None, 'points': [], 'records_without_price': 0}
 
-    записи = qs.filter(product_id=товар.id)
-    без_цены = записи.filter(Q(price_avg__isnull=True) | Q(price_avg__lte=0)).count()
-    строки = записи.filter(price_avg__gt=0).values_list('trade_date', 'price_avg', 'quantity', 'amount')
+    records = qs.filter(product_id=product.id)
+    without_price = records.filter(Q(price_avg__isnull=True) | Q(price_avg__lte=0)).count()
+    rows = records.filter(price_avg__gt=0).values_list('trade_date', 'price_avg', 'quantity', 'amount')
 
     # день -> [сумма цена*вес, сумма весов, сумма цен, число записей]
-    дни = defaultdict(lambda: [Decimal(0), Decimal(0), Decimal(0), 0])
-    for день, цена, объём, сумма in строки:
-        if объём is not None and объём > 0:
-            вес = объём
-        elif сумма is not None and сумма > 0:
-            вес = сумма / цена
+    days = defaultdict(lambda: [Decimal(0), Decimal(0), Decimal(0), 0])
+    for day, price, quantity, amount in rows:
+        if quantity is not None and quantity > 0:
+            weight = quantity
+        elif amount is not None and amount > 0:
+            weight = amount / price
         else:
-            вес = Decimal(0)
-        ячейка = дни[день]
-        ячейка[0] += цена * вес
-        ячейка[1] += вес
-        ячейка[2] += цена
-        ячейка[3] += 1
+            weight = Decimal(0)
+        bucket = days[day]
+        bucket[0] += price * weight
+        bucket[1] += weight
+        bucket[2] += price
+        bucket[3] += 1
 
-    точки = []
-    for день in sorted(дни):
-        произведение, вес, сумма_цен, число = дни[день]
-        цена = произведение / вес if вес > 0 else сумма_цен / число
-        точки.append({'date': день.isoformat(), 'price': round(float(цена), 2), 'records': число})
+    points = []
+    for day in sorted(days):
+        weighted_sum, weight_total, price_sum, count = days[day]
+        price = weighted_sum / weight_total if weight_total > 0 else price_sum / count
+        points.append({'date': day.isoformat(), 'price': round(float(price), 2), 'records': count})
     return {
-        'product': {'id': товар.id, 'code': товар.code, 'name': товар.name},
-        'points': точки,
-        'records_without_price': без_цены,
+        'product': {'id': product.id, 'code': product.code, 'name': product.name},
+        'points': points,
+        'records_without_price': without_price,
     }
 
 
-def топ_товаров(qs: QuerySet, лимит: int = ТОП_ТОВАРОВ) -> list:
+def top_products(qs: QuerySet, limit: int = TOP_PRODUCTS_LIMIT) -> list:
     """Топ товаров по сумме сделок (записи без суммы в топ не попадают)."""
-    строки = (
+    rows = (
         qs.filter(amount__isnull=False)
         .values('product_id', 'product__name', 'product__code')
-        .annotate(сумма=Sum('amount'), n=Count('id'))
-        .order_by('-сумма', 'product__name', 'product_id')[:лимит]
+        .annotate(total=Sum('amount'), n=Count('id'))
+        .order_by('-total', 'product__name', 'product_id')[:limit]
     )
     return [
         {
             'id': r['product_id'],
             'code': r['product__code'],
             'name': r['product__name'],
-            'amount': _сумма(r['сумма']),
+            'amount': _amount_or_zero(r['total']),
             'records': r['n'],
         }
-        for r in строки
+        for r in rows
     ]
 
 
-def топ_участников(qs: QuerySet, роль: str, лимит: int = ТОП_УЧАСТНИКОВ) -> list:
+def top_participants(qs: QuerySet, role: str, limit: int = TOP_PARTICIPANTS_LIMIT) -> list:
     """Топ покупателей (роль 'buyer') или продавцов ('seller') по сумме сделок."""
-    if роль not in ('buyer', 'seller'):
+    if role not in ('buyer', 'seller'):
         raise ValueError('роль: buyer или seller')
-    строки = (
-        qs.filter(amount__isnull=False, **{f'{роль}__isnull': False})
-        .values(f'{роль}_id', f'{роль}__name', f'{роль}__bin')
-        .annotate(сумма=Sum('amount'), n=Count('id'))
-        .order_by('-сумма', f'{роль}__name', f'{роль}_id')[:лимит]
+    rows = (
+        qs.filter(amount__isnull=False, **{f'{role}__isnull': False})
+        .values(f'{role}_id', f'{role}__name', f'{role}__bin')
+        .annotate(total=Sum('amount'), n=Count('id'))
+        .order_by('-total', f'{role}__name', f'{role}_id')[:limit]
     )
     return [
         {
-            'id': r[f'{роль}_id'],
-            'name': r[f'{роль}__name'],
-            'bin': r[f'{роль}__bin'],
-            'amount': _сумма(r['сумма']),
+            'id': r[f'{role}_id'],
+            'name': r[f'{role}__name'],
+            'bin': r[f'{role}__bin'],
+            'amount': _amount_or_zero(r['total']),
             'records': r['n'],
         }
-        for r in строки
+        for r in rows
     ]
 
 
-def оборот_по_дням(qs: QuerySet) -> list:
+def turnover_by_day(qs: QuerySet) -> list:
     """Оборот по дням: сумма, число сделок, число записей, записей без суммы."""
-    строки = (
+    rows = (
         qs.values('trade_date')
         .annotate(
-            сумма=Sum('amount'),
-            сделок=Sum('deals_count'),
+            total=Sum('amount'),
+            deals=Sum('deals_count'),
             n=Count('id'),
-            без_суммы=Count('id', filter=Q(amount__isnull=True)),
+            without_amount=Count('id', filter=Q(amount__isnull=True)),
         )
         .order_by('trade_date')
     )
     return [
         {
             'date': r['trade_date'].isoformat(),
-            'amount': _сумма(r['сумма']),
-            'deals': int(r['сделок'] or 0),
+            'amount': _amount_or_zero(r['total']),
+            'deals': int(r['deals'] or 0),
             'records': r['n'],
-            'records_without_amount': r['без_суммы'],
+            'records_without_amount': r['without_amount'],
         }
-        for r in строки
+        for r in rows
     ]
 
 
-def аналитика(params) -> dict:
-    """Полный ответ /api/analytics/; при некорректных параметрах бросает ОшибкаПараметров."""
-    qs, фильтры = выборка_для_аналитики(params)
-    product_id, product_code = _разобрать_товар(params)
+def build_analytics(params) -> dict:
+    """Полный ответ /api/analytics/; при некорректных параметрах бросает ParamError."""
+    qs, filters = analytics_queryset(params)
+    product_id, product_code = _parse_product(params)
 
-    товары = список_товаров(qs)
-    товар = _выбрать_товар(qs, товары, product_id, product_code)
+    products = product_list(qs)
+    product = _pick_product(qs, products, product_id, product_code)
     return {
-        'filters': _фильтры_в_словарь(фильтры),
-        'summary': сводка(qs),
-        'products': товары,
-        'price_dynamics': динамика_цены(qs, товар),
-        'top_products': топ_товаров(qs),
-        'top_buyers': топ_участников(qs, 'buyer'),
-        'top_sellers': топ_участников(qs, 'seller'),
-        'turnover_by_day': оборот_по_дням(qs),
+        'filters': _filters_to_dict(filters),
+        'summary': summary(qs),
+        'products': products,
+        'price_dynamics': price_dynamics(qs, product),
+        'top_products': top_products(qs),
+        'top_buyers': top_participants(qs, 'buyer'),
+        'top_sellers': top_participants(qs, 'seller'),
+        'turnover_by_day': turnover_by_day(qs),
     }
 
 
-def _фильтры_в_словарь(ф: Фильтры) -> dict:
+def _filters_to_dict(f: TradeFilters) -> dict:
     """Применённые фильтры (для отображения на странице)."""
     return {
-        'exchange': ф.exchange,
-        'date_from': ф.date_from.isoformat() if ф.date_from else None,
-        'date_to': ф.date_to.isoformat() if ф.date_to else None,
-        'q': ф.q,
+        'exchange': f.exchange,
+        'date_from': f.date_from.isoformat() if f.date_from else None,
+        'date_to': f.date_to.isoformat() if f.date_to else None,
+        'q': f.q,
     }

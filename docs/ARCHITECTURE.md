@@ -33,8 +33,9 @@ scrapers/            парсеры
   ets.py               парсер ETS
   caspy.py             парсер Каспий
   runner.py            запуск парсера, защита от дублей, журнал запусков
-  scheduler.py         ежедневный запуск (APScheduler)
-  management/commands/ collect_trades, run_scheduler
+  scheduler.py         ежедневный запуск (APScheduler): итоги торгов, затем новости
+  news.py              новости бирж: парсеры лент ETS и Каспий, сохранение без дублей
+  management/commands/ collect_trades, collect_news, run_scheduler
 portal/              веб-портал: страницы, JSON API, шаблоны, статика
 docs/                архитектура, источники, описание БД
 tests/               тесты парсеров и API

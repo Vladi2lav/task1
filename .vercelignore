@@ -1,0 +1,24 @@
+# Не загружать в Vercel: окружения, служебные файлы, тесты, документы ТЗ, дампы (функция ограничена 250 МБ)
+.git
+.venv
+venv
+.tools
+.run
+.pytest_cache
+__pycache__
+*.pyc
+logs
+staticfiles
+db.sqlite3
+.env
+.env.local
+*.doc
+*.docx
+*.bat
+tests
+docs/db
+docker-compose*.yml
+Dockerfile
+docker-entrypoint.sh
+.dockerignore
+requirements-dev.txt

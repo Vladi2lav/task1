@@ -1,7 +1,9 @@
 /* Портал итогов торгов ETS и Каспий.
  * Страница «/»      — таблица итогов торгов (fetch к /api/trades/, без перезагрузки);
  * страница «/status/» — состояние данных и ручной запуск сбора;
- * страница «/analytics/» — сводка и графики Chart.js (fetch к /api/analytics/).
+ * страница «/analytics/» — сводка и графики Chart.js (fetch к /api/analytics/);
+ * страница «/news/»   — лента новостей (серверная разметка, JS только применяет фильтр);
+ * на всех страницах   — баннер уведомления о cookie (согласие в localStorage).
  * Данные в DOM выводятся только через textContent / createElement (без innerHTML).
  */
 (function () {
@@ -112,7 +114,7 @@
       { key: 'quantity', label: 'Объём', num: true, firstDir: '-' },
       { key: 'price_avg', label: 'Цена ср., тг', num: true, firstDir: '-' },
       { key: 'amount', label: 'Сумма, тг', num: true, firstDir: '-' },
-      { key: 'delivery_place', label: 'Место поставки', firstDir: '' },
+      { key: 'delivery_place', label: 'Место / базис поставки', firstDir: '' },
     ];
     const SORT_KEYS = COLUMNS.map((c) => c.key);
 
@@ -245,6 +247,15 @@
       return td;
     }
 
+    /** Место поставки; базис (FCA, EXW…) — второй строкой. У ETS места нет — показываем базис. */
+    function placeCell(place, basis) {
+      const td = el('td', { class: 'cell-place' });
+      if (!place && !basis) { td.appendChild(dash()); return td; }
+      td.appendChild(el('div', { class: 'cell-main', text: place || basis }));
+      if (place && basis) td.appendChild(el('div', { class: 'cell-sub', text: 'базис ' + basis }));
+      return td;
+    }
+
     function numCell(value, formatter, className, sub) {
       const td = el('td', { class: 'num ' + (className || '') });
       if (isNumber(value)) {
@@ -320,7 +331,7 @@
         numCell(row.quantity, nfQty, '', row.unit),
         numCell(row.price_avg, nfMoney),
         numCell(row.amount, nfMoney, 'amount'),
-        textCell(row.delivery_place, 'cell-place'),
+        placeCell(row.delivery_place, row.delivery_basis),
       ]);
       tr.addEventListener('click', (event) => {
         if (event.target.closest('a')) return;
@@ -635,6 +646,7 @@
     }
 
     function renderCollect(collect) {
+      if (!collectForm) return; // демо-режим «только чтение»: формы запуска нет
       const busy = collect.running || collect.running_elsewhere;
       collectButton.disabled = busy;
       if (collect.running) {
@@ -682,37 +694,40 @@
       pollTimer = setTimeout(refresh, delay);
     }
 
-    collectForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const days = parseInt(daysInput.value, 10);
-      const min = parseInt(daysInput.min, 10);
-      const max = parseInt(daysInput.max, 10);
-      if (!(days >= min && days <= max)) {
-        lastMessage = { kind: 'fail', text: 'Глубина должна быть от ' + min + ' до ' + max + ' дней.' };
-        setCollectBox('fail', [lastMessage.text]);
-        return;
-      }
-      collectButton.disabled = true;
-      lastMessage = null;
-      try {
-        const response = await fetch('/api/collect/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), Accept: 'application/json' },
-          body: JSON.stringify({ exchange: document.getElementById('c-exchange').value, days }),
-        });
-        if (response.status !== 202) {
-          lastMessage = { kind: 'fail', text: await readError(response) };
+    function initCollectForm() {
+      collectForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const days = parseInt(daysInput.value, 10);
+        const min = parseInt(daysInput.min, 10);
+        const max = parseInt(daysInput.max, 10);
+        if (!(days >= min && days <= max)) {
+          lastMessage = { kind: 'fail', text: 'Глубина должна быть от ' + min + ' до ' + max + ' дней.' };
+          setCollectBox('fail', [lastMessage.text]);
+          return;
         }
-      } catch (error) {
-        lastMessage = { kind: 'fail', text: 'Не удалось связаться с сервером' };
-      }
-      await refresh();
-    });
+        collectButton.disabled = true;
+        lastMessage = null;
+        try {
+          const response = await fetch('/api/collect/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), Accept: 'application/json' },
+            body: JSON.stringify({ exchange: document.getElementById('c-exchange').value, days }),
+          });
+          if (response.status !== 202) {
+            lastMessage = { kind: 'fail', text: await readError(response) };
+          }
+        } catch (error) {
+          lastMessage = { kind: 'fail', text: 'Не удалось связаться с сервером' };
+        }
+        await refresh();
+      });
 
-    collectForm.querySelectorAll('.chip').forEach((chip) => {
-      chip.addEventListener('click', () => { daysInput.value = chip.dataset.days; });
-    });
+      collectForm.querySelectorAll('.chip').forEach((chip) => {
+        chip.addEventListener('click', () => { daysInput.value = chip.dataset.days; });
+      });
+    }
 
+    if (collectForm) initCollectForm();
     refresh();
   }
 
@@ -1149,6 +1164,78 @@
     load();
   }
 
+  /* ===================================================== страница «Новости» */
+
+  /** Страница работает и без JS (обычная GET-форма); смена биржи сразу применяет фильтр. */
+  function initNews() {
+    const form = document.getElementById('news-filters-form');
+    const select = document.getElementById('n-exchange');
+    if (!form || !select) return;
+    select.addEventListener('change', () => {
+      if (typeof form.requestSubmit === 'function') form.requestSubmit();
+      else form.submit();
+    });
+  }
+
+  /* ===================================================== баннер cookie */
+
+  const CONSENT_KEY = 'cookie_consent';
+
+  /** Запись о согласии из localStorage (хранилище может быть недоступно — тогда null). */
+  function readConsent() {
+    try {
+      const raw = window.localStorage.getItem(CONSENT_KEY);
+      if (!raw) return null;
+      const value = JSON.parse(raw);
+      return value && value.accepted ? value : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveConsent() {
+    try {
+      window.localStorage.setItem(CONSENT_KEY, JSON.stringify({ accepted: true, date: new Date().toISOString() }));
+      return true;
+    } catch (e) {
+      return false; // приватный режим или запрет хранилища: баннер просто скроется до перезагрузки
+    }
+  }
+
+  function initCookieBanner() {
+    const banner = document.getElementById('cookie-banner');
+    const acceptButton = document.getElementById('cookie-accept');
+    if (!banner || !acceptButton || readConsent()) return;
+
+    // Отступ снизу, чтобы баннер не перекрывал пагинацию и подвал
+    function updateOffset() {
+      document.body.style.paddingBottom = banner.hidden ? '' : banner.offsetHeight + 'px';
+    }
+
+    function hide() {
+      banner.hidden = true;
+      document.body.classList.remove('has-cookie-banner');
+      updateOffset();
+      window.removeEventListener('resize', updateOffset);
+    }
+
+    banner.hidden = false;
+    document.body.classList.add('has-cookie-banner');
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+
+    acceptButton.addEventListener('click', () => {
+      saveConsent();
+      hide();
+    });
+    banner.addEventListener('keydown', (event) => {
+      // Escape закрывает баннер до следующего визита (без сохранения согласия)
+      if (event.key === 'Escape') hide();
+    });
+    // Фокус на кнопке «Принять», не прокручивая страницу
+    try { acceptButton.focus({ preventScroll: true }); } catch (e) { acceptButton.focus(); }
+  }
+
   /* ===================================================== запуск */
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -1156,5 +1243,7 @@
     if (page === 'trades') initTrades();
     else if (page === 'status') initStatus();
     else if (page === 'analytics') initAnalytics();
+    else if (page === 'news') initNews();
+    initCookieBanner();
   });
 })();

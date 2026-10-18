@@ -1,4 +1,4 @@
-"""Разбор параметров запроса, фильтрация и сортировка итогов торгов.
+"""Разбор параметров запроса, фильтрация и сортировка итогов торгов и новостей.
 
 Один и тот же набор параметров используют JSON API, экспорт в Excel и страница
 в браузере, поэтому логика собрана здесь и не дублируется во views.
@@ -10,20 +10,25 @@ from typing import Optional
 
 from django.db.models import F, Q, QuerySet
 
-from exchanges.models import Trade
+from exchanges.models import News, Trade
 
 # Допустимые коды бирж в фильтре
-КОДЫ_БИРЖ = ('ets', 'caspy')
+EXCHANGE_CODES = ('ets', 'caspy')
 
-РАЗМЕР_СТРАНИЦЫ_ПО_УМОЛЧАНИЮ = 50
-РАЗМЕР_СТРАНИЦЫ_МИН = 10
-РАЗМЕР_СТРАНИЦЫ_МАКС = 200
+PAGE_SIZE_DEFAULT = 50
+PAGE_SIZE_MIN = 10
+PAGE_SIZE_MAX = 200
+
+# Пагинация ленты новостей
+NEWS_PAGE_SIZE_DEFAULT = 20
+NEWS_PAGE_SIZE_MIN = 1
+NEWS_PAGE_SIZE_MAX = 100
 
 # Сортировка по умолчанию: свежие торги сверху
-СОРТИРОВКА_ПО_УМОЛЧАНИЮ = '-trade_date'
+DEFAULT_ORDERING = '-trade_date'
 
 # Белый список полей сортировки: имя в API -> поле в БД
-ПОЛЯ_СОРТИРОВКИ = {
+ORDERING_FIELDS = {
     'trade_date': 'trade_date',
     'exchange': 'exchange__name',
     'product': 'product__name',
@@ -47,12 +52,12 @@ from exchanges.models import Trade
 }
 
 
-class ОшибкаПараметров(ValueError):
+class ParamError(ValueError):
     """Некорректный параметр запроса (превращается в ответ 400)."""
 
 
 @dataclass
-class Фильтры:
+class TradeFilters:
     """Разобранные и проверенные фильтры выборки."""
 
     exchange: str = ''
@@ -66,138 +71,173 @@ class Фильтры:
     delivery: str = ''
 
 
-def _текст(params, имя):
-    return (params.get(имя) or '').strip()
+def _text_param(params, name):
+    return (params.get(name) or '').strip()
 
 
-def _разобрать_дату(params, имя):
-    значение = _текст(params, имя)
-    if not значение:
+def _parse_date(params, name):
+    value = _text_param(params, name)
+    if not value:
         return None
     try:
-        return date.fromisoformat(значение)
+        return date.fromisoformat(value)
     except ValueError:
-        raise ОшибкаПараметров(f'Параметр {имя}: ожидается дата в формате ГГГГ-ММ-ДД')
+        raise ParamError(f'Параметр {name}: ожидается дата в формате ГГГГ-ММ-ДД')
 
 
-def _разобрать_сумму(params, имя):
-    значение = _текст(params, имя).replace(' ', '').replace(',', '.')
-    if not значение:
+def _parse_amount(params, name):
+    value = _text_param(params, name).replace(' ', '').replace(',', '.')
+    if not value:
         return None
     try:
-        число = Decimal(значение)
+        number = Decimal(value)
     except InvalidOperation:
-        raise ОшибкаПараметров(f'Параметр {имя}: ожидается число')
-    if not число.is_finite() or abs(число) >= Decimal('1e20'):
-        raise ОшибкаПараметров(f'Параметр {имя}: ожидается число')
-    return число
+        raise ParamError(f'Параметр {name}: ожидается число')
+    if not number.is_finite() or abs(number) >= Decimal('1e20'):
+        raise ParamError(f'Параметр {name}: ожидается число')
+    return number
 
 
-def разобрать_фильтры(params) -> Фильтры:
-    """Читает фильтры из QueryDict/словаря; при ошибке бросает ОшибкаПараметров."""
-    биржа = _текст(params, 'exchange').lower()
-    if биржа in ('all', 'both'):
-        биржа = ''
-    if биржа and биржа not in КОДЫ_БИРЖ:
-        raise ОшибкаПараметров('Параметр exchange: допустимы ets, caspy или пусто')
-    фильтры = Фильтры(
-        exchange=биржа,
-        date_from=_разобрать_дату(params, 'date_from'),
-        date_to=_разобрать_дату(params, 'date_to'),
-        q=_текст(params, 'q'),
-        party=_текст(params, 'party'),
-        broker=_текст(params, 'broker'),
-        amount_min=_разобрать_сумму(params, 'amount_min'),
-        amount_max=_разобрать_сумму(params, 'amount_max'),
-        delivery=_текст(params, 'delivery'),
+def parse_exchange(params) -> str:
+    """Код биржи из параметра exchange: ets, caspy или '' (обе биржи)."""
+    exchange = _text_param(params, 'exchange').lower()
+    if exchange in ('all', 'both'):
+        exchange = ''
+    if exchange and exchange not in EXCHANGE_CODES:
+        raise ParamError('Параметр exchange: допустимы ets, caspy или пусто')
+    return exchange
+
+
+def parse_filters(params) -> TradeFilters:
+    """Читает фильтры из QueryDict/словаря; при ошибке бросает ParamError."""
+    return TradeFilters(
+        exchange=parse_exchange(params),
+        date_from=_parse_date(params, 'date_from'),
+        date_to=_parse_date(params, 'date_to'),
+        q=_text_param(params, 'q'),
+        party=_text_param(params, 'party'),
+        broker=_text_param(params, 'broker'),
+        amount_min=_parse_amount(params, 'amount_min'),
+        amount_max=_parse_amount(params, 'amount_max'),
+        delivery=_text_param(params, 'delivery'),
     )
-    return фильтры
 
 
-def разобрать_сортировку(params) -> str:
+def parse_ordering(params) -> str:
     """Возвращает нормализованное значение ordering ('-amount', 'product' ...)."""
-    сырое = _текст(params, 'ordering') or СОРТИРОВКА_ПО_УМОЛЧАНИЮ
-    поле = сырое.lstrip('-')
-    if поле not in ПОЛЯ_СОРТИРОВКИ:
-        raise ОшибкаПараметров(
-            'Параметр ordering: недопустимое поле. Допустимы: ' + ', '.join(ПОЛЯ_СОРТИРОВКИ)
+    raw = _text_param(params, 'ordering') or DEFAULT_ORDERING
+    field = raw.lstrip('-')
+    if field not in ORDERING_FIELDS:
+        raise ParamError(
+            'Параметр ordering: недопустимое поле. Допустимы: ' + ', '.join(ORDERING_FIELDS)
         )
-    return ('-' if сырое.startswith('-') else '') + поле
+    return ('-' if raw.startswith('-') else '') + field
 
 
-def разобрать_страницу(params) -> tuple:
-    """Возвращает (page, page_size); размер страницы ограничивается 10–200."""
+def parse_page(params, default_size=PAGE_SIZE_DEFAULT, min_size=PAGE_SIZE_MIN, max_size=PAGE_SIZE_MAX) -> tuple:
+    """Возвращает (page, page_size); размер страницы ограничивается min_size–max_size (для торгов 10–200)."""
     try:
-        страница = int(_текст(params, 'page') or 1)
-        размер = int(_текст(params, 'page_size') or РАЗМЕР_СТРАНИЦЫ_ПО_УМОЛЧАНИЮ)
+        page = int(_text_param(params, 'page') or 1)
+        size = int(_text_param(params, 'page_size') or default_size)
     except ValueError:
-        raise ОшибкаПараметров('Параметры page и page_size должны быть целыми числами')
-    размер = max(РАЗМЕР_СТРАНИЦЫ_МИН, min(РАЗМЕР_СТРАНИЦЫ_МАКС, размер))
-    return max(1, страница), размер
+        raise ParamError('Параметры page и page_size должны быть целыми числами')
+    size = max(min_size, min(max_size, size))
+    return max(1, page), size
 
 
-def _слова(текст):
-    return [слово for слово in текст.split() if слово]
+def _words(text):
+    return [word for word in text.split() if word]
 
 
-def запрос_итогов() -> QuerySet:
+def trades_queryset() -> QuerySet:
     """Базовый запрос с подгрузкой связанных таблиц (без N+1)."""
     return Trade.objects.select_related(
         'exchange', 'product', 'buyer', 'seller', 'buyer_broker', 'seller_broker'
     )
 
 
-def применить_фильтры(qs: QuerySet, ф: Фильтры) -> QuerySet:
+def delivery_condition(text: str) -> Q:
+    """Условие фильтра «место поставки».
+
+    Ищем подстроку (без учёта регистра, в том числе кириллицы) в месте поставки
+    или в базисе поставки. У ETS отдельного места нет — станция и базис записаны
+    в названии товара, поэтому для записей без места смотрим и название товара.
+    """
+    return (
+        Q(delivery_place__rucontains=text)
+        | Q(delivery_basis__rucontains=text)
+        | (Q(delivery_place='') & Q(product__name__rucontains=text))
+    )
+
+
+def apply_filters(qs: QuerySet, f: TradeFilters) -> QuerySet:
     """Накладывает фильтры; все условия комбинируются через И."""
-    if ф.exchange:
-        qs = qs.filter(exchange__code=ф.exchange)
-    if ф.date_from:
-        qs = qs.filter(trade_date__gte=ф.date_from)
-    if ф.date_to:
-        qs = qs.filter(trade_date__lte=ф.date_to)
+    if f.exchange:
+        qs = qs.filter(exchange__code=f.exchange)
+    if f.date_from:
+        qs = qs.filter(trade_date__gte=f.date_from)
+    if f.date_to:
+        qs = qs.filter(trade_date__lte=f.date_to)
     # Ключевое слово: каждое слово должно встретиться в названии товара
-    for слово in _слова(ф.q):
-        qs = qs.filter(product__name__rucontains=слово)
-    if ф.party:
+    for word in _words(f.q):
+        qs = qs.filter(product__name__rucontains=word)
+    if f.party:
         # Продавец или покупатель: по наименованию или по БИН
         qs = qs.filter(
-            Q(buyer__name__rucontains=ф.party)
-            | Q(seller__name__rucontains=ф.party)
-            | Q(buyer__bin__contains=ф.party)
-            | Q(seller__bin__contains=ф.party)
+            Q(buyer__name__rucontains=f.party)
+            | Q(seller__name__rucontains=f.party)
+            | Q(buyer__bin__contains=f.party)
+            | Q(seller__bin__contains=f.party)
         )
-    if ф.broker:
+    if f.broker:
         qs = qs.filter(
-            Q(buyer_broker__name__rucontains=ф.broker) | Q(seller_broker__name__rucontains=ф.broker)
+            Q(buyer_broker__name__rucontains=f.broker) | Q(seller_broker__name__rucontains=f.broker)
         )
-    if ф.amount_min is not None:
-        qs = qs.filter(amount__gte=ф.amount_min)
-    if ф.amount_max is not None:
-        qs = qs.filter(amount__lte=ф.amount_max)
-    if ф.delivery:
-        qs = qs.filter(delivery_place__rucontains=ф.delivery)
+    if f.amount_min is not None:
+        qs = qs.filter(amount__gte=f.amount_min)
+    if f.amount_max is not None:
+        qs = qs.filter(amount__lte=f.amount_max)
+    if f.delivery:
+        qs = qs.filter(delivery_condition(f.delivery))
     return qs
 
 
-def применить_сортировку(qs: QuerySet, ordering: str) -> QuerySet:
+def apply_ordering(qs: QuerySet, ordering: str) -> QuerySet:
     """Сортировка по полю из белого списка; пустые значения всегда в конце.
 
     В конец добавляются дата и id, чтобы порядок строк был стабильным
     (иначе страницы при пагинации могут «плавать»).
     """
-    убывание = ordering.startswith('-')
-    поле = ПОЛЯ_СОРТИРОВКИ[ordering.lstrip('-')]
-    выражение = F(поле).desc(nulls_last=True) if убывание else F(поле).asc(nulls_last=True)
-    порядок = [выражение]
-    if поле != 'trade_date':
-        порядок.append('-trade_date')
-    порядок.append('-id')
-    return qs.order_by(*порядок)
+    descending = ordering.startswith('-')
+    field = ORDERING_FIELDS[ordering.lstrip('-')]
+    expression = F(field).desc(nulls_last=True) if descending else F(field).asc(nulls_last=True)
+    order = [expression]
+    if field != 'trade_date':
+        order.append('-trade_date')
+    order.append('-id')
+    return qs.order_by(*order)
 
 
-def выборка_итогов(params) -> tuple:
+def select_trades(params) -> tuple:
     """Полный разбор параметров -> (queryset с фильтрами и сортировкой, фильтры, ordering)."""
-    фильтры = разобрать_фильтры(params)
-    ordering = разобрать_сортировку(params)
-    qs = применить_сортировку(применить_фильтры(запрос_итогов(), фильтры), ordering)
-    return qs, фильтры, ordering
+    filters = parse_filters(params)
+    ordering = parse_ordering(params)
+    qs = apply_ordering(apply_filters(trades_queryset(), filters), ordering)
+    return qs, filters, ordering
+
+
+# ------------------------------------------------------------------ новости
+
+def select_news(params) -> tuple:
+    """Лента новостей: фильтры exchange и q (слова заголовка) -> (queryset, exchange, q).
+
+    Сортировка — свежие сверху (дата публикации, затем id).
+    """
+    exchange = parse_exchange(params)
+    q = _text_param(params, 'q')
+    qs = News.objects.select_related('exchange')
+    if exchange:
+        qs = qs.filter(exchange__code=exchange)
+    for word in _words(q):
+        qs = qs.filter(title__rucontains=word)
+    return qs.order_by('-published_at', '-id'), exchange, q

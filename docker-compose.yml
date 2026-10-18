@@ -1,24 +1,67 @@
-# Запуск: docker compose up --build
-# Портал: http://localhost:8000, ежедневный сбор — сервис scheduler
+# Полное развёртывание: PostgreSQL + веб-портал (gunicorn) + планировщик ежедневного сбора.
+#
+#   docker compose up -d --build     запуск (первый раз загружаются данные из дампа docs/db)
+#   docker compose logs -f           логи
+#   docker compose down              остановка (данные остаются в томе pgdata)
+#
+# Настройки — в файле .env (образец .env.example); без .env работают значения по умолчанию.
+# Подробности: docs/DEPLOY.md
+
+x-app: &app
+  build: .
+  image: trades-portal:latest
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgres://${POSTGRES_USER:-trades}:${POSTGRES_PASSWORD:-trades}@db:5432/${POSTGRES_DB:-trades}
+    DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+    # логи контейнера — в stdout (docker compose logs)
+    DJANGO_LOG_FILE: "off"
+    TZ: Asia/Almaty
+  volumes:
+    - appdata:/app/data
+
 services:
-  web:
-    build: .
-    ports:
-      - "8000:8000"
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      SQLITE_PATH: /data/db.sqlite3
+      POSTGRES_DB: ${POSTGRES_DB:-trades}
+      POSTGRES_USER: ${POSTGRES_USER:-trades}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trades}
+      TZ: Asia/Almaty
     volumes:
-      - tradedata:/data
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    <<: *app
+    command: ["web"]
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
   scheduler:
-    build: .
-    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py run_scheduler"]
-    environment:
-      SQLITE_PATH: /data/db.sqlite3
-    volumes:
-      - tradedata:/data
+    <<: *app
+    command: ["scheduler"]
+    # веб-сервера в этом контейнере нет — проверка /healthz из образа не нужна
+    healthcheck:
+      disable: true
     depends_on:
-      - web
+      db:
+        condition: service_healthy
+      # web к моменту готовности уже выполнил миграции (bootstrap)
+      web:
+        condition: service_healthy
 
 volumes:
-  tradedata:
+  pgdata:
+  appdata:

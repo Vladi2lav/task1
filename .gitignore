@@ -1,4 +1,4 @@
-# Word documents
+# Word documents (ТЗ и черновики не публикуются)
 *.doc
 *.docx
 *.dot
@@ -11,7 +11,23 @@ __pycache__/
 .venv/
 venv/
 db.sqlite3
+db.sqlite3-journal
 .pytest_cache/
+staticfiles/
+
+# Локальные настройки и секреты
+.env
+.env.local
+
+# Логи и служебные файлы запуска (start.bat)
+logs/
 *.log
+.run/
+.tools/
+
+# Vercel CLI
+.vercel/
+
+# IDE
 .idea/
 .vscode/

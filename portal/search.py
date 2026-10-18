@@ -21,7 +21,7 @@ from django.db.models import CharField, Lookup, TextField
 _registered = False
 
 # Символ экранирования в шаблоне LIKE — одна обратная косая черта
-ЭКРАН = chr(92)
+ESCAPE_CHAR = chr(92)
 
 
 def ru_lower(value):
@@ -29,16 +29,16 @@ def ru_lower(value):
     return value.lower() if isinstance(value, str) else value
 
 
-def _добавить_функцию_sqlite(sender, connection, **kwargs):
+def _add_sqlite_function(sender, connection, **kwargs):
     """Регистрирует ``ru_lower`` в каждом новом соединении SQLite."""
     if connection.vendor == 'sqlite':
         connection.connection.create_function('ru_lower', 1, ru_lower, deterministic=True)
 
 
-def экранировать_like(text):
+def escape_like(text):
     """Экранирует служебные символы шаблона LIKE: обратную косую, % и _."""
-    for символ in (ЭКРАН, '%', '_'):
-        text = text.replace(символ, ЭКРАН + символ)
+    for char in (ESCAPE_CHAR, '%', '_'):
+        text = text.replace(char, ESCAPE_CHAR + char)
     return text
 
 
@@ -49,14 +49,14 @@ class RuContains(Lookup):
 
     def process_rhs(self, compiler, connection):
         # Значение приводим к нижнему регистру и оборачиваем в %...%
-        значение = ru_lower(str(self.rhs))
-        return '%s', ['%' + экранировать_like(значение) + '%']
+        value = ru_lower(str(self.rhs))
+        return '%s', ['%' + escape_like(value) + '%']
 
     def as_sql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
-        функция = 'ru_lower' if connection.vendor == 'sqlite' else 'LOWER'
-        return f"{функция}({lhs}) LIKE {rhs} ESCAPE '{ЭКРАН}'", [*lhs_params, *rhs_params]
+        func = 'ru_lower' if connection.vendor == 'sqlite' else 'LOWER'
+        return f"{func}({lhs}) LIKE {rhs} ESCAPE '{ESCAPE_CHAR}'", [*lhs_params, *rhs_params]
 
 
 def register():
@@ -65,11 +65,11 @@ def register():
     if _registered:
         return
     _registered = True
-    connection_created.connect(_добавить_функцию_sqlite, dispatch_uid='portal_ru_lower')
+    connection_created.connect(_add_sqlite_function, dispatch_uid='portal_ru_lower')
     CharField.register_lookup(RuContains)
     TextField.register_lookup(RuContains)
     # Соединения, открытые до ready() (например, в тестах), дополняем вручную
     for alias in connections:
-        соединение = connections[alias]
-        if соединение.vendor == 'sqlite' and соединение.connection is not None:
-            _добавить_функцию_sqlite(None, соединение)
+        conn = connections[alias]
+        if conn.vendor == 'sqlite' and conn.connection is not None:
+            _add_sqlite_function(None, conn)

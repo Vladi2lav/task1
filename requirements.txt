@@ -1,8 +1,15 @@
+# Зависимости для работы портала, парсеров и планировщика.
+# Для тестов: pip install -r requirements-dev.txt
 Django>=5.2,<5.3
 requests>=2.32
 beautifulsoup4>=4.12
 lxml>=5.0
 openpyxl>=3.1
 APScheduler>=3.10,<4
-pytest>=8
-pytest-django>=4.8
+# статика без отдельного веб-сервера
+whitenoise>=6.7
+# драйвер PostgreSQL (Docker или DATABASE_URL=postgres://...)
+psycopg[binary]>=3.2
+# WSGI-сервер: gunicorn (Linux/Docker), waitress (Windows: gunicorn там не работает)
+gunicorn>=23; sys_platform != "win32"
+waitress>=3.0; sys_platform == "win32"
