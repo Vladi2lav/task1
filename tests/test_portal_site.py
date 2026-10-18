@@ -145,8 +145,8 @@ def test_owner_placeholders_and_settings(client, settings):
         if hasattr(settings, name):
             delattr(settings, name)
     html = client.get('/legal/terms/').content.decode('utf-8')
-    assert 'Владелец сайта: [ФИО владельца]' in html
-    assert '[email]' in html
+    assert 'Владелец сайта: ИМЯ ФАМИЛИЯ' in html
+    assert 'ПОЧТА' in html
     settings.SITE_OWNER = 'Иванов Иван Иванович'
     settings.SITE_CONTACT_EMAIL = 'owner@example.kz'
     html = client.get('/legal/privacy/').content.decode('utf-8')

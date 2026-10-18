@@ -9,8 +9,8 @@ from pathlib import Path
 
 from django.conf import settings
 
-DEFAULT_SITE_OWNER = '[ФИО владельца]'
-DEFAULT_CONTACT_EMAIL = '[email]'
+DEFAULT_SITE_OWNER = 'ИМЯ ФАМИЛИЯ'
+DEFAULT_CONTACT_EMAIL = 'ПОЧТА'
 DEFAULT_EDITION_DATE = '14 октября 2026 г.'
 DEFAULT_REPO_URL = 'https://github.com/Vladi2lav/task1'
 DEFAULT_HOSTING_PROVIDER = '[наименование хостинг-провайдера и страна размещения серверов]'

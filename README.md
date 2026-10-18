@@ -88,7 +88,7 @@ docker compose down           # остановка (данные остаютс�
 | `DJANGO_LOG_FILE` | `logs/app.log` | файл логов с ротацией (5 × 5 МБ); `off` — только консоль |
 | `PORTAL_READ_ONLY` | `0` (на Vercel — всегда `1`) | только чтение: ручной запуск сбора отключён |
 | `PORTAL_EXPORT_MAX_ROWS` | `50000` | максимум строк в выгрузке Excel |
-| `SITE_OWNER`, `SITE_CONTACT_EMAIL` | плейсхолдеры `[ФИО владельца]`, `[email]` | владелец сайта и контакт для `/legal/*` |
+| `SITE_OWNER`, `SITE_CONTACT_EMAIL` | `ИМЯ ФАМИЛИЯ`, `ПОЧТА` (заглушки) | владелец сайта и контакт для `/legal/*` |
 | `SITE_HOSTING_PROVIDER` | `[хостинг-провайдер]` (на Vercel — `Vercel Inc. (США)`) | хостинг для политики конфиденциальности |
 | `LEGAL_EDITION_DATE` | дата из `portal/legal.py` | дата редакции юридических документов |
 | `PROJECT_REPO_URL` | `https://github.com/Vladi2lav/task1` | ссылка на репозиторий |
