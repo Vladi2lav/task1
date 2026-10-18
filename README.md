@@ -126,7 +126,6 @@ python manage.py runserver      # http://127.0.0.1:8000/
 | `python manage.py collect_news --exchange all --days 92` | новости бирж (`--since ГГГГ-ММ-ДД` вместо `--days`) |
 | `python manage.py run_scheduler` | ежедневный сбор по расписанию (процесс работает постоянно) |
 | `python manage.py createsuperuser` | администратор для `/admin/` |
-| `python scripts/make_dump.py` | выгрузить БД в `docs/db/` (SQL-дамп, фикстуры торгов и новостей) |
 | `python scripts/build_vercel_db.py` | собрать снимок демо-базы для Vercel (с обезличиванием ИП) |
 | `python scripts/make_dump.py` | выгрузить дампы `docs/db/` (ИП обезличены; `--full` — полный дамп только для локального использования, не коммитить) |
 
