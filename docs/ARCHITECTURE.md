@@ -98,8 +98,18 @@ class BaseScraper:
 - Фильтры (комбинируются, без перезагрузки): биржа, период, товар/ключевое слово, продавец/покупатель (название или БИН), брокер, диапазон суммы, место поставки.
 - `/api/trades/` — JSON (фильтры + `page`, `page_size`, `ordering`). Фронтенд — fetch по этому API.
 - `/analytics/` — сводка и 4 графика (Chart.js, локальная копия в `portal/static/portal/vendor/`): динамика средневзвешенной цены товара, оборот по дням, топ-10 товаров и топ-10 участников по сумме. Данные — `/api/analytics/` (фильтры `exchange`, `date_from`, `date_to`, `q`, товар — `product_id` или `product_code`); расчёты в `portal/analytics.py`. Записи без суммы (NULL) в суммы и топы не входят, их доля возвращается в ответе (`summary.share_without_amount`).
-- `/status/` — последнее обновление по каждой бирже, число записей, итог последнего запуска, кнопка ручного запуска.
-- Дополнительно: `/api/trades/export.xlsx` (экспорт текущей выборки), аналитика с графиками, новости — по порядку после основного.
+- `/status/` — последнее обновление по каждой бирже, число записей, итог последнего запуска, кнопка ручного запуска (`/api/collect/`).
+- `/api/trades/export.xlsx` — экспорт текущей выборки в Excel (не больше `PORTAL_EXPORT_MAX_ROWS` строк).
+- `/news/` — лента новостей бирж (фильтр по бирже и тексту), данные — `/api/news/`. Новости собирает `scrapers/news.py`
+  (`manage.py collect_news`; ETS — `/press_centre/news/`, Каспий — `/news/category/announcement` и `/corporate`),
+  планировщик запускает сбор после итогов торгов, если `[news].enabled` в `scraper.toml`.
+- `/legal/terms/`, `/legal/privacy/`, `/legal/cookies/`, `/legal/sources/` — пользовательское соглашение, политика
+  конфиденциальности, cookie, источники данных и лицензии (`portal/legal.py`); реквизиты владельца — из настроек
+  `SITE_OWNER`, `SITE_CONTACT_EMAIL`, `SITE_HOSTING_PROVIDER`, `LEGAL_EDITION_DATE`. Cookie-баннер — в `base.html`.
+- Режим только для чтения `PORTAL_READ_ONLY` (на Vercel всегда): кнопка сбора скрыта, `/api/collect/` отвечает 403.
+- `/healthz` — проверка работоспособности (приложение + БД) для Docker и мониторинга (`config/health.py`).
+
+Развёртывание (Windows `start.bat`, Docker, Vercel) — [DEPLOY.md](DEPLOY.md).
 
 ## 10. Порядок работ
 

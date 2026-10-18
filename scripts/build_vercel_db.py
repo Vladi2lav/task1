@@ -3,6 +3,8 @@
 Запуск: python scripts/build_vercel_db.py
 Создаёт пустую SQLite-базу, применяет миграции и загружает дампы docs/db/trades_fixture.json
 и docs/db/news_fixture.json (если есть). Перед этим обновите дампы: python scripts/make_dump.py
+Индивидуальные предприниматели и крестьянские хозяйства обезличиваются (setup_tools/anonymize.py):
+серверы Vercel находятся за пределами РК, а персональные данные граждан РК должны храниться в РК.
 Файл снимка нужно закоммитить — Vercel берёт его из репозитория.
 """
 import os
@@ -34,11 +36,13 @@ def main() -> int:
     from django.db import connection
 
     from exchanges.models import News, Trade
+    from setup_tools.anonymize import anonymize_individuals
 
     call_command('migrate', interactive=False, verbosity=0)
     for fixture in FIXTURES:
         if fixture.exists():
             call_command('loaddata', str(fixture), verbosity=0)
+    hidden = anonymize_individuals()
     trades, news = Trade.objects.count(), News.objects.count()
     connection.close()
 
@@ -47,7 +51,7 @@ def main() -> int:
     con.close()
     tmp.replace(TARGET)
     print(f'Готово: {TARGET.relative_to(BASE_DIR)} — итогов торгов {trades}, новостей {news}, '
-          f'{TARGET.stat().st_size // 1024} КБ')
+          f'обезличено ИП {hidden}, {TARGET.stat().st_size // 1024} КБ')
     return 0
 
 

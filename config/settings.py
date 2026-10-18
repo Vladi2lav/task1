@@ -74,7 +74,14 @@ if HTTPS:
     # перенаправление http -> https: на Vercel его делает сама платформа
     SECURE_SSL_REDIRECT = env_bool('DJANGO_SSL_REDIRECT', False)
     SECURE_REDIRECT_EXEMPT = [r'^healthz$']
-    SILENCED_SYSTEM_CHECKS = []
+    SECURE_HSTS_PRELOAD = env_bool('DJANGO_HSTS_PRELOAD', False)
+    # осознанные решения, а не ошибки: HSTS для поддоменов и preload включаются отдельно,
+    # на Vercel http -> https перенаправляет сама платформа
+    SILENCED_SYSTEM_CHECKS = (
+        ([] if SECURE_HSTS_INCLUDE_SUBDOMAINS else ['security.W005'])
+        + ([] if SECURE_HSTS_PRELOAD else ['security.W021'])
+        + (['security.W008'] if IS_VERCEL and not SECURE_SSL_REDIRECT else [])
+    )
 else:
     # Локальный запуск и Docker в локальной сети работают по HTTP: проверки, требующие HTTPS, не применимы.
     # Включите DJANGO_HTTPS=1, когда сайт будет открыт по HTTPS.
@@ -191,13 +198,16 @@ USE_TZ = True
 
 # --- Статика (WhiteNoise) ---
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# на Vercel collectstatic не выполняется: статика берётся из папок приложений (см. ниже)
+STATIC_ROOT = None if IS_VERCEL else BASE_DIR / 'staticfiles'
 # статика портала лежит в portal/static и находится автоматически (AppDirectoriesFinder)
 
 # В продакшене (Windows/Docker) — collectstatic в staticfiles/ со сжатием и хешами в именах.
 # В разработке и на Vercel статика отдаётся прямо из папок приложений (WHITENOISE_USE_FINDERS),
 # поэтому collectstatic не нужен.
-_hashed_static = not DEBUG and not IS_VERCEL
+# Тесты всегда работают с обычными именами файлов (не зависят от .env и ранее выполненного collectstatic).
+TESTING = 'pytest' in sys.modules or sys.argv[1:2] == ['test']
+_hashed_static = not DEBUG and not IS_VERCEL and not TESTING
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
@@ -274,9 +284,14 @@ for _stream in (sys.stdout, sys.stderr):
 # --- Портал ---
 # Режим только для чтения: без ручного запуска сбора (на Vercel включён всегда)
 PORTAL_READ_ONLY = IS_VERCEL or env_bool('PORTAL_READ_ONLY', False)
-# Владелец сайта и контакт для страниц /legal/ (замените плейсхолдеры в .env)
-SITE_OWNER = env_str('SITE_OWNER', '[ФИО]')
-SITE_CONTACT_EMAIL = env_str('SITE_CONTACT_EMAIL', '[email]')
+# Реквизиты для юридических страниц /legal/ (пусто — плейсхолдеры по умолчанию из portal/legal.py)
+SITE_OWNER = env_str('SITE_OWNER')
+SITE_CONTACT_EMAIL = env_str('SITE_CONTACT_EMAIL')
+SITE_HOSTING_PROVIDER = env_str('SITE_HOSTING_PROVIDER') or ('Vercel Inc. (США)' if IS_VERCEL else '[хостинг-провайдер]')
+LEGAL_EDITION_DATE = env_str('LEGAL_EDITION_DATE')
+PROJECT_REPO_URL = env_str('PROJECT_REPO_URL') or 'https://github.com/Vladi2lav/task1'
+# Не больше стольких строк в выгрузке Excel за один раз
+PORTAL_EXPORT_MAX_ROWS = env_int('PORTAL_EXPORT_MAX_ROWS', 50_000)
 
 
 # --- Настройки парсеров и расписания (scraper.toml) ---

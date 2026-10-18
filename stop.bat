@@ -10,6 +10,8 @@ set "QUIET="
 if /i "%~1"=="--quiet" set "QUIET=1"
 if /i "%~1"=="--no-pause" set "NO_PAUSE=1"
 set "STOPPED=0"
+rem системные утилиты — по полному пути (в PATH может оказаться find из Git и т.п.)
+set "SYS32=%SystemRoot%\System32"
 
 call :stop_one web
 call :stop_one scheduler
@@ -30,9 +32,9 @@ set "PID="
 set /p PID=<"%PID_FILE%"
 if not defined PID goto remove_pid
 rem проверяем, что под этим номером работает именно python, а не другой процесс
-tasklist /FI "PID eq %PID%" /FI "IMAGENAME eq python.exe" /NH 2>nul | find "%PID%" >nul
+"%SYS32%\tasklist.exe" /FI "PID eq %PID%" /FI "IMAGENAME eq python.exe" /NH 2>nul | "%SYS32%\find.exe" "%PID%" >nul
 if errorlevel 1 goto remove_pid
-taskkill /PID %PID% /T /F >nul 2>&1
+"%SYS32%\taskkill.exe" /PID %PID% /T /F >nul 2>&1
 if not errorlevel 1 set "STOPPED=1"
 :remove_pid
 del /q "%PID_FILE%" >nul 2>&1

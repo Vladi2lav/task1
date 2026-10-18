@@ -795,8 +795,8 @@
  "model": "exchanges.participant",
  "pk": 349,
  "fields": {
-  "name": "ИП Тайбагорова Б.Е",
-  "bin": "610125400073"
+  "name": "ИП (данные скрыты) №1",
+  "bin": ""
  }
 },
 {
@@ -843,8 +843,8 @@
  "model": "exchanges.participant",
  "pk": 355,
  "fields": {
-  "name": "ИП Дарбаев Кобентай Каиркенович",
-  "bin": "610509301220"
+  "name": "ИП (данные скрыты) №2",
+  "bin": ""
  }
 },
 {
@@ -859,40 +859,40 @@
  "model": "exchanges.participant",
  "pk": 357,
  "fields": {
-  "name": "ИП Антоненко Игорь Валерьевич",
-  "bin": "680717300167"
+  "name": "ИП (данные скрыты) №3",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 358,
  "fields": {
-  "name": "ИП ИРВЕМА",
-  "bin": "860212350864"
+  "name": "ИП (данные скрыты) №4",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 359,
  "fields": {
-  "name": "ИП Гайнулина Эльмира Самигулловна",
-  "bin": "721031400791"
+  "name": "ИП (данные скрыты) №5",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 360,
  "fields": {
-  "name": "ИП Ермекова Жумагуль Калиловна",
-  "bin": "660128401817"
+  "name": "ИП (данные скрыты) №6",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 361,
  "fields": {
-  "name": "ИП Ищанов Бейсен Кайруллинович",
-  "bin": "591209301256"
+  "name": "ИП (данные скрыты) №7",
+  "bin": ""
  }
 },
 {
@@ -915,8 +915,8 @@
  "model": "exchanges.participant",
  "pk": 364,
  "fields": {
-  "name": "ИП Уголь-Жаксы",
-  "bin": "910820350511"
+  "name": "ИП (данные скрыты) №8",
+  "bin": ""
  }
 },
 {
@@ -1011,8 +1011,8 @@
  "model": "exchanges.participant",
  "pk": 376,
  "fields": {
-  "name": "ИП АЯП С.Ж.",
-  "bin": "540904300859"
+  "name": "ИП (данные скрыты) №9",
+  "bin": ""
  }
 },
 {
@@ -1091,8 +1091,8 @@
  "model": "exchanges.participant",
  "pk": 386,
  "fields": {
-  "name": "ИП Калашников",
-  "bin": "710831350072"
+  "name": "ИП (данные скрыты) №10",
+  "bin": ""
  }
 },
 {
@@ -1435,16 +1435,16 @@
  "model": "exchanges.participant",
  "pk": 429,
  "fields": {
-  "name": "ИП Надирбеков Б.К.",
-  "bin": "630911301626"
+  "name": "ИП (данные скрыты) №11",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 430,
  "fields": {
-  "name": "ИП МУХИЕВ ДОСАЙ КАДЫМОВИЧ",
-  "bin": "660516301694"
+  "name": "ИП (данные скрыты) №12",
+  "bin": ""
  }
 },
 {
@@ -1475,16 +1475,16 @@
  "model": "exchanges.participant",
  "pk": 434,
  "fields": {
-  "name": "ИП Алпамыс",
-  "bin": "800826400996"
+  "name": "ИП (данные скрыты) №13",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 435,
  "fields": {
-  "name": "ИП Ауезов А.Б.",
-  "bin": "810328301239"
+  "name": "ИП (данные скрыты) №14",
+  "bin": ""
  }
 },
 {
@@ -1523,32 +1523,32 @@
  "model": "exchanges.participant",
  "pk": 440,
  "fields": {
-  "name": "ИП Исина А.Б.",
-  "bin": "621110401996"
+  "name": "ИП (данные скрыты) №15",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 441,
  "fields": {
-  "name": "ИП Корнев",
-  "bin": "881027350662"
+  "name": "ИП (данные скрыты) №16",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 442,
  "fields": {
-  "name": "ИП ДОСКАЛИЕВА А.К.",
-  "bin": "800813403088"
+  "name": "ИП (данные скрыты) №17",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 443,
  "fields": {
-  "name": "ИП АЛГЫС",
-  "bin": "890417301009"
+  "name": "ИП (данные скрыты) №18",
+  "bin": ""
  }
 },
 {
@@ -1595,8 +1595,8 @@
  "model": "exchanges.participant",
  "pk": 449,
  "fields": {
-  "name": "ИП Кортунова О.Н.",
-  "bin": "610104402799"
+  "name": "ИП (данные скрыты) №19",
+  "bin": ""
  }
 },
 {
@@ -1635,16 +1635,16 @@
  "model": "exchanges.participant",
  "pk": 454,
  "fields": {
-  "name": "ИП Крылова Юлия Сергеевна",
-  "bin": "840228400010"
+  "name": "ИП (данные скрыты) №20",
+  "bin": ""
  }
 },
 {
  "model": "exchanges.participant",
  "pk": 455,
  "fields": {
-  "name": "ИП Барно",
-  "bin": "810607402537"
+  "name": "ИП (данные скрыты) №21",
+  "bin": ""
  }
 },
 {

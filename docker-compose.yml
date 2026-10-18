@@ -7,6 +7,8 @@
 # Настройки — в файле .env (образец .env.example); без .env работают значения по умолчанию.
 # Подробности: docs/DEPLOY.md
 
+name: trades-portal
+
 x-app: &app
   build: .
   image: trades-portal:latest
@@ -22,6 +24,8 @@ x-app: &app
     TZ: Asia/Almaty
   volumes:
     - appdata:/app/data
+    # расписание и параметры сбора можно менять без пересборки: правка + docker compose restart
+    - ./scraper.toml:/app/scraper.toml:ro
 
 services:
   db:
