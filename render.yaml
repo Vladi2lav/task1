@@ -11,7 +11,8 @@ services:
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
-    dockerCommand: all
+    # Render заменяет и ENTRYPOINT, и CMD — поэтому полный путь к скрипту запуска
+    dockerCommand: /app/docker-entrypoint.sh all
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
