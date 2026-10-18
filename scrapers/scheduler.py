@@ -36,10 +36,16 @@ def collect_scheduled() -> None:
 
 
 def collect_period_start(code: str, today: date) -> date:
-    """С какой даты собирать: lookback_days назад или раньше — от последнего успешного сбора биржи."""
+    """С какой даты собирать: lookback_days назад, а после простоя — раньше.
+
+    После простоя берётся дата, по которую шёл последний успешный сбор, минус те же lookback_days:
+    биржи выкладывают файлы с опозданием (ETS выложила итоги 13.10 уже после сбора 14.10),
+    поэтому последние дни перед прошлым сбором перепроверяются. Дубли при этом не создаются.
+    """
     from exchanges.models import ParseRun
 
-    lookback = today - timedelta(days=int(settings.SCRAPER_CONFIG['schedule'].get('lookback_days', 3)))
+    days = timedelta(days=int(settings.SCRAPER_CONFIG['schedule'].get('lookback_days', 3)))
+    lookback = today - days
     history_limit = today - timedelta(days=int(settings.SCRAPER_CONFIG['history'].get('days', 92)))
     last = (ParseRun.objects
             .filter(exchange__code=code, status__in=[ParseRun.Status.SUCCESS, ParseRun.Status.PARTIAL],
@@ -47,7 +53,7 @@ def collect_period_start(code: str, today: date) -> date:
             .order_by('-date_to').values_list('date_to', flat=True).first())
     if last is None:
         return lookback
-    return max(min(lookback, last), history_limit)
+    return max(min(lookback, last - days), history_limit)
 
 
 def previous_run_time(now: datetime | None = None) -> datetime:

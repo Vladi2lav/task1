@@ -50,10 +50,14 @@ def test_period_starts_from_last_successful_run_after_downtime(settings):
     today = date(2026, 10, 18)
     # без истории — обычные lookback_days
     assert scheduler.collect_period_start('ets', today) == today - timedelta(days=3)
-    # компьютер был выключен неделю: собираем с даты последнего успешного сбора
+    # компьютер был выключен неделю: собираем с даты последнего успешного сбора минус lookback_days
+    # (биржа могла выложить файлы за последние дни уже после того сбора)
     _run('ets', date_to=date(2026, 10, 10))
     _run('ets', status=ParseRun.Status.FAILED, date_to=date(2026, 10, 16))  # неудачный не считается
-    assert scheduler.collect_period_start('ets', today) == date(2026, 10, 10)
+    assert scheduler.collect_period_start('ets', today) == date(2026, 10, 7)
+    # недавний сбор: всё равно перепроверяем lookback_days до него
+    _run('ets', date_to=date(2026, 10, 18))
+    assert scheduler.collect_period_start('ets', today) == date(2026, 10, 15)
     # но не глубже [history].days
     ParseRun.objects.all().delete()
     _run('ets', date_to=date(2025, 1, 1))
@@ -71,4 +75,4 @@ def test_collect_scheduled_uses_period_per_exchange(monkeypatch, settings):
     _run('caspy', date_to=today - timedelta(days=10))
     scheduler.collect_scheduled()
     assert calls[0] == ('ets', today - timedelta(days=3), today, 'schedule')
-    assert calls[1] == ('caspy', today - timedelta(days=10), today, 'schedule')
+    assert calls[1] == ('caspy', today - timedelta(days=13), today, 'schedule')
