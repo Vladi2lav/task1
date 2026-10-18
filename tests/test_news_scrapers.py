@@ -271,6 +271,7 @@ def test_collect_news_command(sites, capsys):
         call_command('collect_news', '--exchange', 'moex', '--days', '5')
 
 
+@pytest.mark.django_db
 def test_scheduler_runs_news_after_trades_and_isolates_errors(monkeypatch, settings):
     calls = []
 

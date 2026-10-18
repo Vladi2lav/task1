@@ -18,17 +18,55 @@ TIMEZONE = 'Asia/Almaty'
 
 
 def collect_scheduled() -> None:
-    """Задача планировщика: перезагрузить последние lookback_days дней по всем биржам из конфига."""
+    """Задача планировщика: собрать по всем биржам из конфига.
+
+    Период — последние lookback_days дней, а если с прошлого успешного сбора прошло больше
+    (компьютер был выключен), то начиная с даты, по которую тот сбор шёл: пропущенные дни не теряются.
+    """
     config = settings.SCRAPER_CONFIG['schedule']
     date_to = datetime.now(ZoneInfo(TIMEZONE)).date()
-    date_from = date_to - timedelta(days=int(config.get('lookback_days', 3)))
-    logger.info('Плановый сбор за %s — %s: %s', date_from, date_to, ', '.join(config['exchanges']))
     for code in config['exchanges']:
+        date_from = collect_period_start(code, date_to)
+        logger.info('Плановый сбор %s за %s — %s', code, date_from, date_to)
         try:
             collect([code], date_from, date_to, trigger='schedule')
         except Exception:  # ошибка одной биржи не мешает остальным
             logger.exception('Плановый сбор по бирже %s не выполнен', code)
     collect_news_scheduled(date_to)
+
+
+def collect_period_start(code: str, today: date) -> date:
+    """С какой даты собирать: lookback_days назад или раньше — от последнего успешного сбора биржи."""
+    from exchanges.models import ParseRun
+
+    lookback = today - timedelta(days=int(settings.SCRAPER_CONFIG['schedule'].get('lookback_days', 3)))
+    history_limit = today - timedelta(days=int(settings.SCRAPER_CONFIG['history'].get('days', 92)))
+    last = (ParseRun.objects
+            .filter(exchange__code=code, status__in=[ParseRun.Status.SUCCESS, ParseRun.Status.PARTIAL],
+                    date_to__isnull=False)
+            .order_by('-date_to').values_list('date_to', flat=True).first())
+    if last is None:
+        return lookback
+    return max(min(lookback, last), history_limit)
+
+
+def previous_run_time(now: datetime | None = None) -> datetime:
+    """Когда по расписанию должен был пройти последний сбор (сегодня или вчера в [schedule].hour:minute)."""
+    config = settings.SCRAPER_CONFIG['schedule']
+    now = now or datetime.now(ZoneInfo(TIMEZONE))
+    planned = now.replace(hour=int(config['hour']), minute=int(config['minute']), second=0, microsecond=0)
+    return planned if planned <= now else planned - timedelta(days=1)
+
+
+def missed_run(now: datetime | None = None) -> bool:
+    """Пропущен ли последний плановый сбор: после его времени не было ни одного планового запуска.
+
+    Так бывает, если в момент расписания планировщик не работал (компьютер выключен, процесс не запущен).
+    """
+    from exchanges.models import ParseRun
+
+    due = previous_run_time(now)
+    return not ParseRun.objects.filter(trigger='schedule', started_at__gte=due).exists()
 
 
 def collect_news_scheduled(today: date) -> None:
@@ -54,9 +92,18 @@ def next_run_time() -> datetime:
     return _cron_trigger().get_next_fire_time(None, datetime.now(ZoneInfo(TIMEZONE)))
 
 
-def build_scheduler() -> BlockingScheduler:
-    """Планировщик с одной ежедневной задачей (час и минута из [schedule])."""
+def build_scheduler(catch_up: bool = True) -> BlockingScheduler:
+    """Планировщик с ежедневной задачей (час и минута из [schedule]).
+
+    catch_up: если последний плановый сбор пропущен (планировщик тогда не работал), он выполняется
+    сразу после старта, с опозданием, а дальше — снова по расписанию.
+    """
     scheduler = BlockingScheduler(timezone=TIMEZONE)
     scheduler.add_job(collect_scheduled, _cron_trigger(), id='collect_trades',
-                      misfire_grace_time=3600, coalesce=True)
+                      # проснулся после сна позже расписания — всё равно выполнить (один раз)
+                      misfire_grace_time=None, coalesce=True)
+    if catch_up and missed_run():
+        logger.warning('Плановый сбор %s пропущен — запускаю сейчас',
+                       previous_run_time().strftime('%d.%m.%Y %H:%M'))
+        scheduler.add_job(collect_scheduled, id='catch_up', next_run_time=datetime.now(ZoneInfo(TIMEZONE)))
     return scheduler
