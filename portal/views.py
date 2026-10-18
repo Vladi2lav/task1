@@ -238,13 +238,28 @@ def api_trades(request):
 def api_analytics(request):
     """Сводная аналитика: динамика цены, топы, оборот по дням, сводка.
 
-    Параметры: exchange, date_from, date_to, q (как в /api/trades/),
-    product_id или product_code — товар для графика цены.
+    Параметры: exchange, date_from, date_to, q (как в /api/trades/);
+    product=ID (повторяемый) и/или products=1,2,3 — выбранные товары (до 10):
+    все секции считаются только по ним, график и сравнение — по каждому отдельно;
+    product_id или product_code — старый способ выбрать товар для price_dynamics.
     """
     try:
         return _json(analytics.build_analytics(request.GET))
     except ParamError as exc:
         return _error(str(exc))
+
+
+@require_GET
+def api_analytics_products(request):
+    """Товары для выбора на странице аналитики: все, у которых есть сделки в выборке.
+
+    Параметры: exchange, date_from, date_to; q — поиск по названию, коду и ТН ВЭД.
+    """
+    try:
+        results = analytics.products_for_picker(request.GET)
+    except ParamError as exc:
+        return _error(str(exc))
+    return _json({'count': len(results), 'results': results})
 
 
 @require_GET

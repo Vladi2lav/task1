@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/trades/', views.api_trades, name='api_trades'),
     path('api/trades/export.xlsx', views.api_trades_export, name='api_trades_export'),
     path('api/analytics/', views.api_analytics, name='api_analytics'),
+    path('api/analytics/products/', views.api_analytics_products, name='api_analytics_products'),
     path('api/filters/', views.api_filters, name='api_filters'),
     path('api/status/', views.api_status, name='api_status'),
     path('api/news/', views.api_news, name='api_news'),

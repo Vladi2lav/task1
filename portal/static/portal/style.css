@@ -402,6 +402,162 @@ span.page-btn[aria-current="page"] { display: inline-flex; align-items: center; 
 }
 .chart-empty[hidden] { display: none; }
 .summary-cards.loading, .charts-grid.loading { opacity: 0.55; transition: opacity 0.15s; }
+.chart-head-text { min-width: 0; flex: 1 1 320px; }
+.chart-head-text .chart-sub { margin-top: 2px; }
+.chart-hint { margin: var(--s2) 0 0; color: var(--text-muted); font-size: 0.82rem; }
+.chart-hint:empty { display: none; }
+.chip[disabled] { opacity: 0.5; cursor: default; pointer-events: none; }
+.link-btn {
+  font: inherit; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.link-btn:hover { color: var(--accent-hover); }
+
+/* Цветная метка товара (линия графика ↔ чип ↔ строка таблицы) */
+.swatch { display: inline-block; flex: none; width: 14px; height: 0; border-top: 3px solid var(--swatch, var(--accent)); border-radius: 2px; vertical-align: middle; }
+.swatch-dashed { border-top-style: dashed; }
+
+/* ---------- Выбор товаров (комбобокс с множественным выбором) ---------- */
+.field-products { grid-column: span 5; position: relative; }
+/* поле товаров может вырасти (чипы) — остальные поля остаются вверху строки */
+#an-filters-form .filters-grid { align-items: start; }
+#an-filters-form .field-actions { padding-top: calc(0.78rem * 1.45 + var(--s1)); }
+.combo { position: relative; }
+.combo-control {
+  display: flex; align-items: flex-start; gap: 2px;
+  min-height: var(--control-h); padding: 3px 4px 3px var(--s1);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  cursor: text; transition: border-color 0.12s, box-shadow 0.12s;
+}
+.combo-control:hover { border-color: #a9a69c; }
+.combo-control.has-value { border-color: var(--accent); background: #fbfdfd; }
+.combo-control:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.combo-field { flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1); }
+.combo-chips { display: contents; }
+.combo-chips[hidden] { display: none; }
+.combo .combo-input {
+  flex: 1 1 140px; min-width: 120px; width: auto; height: 28px; border: 0; padding: 0 var(--s2);
+  background: transparent; box-shadow: none;
+}
+.combo .combo-input:focus { box-shadow: none; outline: none; }
+.combo-clear, .combo-arrow {
+  flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0;
+  border: 0; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: var(--radius-sm);
+  font: inherit; font-size: 1.15rem; line-height: 1;
+}
+.combo-clear:hover, .combo-arrow:hover { background: var(--surface-alt); color: var(--text); }
+.combo-clear[hidden] { display: none; }
+.combo-arrow-icon {
+  display: block; width: 7px; height: 7px; margin-top: -3px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 0.15s;
+}
+.combo.is-open .combo-arrow-icon { transform: rotate(225deg); margin-top: 3px; }
+
+.combo-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: min(100%, 300px); min-width: 0; height: 28px;
+  padding: 0 2px 0 var(--s2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-head); color: var(--text); font-size: 0.85rem; line-height: 1.2;
+}
+.combo-chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-chip.is-missing { background: var(--surface-alt); color: var(--text-faint); border-style: dashed; }
+.combo-chip.is-missing .combo-chip-text { text-decoration: line-through; text-decoration-color: var(--border-strong); }
+.combo-chip-word { background: var(--info-bg); color: var(--info); border-color: transparent; }
+.combo-chip-remove {
+  flex: none; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0;
+  border-radius: 3px; background: transparent; color: var(--text-muted); cursor: pointer; font: inherit; font-size: 1rem; line-height: 1;
+}
+.combo-chip-remove:hover { background: var(--border); color: var(--text); }
+.combo-chip-toggle { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 600; padding: 0 var(--s2); color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.combo-chip-toggle:hover { border-color: var(--accent); }
+.combo-chip-chevron {
+  display: block; width: 6px; height: 6px; margin: -3px 2px 0 2px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg);
+}
+.combo-chip-chevron.is-up { transform: rotate(225deg); margin-top: 3px; }
+
+.combo-popup {
+  position: absolute; z-index: 25; right: 0; top: calc(100% + 4px);
+  width: max(100%, 600px); max-width: calc(100vw - 2 * var(--gutter));
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius);
+  overflow: hidden;
+}
+.combo-popup[hidden] { display: none; }
+.combo-actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s2);
+  padding: var(--s2) var(--s3); border-bottom: 1px solid var(--border); background: var(--surface-alt);
+}
+.combo-actions .chip[hidden] { display: none; }
+.combo-count { margin-left: auto; color: var(--text-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.combo-msg { padding: var(--s2) var(--s3); background: var(--warn-bg); color: var(--warn); font-size: 0.85rem; border-bottom: 1px solid #f0dfb8; }
+.combo-msg[hidden] { display: none; }
+.combo-list { list-style: none; margin: 0; padding: var(--s1) 0; max-height: 360px; overflow-y: auto; overscroll-behavior: contain; }
+.combo-option {
+  display: flex; align-items: flex-start; gap: var(--s3); padding: 6px var(--s3); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.combo-option:hover { background: var(--row-hover); }
+.combo-option.is-active { background: var(--accent-soft); border-left-color: var(--accent); }
+.combo-check {
+  flex: none; width: 16px; height: 16px; margin-top: 2px; border: 1px solid var(--border-strong); border-radius: 3px;
+  background: var(--surface); position: relative;
+}
+.combo-option.is-selected .combo-check { background: var(--accent); border-color: var(--accent); }
+.combo-option.is-selected .combo-check::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px;
+  border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(45deg);
+}
+.combo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.combo-name {
+  font-size: 0.88rem; line-height: 1.3; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere;
+}
+.combo-option.is-selected .combo-name { font-weight: 600; }
+.combo-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 2px var(--s2); font-size: 0.76rem; color: var(--text-muted); }
+.combo-meta .badge { font-size: 0.7rem; padding: 0 5px; }
+.combo-deals { flex: none; font-size: 0.8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 1px; }
+.combo-option.is-missing .combo-name { color: var(--text-muted); }
+.combo-deals.is-missing { color: var(--text-faint); }
+.combo-group {
+  padding: var(--s2) var(--s3) var(--s1); font-size: 0.74rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.combo-empty { padding: var(--s3); color: var(--text-muted); font-size: 0.88rem; }
+.combo-flash, .combo-note { margin-top: var(--s1); font-size: 0.82rem; }
+.combo-flash { color: var(--text-muted); }
+.combo-note { color: var(--warn); display: flex; flex-wrap: wrap; gap: 2px var(--s2); align-items: baseline; }
+.combo-flash[hidden], .combo-note[hidden] { display: none; }
+
+/* ---------- Сравнение: легенда и таблица ---------- */
+.chart-legend { list-style: none; margin: var(--s3) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); }
+.chart-legend[hidden] { display: none; }
+.legend-item {
+  display: inline-flex; align-items: center; gap: var(--s2); max-width: 100%; min-height: 30px;
+  padding: 2px var(--s2); border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: none; color: var(--text); font: inherit; font-size: 0.84rem; cursor: pointer; text-align: left;
+}
+.legend-item:hover { border-color: var(--border); background: var(--surface-alt); }
+.legend-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-note { color: var(--text-faint); font-size: 0.78rem; white-space: nowrap; }
+.legend-item.is-off { color: var(--text-faint); }
+.legend-item.is-off .swatch { opacity: 0.35; }
+.legend-item.is-off .legend-text { text-decoration: line-through; }
+
+.compare-wrap { margin-top: var(--s4); overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); -webkit-overflow-scrolling: touch; }
+.compare-wrap[hidden] { display: none; }
+.compare-table thead th { position: static; }
+.compare-table td { vertical-align: middle; }
+.compare-table .badge + .badge { margin-left: 4px; }
+.cell-compare-product { min-width: 220px; max-width: 360px; }
+.compare-table th, .compare-table td { padding: var(--s2) 10px; }
+.compare-name { display: flex; align-items: center; gap: var(--s2); }
+.compare-name .cell-main {
+  min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+}
+.compare-name + .cell-sub { padding-left: 22px; }
+.compare-table tr.is-empty td { color: var(--text-muted); }
+.change { font-weight: 600; }
+.change-up { color: var(--ok); }
+.change-down { color: var(--err); }
 
 /* ---------- Новости ---------- */
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s2); }
@@ -486,6 +642,7 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-al
 @media (max-width: 1100px) {
   :root { --gutter: 24px; }
   .filters-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .field-products { grid-column: span 5; }
   .charts-grid { grid-template-columns: minmax(0, 1fr); }
   .chart-panel-wide { grid-column: auto; }
 }
@@ -636,6 +793,37 @@ code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-al
   .chart-head { flex-direction: column; align-items: flex-start; gap: var(--s1); }
   .chart-switch { margin-top: var(--s1); }
   .chart-switch .chip { height: 40px; padding: 0 var(--s4); }
+  .chart-switch { display: flex; width: 100%; }
+  .chart-switch .chip { flex: 1 1 auto; min-width: 0; padding: 0 6px; height: 44px; font-size: 0.84rem; white-space: nowrap; }
+  .chart-head-text { flex: none; width: 100%; }
+
+  /* Выбор товаров: список на всю ширину, крупные строки и кнопки */
+  .field-products { grid-column: 1 / -1; }
+  #an-filters-form .field-actions { padding-top: 0; }
+  .combo-control { padding: 4px 4px 4px var(--s1); }
+  .combo .combo-input { height: 44px; font-size: 16px; flex-basis: 80px; min-width: 80px; }
+  .combo-clear, .combo-arrow { width: 44px; height: 44px; }
+  .combo-chip { height: 44px; max-width: 100%; font-size: 0.9rem; }
+  .combo-chip-remove { width: 44px; height: 42px; margin-right: -2px; font-size: 1.15rem; }
+  .combo-chip-toggle { height: 44px; }
+  .combo-popup { top: calc(100% + 2px); left: 0; width: auto; max-width: none; }
+  .combo-actions { padding: var(--s2); }
+  .combo-actions .chip { height: 44px; flex: 1 1 auto; }
+  .combo-count { flex-basis: 100%; margin-left: 0; }
+  .combo-list { max-height: min(56vh, 440px); }
+  .combo-option { min-height: 48px; padding: var(--s2) var(--s3); align-items: flex-start; flex-wrap: wrap; }
+  .combo-check { width: 20px; height: 20px; margin-top: 0; }
+  .combo-option.is-selected .combo-check::after { left: 6px; top: 2px; width: 6px; height: 11px; }
+  .combo-name { font-size: 0.95rem; }
+  .legend-item { min-height: 40px; }
+  .chart-legend { gap: 0 var(--s1); }
+  .cell-compare-product { min-width: 150px; max-width: 170px; }
+  .compare-name .cell-main { font-size: 0.85rem; }
+  .compare-wrap { margin-left: calc(-1 * var(--s4)); margin-right: calc(-1 * var(--s4)); border-left: 0; border-right: 0; border-radius: 0; }
+  .compare-table td.cell-compare-product, .compare-table thead th:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: inset -1px 0 0 var(--border);
+  }
+  .compare-table thead th:first-child { background: var(--surface-head); z-index: 2; }
 
   /* Новости */
   .news-filters .field, .news-filters .field-grow { flex: 1 1 100%; width: 100%; }

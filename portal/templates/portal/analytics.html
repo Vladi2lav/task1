@@ -30,16 +30,38 @@
         <span class="field-label">Период по</span>
         <input type="date" name="date_to" id="a-date_to">
       </label>
-      <label class="field">
-        <span class="field-label">Товар (ключевое слово)</span>
-        <input type="text" name="q" id="a-q" placeholder="например, бензин">
-      </label>
-      <label class="field field-wide">
-        <span class="field-label">Товар для графика цены</span>
-        <select name="product_id" id="a-product_id" disabled>
-          <option value="">Загрузка…</option>
-        </select>
-      </label>
+      <div class="field field-products">
+        <span class="field-label" id="a-products-label">Товары</span>
+        <div class="combo" id="a-products">
+          <div class="combo-control">
+            <div class="combo-field">
+              <div class="combo-chips" id="a-products-chips" role="list" aria-label="Выбранные товары"></div>
+              <input type="text" id="a-products-input" class="combo-input" role="combobox"
+                     aria-labelledby="a-products-label" aria-controls="a-products-list"
+                     aria-expanded="false" aria-autocomplete="list" aria-haspopup="listbox"
+                     aria-describedby="a-products-hint" placeholder="Все товары" spellcheck="false" enterkeyhint="search">
+            </div>
+            <button type="button" class="combo-clear" id="a-products-clear" aria-label="Сбросить выбор товаров" title="Сбросить выбор (все товары)" hidden>
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <button type="button" class="combo-arrow" id="a-products-arrow" tabindex="-1" aria-label="Открыть список товаров">
+              <span class="combo-arrow-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="combo-popup" id="a-products-popup" hidden>
+            <div class="combo-actions">
+              <button type="button" class="chip" id="a-products-all">Все товары</button>
+              <button type="button" class="chip" id="a-products-found" hidden>Выбрать найденные</button>
+              <span class="combo-count" id="a-products-count"></span>
+            </div>
+            <div class="combo-msg" id="a-products-msg" role="status" aria-live="polite" hidden></div>
+            <ul class="combo-list" id="a-products-list" role="listbox" aria-multiselectable="true" aria-labelledby="a-products-label"></ul>
+          </div>
+          <span class="visually-hidden" id="a-products-hint">Стрелки вниз и вверх — выбор строки, Enter или пробел — отметить товар, Escape — закрыть список. Можно выбрать до 10 товаров.</span>
+        </div>
+        <div class="combo-flash" id="a-products-flash" role="status" aria-live="polite" hidden></div>
+        <div class="combo-note" id="a-products-note" hidden></div>
+      </div>
       <div class="field field-actions">
         <button type="button" class="btn btn-ghost" id="a-reset">Сбросить</button>
       </div>
@@ -81,12 +103,29 @@
 <div class="charts-grid">
   <section class="panel chart-panel chart-panel-wide" aria-labelledby="t-price">
     <div class="chart-head">
-      <h2 class="panel-title" id="t-price">Динамика средневзвешенной цены</h2>
-      <div class="chart-sub" id="price-sub">—</div>
+      <div class="chart-head-text">
+        <h2 class="panel-title" id="t-price">Сравнение товаров</h2>
+        <div class="chart-sub" id="price-sub">—</div>
+      </div>
+      <div class="chart-switch" role="group" aria-label="Что показать на графике">
+        <button type="button" class="chip is-active" data-metric="price" aria-pressed="true">Цена</button>
+        <button type="button" class="chip" data-metric="change" aria-pressed="false">Изменение, %</button>
+        <button type="button" class="chip" data-metric="amount" aria-pressed="false">Сумма по дням</button>
+      </div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-price" role="img" aria-label="График средневзвешенной цены товара по дням"></canvas>
+      <canvas id="chart-price" role="img" aria-label="Средневзвешенная цена выбранных товаров по дням"></canvas>
       <div class="chart-empty" id="empty-price" hidden></div>
+    </div>
+    <ul class="chart-legend" id="price-legend" aria-label="Товары на графике"></ul>
+    <p class="chart-hint" id="price-hint"></p>
+
+    <div class="compare-wrap" id="compare-wrap">
+      <table class="data-table compare-table" id="compare-table">
+        <caption class="visually-hidden">Сравнение товаров за выбранный период</caption>
+        <thead><tr id="compare-head"></tr></thead>
+        <tbody id="compare-body"></tbody>
+      </table>
     </div>
   </section>
 

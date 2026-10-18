@@ -144,7 +144,7 @@ python manage.py runserver      # http://127.0.0.1:8000/
 | `/legal/terms/`, `/legal/privacy/`, `/legal/cookies/`, `/legal/sources/` | соглашение, конфиденциальность, cookie, источники и лицензии |
 | `/admin/` | админка Django |
 | `/healthz` | проверка работоспособности (JSON, 200 / 503) |
-| `/api/trades/`, `/api/trades/export.xlsx`, `/api/analytics/`, `/api/news/`, `/api/filters/`, `/api/status/` | JSON API портала и экспорт |
+| `/api/trades/`, `/api/trades/export.xlsx`, `/api/analytics/`, `/api/analytics/products/`, `/api/news/`, `/api/filters/`, `/api/status/` | JSON API портала и экспорт |
 
 ## Тесты
 

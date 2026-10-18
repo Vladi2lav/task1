@@ -89,8 +89,8 @@ def test_формат_ответа(клиент, данные):
     assert ответ['Content-Type'].startswith('application/json')
     тело = ответ.json()
     assert set(тело) == {
-        'filters', 'summary', 'products', 'price_dynamics',
-        'top_products', 'top_buyers', 'top_sellers', 'turnover_by_day',
+        'filters', 'selected', 'unknown_ids', 'compare_mode', 'summary', 'products', 'price_dynamics',
+        'series', 'comparison', 'top_products', 'top_buyers', 'top_sellers', 'turnover_by_day',
     }
     assert тело['filters'] == {'exchange': '', 'date_from': None, 'date_to': None, 'q': ''}
 
@@ -314,8 +314,10 @@ def test_пустая_база(клиент):
             'records': 0, 'trading_days': 0, 'total_amount': 0.0, 'deals_total': 0,
             'records_without_amount': 0, 'share_without_amount': 0.0,
         },
+        'selected': [], 'unknown_ids': [], 'compare_mode': 'top',
         'products': [],
         'price_dynamics': {'product': None, 'points': [], 'records_without_price': 0},
+        'series': [], 'comparison': [],
         'top_products': [], 'top_buyers': [], 'top_sellers': [], 'turnover_by_day': [],
     }
 
@@ -342,14 +344,258 @@ def test_некорректные_параметры_дают_400(клиент, 
     assert ответ.json()['error']
 
 
+# ---------------------------------------------- множественный выбор товаров
+
+def строки(тело):
+    return {r['code']: r for r in тело['comparison']}
+
+
+def test_ничего_не_выбрано_значит_все_товары(клиент, данные):
+    тело = получить(клиент)
+    assert тело['selected'] == [] and тело['unknown_ids'] == []
+    assert тело['summary']['records'] == 8
+    assert тело['summary']['total_amount'] == 16000.0
+    assert [t['code'] for t in тело['top_products']] == ['WH3', 'CL1']
+    # для сравнения берутся самые торгуемые товары (по числу сделок): пшеница 7, уголь 5
+    assert тело['compare_mode'] == 'top'
+    assert [s['code'] for s in тело['series']] == ['WH3', 'CL1']
+    assert [r['code'] for r in тело['comparison']] == ['WH3', 'CL1']
+
+
+def test_по_умолчанию_сравниваются_пять_самых_торгуемых(клиент, данные):
+    for номер in range(6):
+        товар = Product.objects.create(name=f'Товар {номер}', code=f'T{номер}')
+        сделка(данные.ets, товар, Д1, price_avg=D(10), deals_count=номер + 10)
+    тело = получить(клиент)
+    assert [s['code'] for s in тело['series']] == ['T5', 'T4', 'T3', 'T2', 'T1']
+
+
+def test_выбран_один_товар_все_секции_только_по_нему(клиент, данные):
+    тело = получить(клиент, product=данные.уголь.id)
+    assert тело['compare_mode'] == 'selected'
+    assert тело['selected'] == [{'id': данные.уголь.id, 'name': 'Уголь каменный марки Д', 'code': 'CL1', 'tnved': '2701'}]
+    assert тело['summary']['records'] == 2
+    assert тело['summary']['total_amount'] == 5000.0
+    assert тело['summary']['records_without_amount'] == 1
+    assert [t['code'] for t in тело['top_products']] == ['CL1']
+    assert [(t['name'], t['amount']) for t in тело['top_buyers']] == [('ТОО Гамма', 5000.0)]
+    assert [(t['name'], t['amount']) for t in тело['top_sellers']] == [('ТОО Альфа', 5000.0)]
+    assert [d['date'] for d in тело['turnover_by_day']] == ['2026-10-03']
+    assert [s['code'] for s in тело['series']] == ['CL1']
+    # старый блок графика цены тоже следует выбору
+    assert тело['price_dynamics']['product']['code'] == 'CL1'
+
+
+@pytest.mark.parametrize('способ', ['повтор', 'список', 'смешанный'])
+def test_несколько_товаров_разными_способами(клиент, данные, способ):
+    у, п = данные.уголь.id, данные.пшеница.id
+    if способ == 'повтор':
+        ответ = клиент.get('/api/analytics/', {'product': [у, п]})
+    elif способ == 'список':
+        ответ = клиент.get('/api/analytics/', {'products': f'{у}, {п}'})
+    else:
+        ответ = клиент.get(f'/api/analytics/?product={у}&products={п},{у}')
+    тело = ответ.json()
+    assert ответ.status_code == 200
+    # порядок — как в запросе, повторы убраны
+    assert [p['id'] for p in тело['selected']] == [у, п]
+    assert [s['code'] for s in тело['series']] == ['CL1', 'WH3']
+    assert тело['summary']['records'] == 8
+
+
+def test_ряды_по_дням_для_каждого_товара(клиент, данные):
+    тело = получить(клиент, product=[данные.пшеница.id, данные.уголь.id])
+    пшеница, уголь = тело['series']
+    assert пшеница['name'] == 'Пшеница мягкая 3 класс'
+    assert пшеница['exchange_codes'] == ['ets']
+    assert [(p['date'], p['avg_price'], p['amount'], p['volume']) for p in пшеница['points']] == [
+        ('2026-10-01', 175.0, 7000.0, 40.0),
+        ('2026-10-02', 200.0, 4000.0, None),
+        ('2026-10-03', 100.0, None, None),
+    ]
+    assert уголь['exchange_codes'] == ['caspy', 'ets']
+    # у2 без цены и суммы: день есть, цена — по у1
+    assert уголь['points'] == [
+        {'date': '2026-10-03', 'avg_price': 50.0, 'amount': 5000.0, 'volume': 100.0, 'records': 1},
+    ]
+
+
+def test_сравнение_товаров(клиент, данные):
+    тело = получить(клиент, product=[данные.пшеница.id, данные.уголь.id])
+    п = строки(тело)['WH3']
+    assert п['records'] == 6
+    assert п['deals'] == 7  # 2 + 1 и по одной сделке у записей без deals_count
+    assert п['volume'] == 40.0
+    assert п['amount'] == 11000.0
+    assert п['avg_price'] == 183.33  # (1000 + 6000 + 1000 + 3000) / (10 + 30 + 10 + 10)
+    assert (п['min_price'], п['max_price']) == (100.0, 500.0)
+    assert (п['first_price'], п['first_date']) == (175.0, '2026-10-01')
+    assert (п['last_price'], п['last_price_date']) == (100.0, '2026-10-03')
+    assert п['change_pct'] == -42.86  # (100 - 175) / 175
+    assert п['last_date'] == '2026-10-03'
+    assert п['exchange_codes'] == ['ets']
+
+    у = строки(тело)['CL1']
+    assert (у['records'], у['deals'], у['amount'], у['volume']) == (2, 5, 5000.0, 100.0)
+    assert (у['min_price'], у['max_price'], у['avg_price']) == (50.0, 50.0, 50.0)
+    assert у['first_price'] == у['last_price'] == 50.0
+    assert у['change_pct'] is None  # один день с ценой — изменения нет
+    assert у['records_without_price'] == 1
+
+
+def test_изменение_цены_положительное(клиент, данные):
+    тело = получить(клиент, product=данные.пшеница.id, date_from='2026-10-01', date_to='2026-10-02')
+    строка = тело['comparison'][0]
+    assert (строка['first_price'], строка['last_price']) == (175.0, 200.0)
+    assert строка['change_pct'] == 14.29
+    assert строка['last_date'] == '2026-10-02'
+
+
+def test_мин_и_макс_по_полям_мин_и_макс_цены(клиент, данные):
+    Trade.objects.filter(pk=данные.записи['п1'].pk).update(price_min=D(90))
+    Trade.objects.filter(pk=данные.записи['п5'].pk).update(price_max=D(650))
+    строка = получить(клиент, product=данные.пшеница.id)['comparison'][0]
+    assert (строка['min_price'], строка['max_price']) == (90.0, 650.0)
+
+
+def test_выбранный_товар_без_сделок_в_выборке(клиент, данные):
+    тело = получить(клиент, product=[данные.пшеница.id, данные.сахар.id], exchange='caspy')
+    assert [p['code'] for p in тело['selected']] == ['WH3', 'SG1']
+    assert тело['summary']['records'] == 0
+    assert [s['points'] for s in тело['series']] == [[], []]
+    for строка in тело['comparison']:
+        assert строка['deals'] == 0 and строка['records'] == 0
+        assert строка['amount'] is None and строка['avg_price'] is None
+        assert строка['change_pct'] is None and строка['last_date'] is None
+
+
+def test_неизвестные_id_игнорируются(клиент, данные):
+    тело = получить(клиент, product=[999999, данные.уголь.id])
+    assert тело['unknown_ids'] == [999999]
+    assert [p['code'] for p in тело['selected']] == ['CL1']
+    assert тело['summary']['records'] == 2
+    # если не нашлось ни одного — как будто ничего не выбрано
+    тело = получить(клиент, product=999999)
+    assert тело['selected'] == [] and тело['compare_mode'] == 'top'
+    assert тело['summary']['records'] == 8
+
+
+def test_не_больше_десяти_товаров(клиент, данные):
+    десять = [данные.пшеница.id, данные.уголь.id] + list(range(900001, 900009))
+    assert клиент.get('/api/analytics/', {'product': десять}).status_code == 200
+    ответ = клиент.get('/api/analytics/', {'product': десять + [900100]})
+    assert ответ.status_code == 400
+    assert 'не больше 10' in ответ.json()['error']
+    ответ = клиент.get('/api/analytics/', {'products': ','.join(str(i) for i in range(1, 12))})
+    assert ответ.status_code == 400
+    # повторы не считаются
+    assert клиент.get('/api/analytics/', {'product': [данные.уголь.id] * 15}).status_code == 200
+
+
+@pytest.mark.parametrize('параметры', [{'product': 'abc'}, {'products': '1,x'}, {'product': '-3'}])
+def test_некорректный_выбор_даёт_400(клиент, данные, параметры):
+    ответ = клиент.get('/api/analytics/', параметры)
+    assert ответ.status_code == 400
+    assert 'product' in ответ.json()['error']
+
+
+def test_совместимость_product_id_с_выбором(клиент, данные):
+    # product_id без выбора: только товар графика, выборка не сужается
+    тело = получить(клиент, product_id=данные.уголь.id)
+    assert тело['summary']['records'] == 8
+    assert тело['selected'] == [] and тело['compare_mode'] == 'top'
+    # вместе с выбором: секции — по выбору, price_dynamics — по product_id
+    тело = получить(клиент, product=данные.пшеница.id, product_id=данные.уголь.id)
+    assert тело['summary']['records'] == 6
+    assert тело['price_dynamics']['product']['code'] == 'CL1'
+    assert тело['price_dynamics']['points'] == []  # угля нет в выбранной выборке
+
+
+def test_совместимость_q_с_выбором(клиент, данные):
+    тело = получить(клиент, q='уголь')
+    assert тело['summary']['records'] == 2 and [s['code'] for s in тело['series']] == ['CL1']
+    # q и выбор комбинируются через И
+    тело = получить(клиент, q='уголь', product=[данные.пшеница.id, данные.уголь.id])
+    assert тело['summary']['records'] == 2
+    assert строки(тело)['WH3']['deals'] == 0
+    assert тело['filters']['q'] == 'уголь'
+
+
+def test_выбор_не_добавляет_запросов_на_товар(клиент, данные, django_assert_max_num_queries):
+    товары = [Product.objects.create(name=f'Товар {n}', code=f'T{n}') for n in range(8)]
+    for товар in товары:
+        сделка(данные.ets, товар, Д1, price_avg=D(10), amount=D(100))
+    with django_assert_max_num_queries(12):
+        тело = получить(клиент, product=[данные.пшеница.id, данные.уголь.id] + [t.id for t in товары])
+    assert len(тело['comparison']) == 10
+
+
+# ------------------------------------------------- список товаров для выбора
+
+def список(клиент, **параметры):
+    ответ = клиент.get('/api/analytics/products/', параметры)
+    assert ответ.status_code == 200, ответ.content
+    тело = ответ.json()
+    assert тело['count'] == len(тело['results'])
+    return тело['results']
+
+
+def test_список_товаров_для_выбора(клиент, данные):
+    товары = список(клиент)
+    assert товары == [
+        {'id': данные.пшеница.id, 'name': 'Пшеница мягкая 3 класс', 'code': 'WH3', 'tnved': '1001',
+         'exchange_codes': ['ets'], 'deals': 7, 'records': 6},
+        {'id': данные.уголь.id, 'name': 'Уголь каменный марки Д', 'code': 'CL1', 'tnved': '2701',
+         'exchange_codes': ['caspy', 'ets'], 'deals': 5, 'records': 2},
+    ]  # сахар без сделок в список не попадает
+
+
+def test_список_товаров_фильтр_по_бирже_и_периоду(клиент, данные):
+    assert [(t['code'], t['deals'], t['exchange_codes']) for t in список(клиент, exchange='caspy')] == [
+        ('CL1', 4, ['caspy']),
+    ]
+    assert [(t['code'], t['deals']) for t in список(клиент, date_from='2026-10-03')] == [('CL1', 5), ('WH3', 1)]
+    assert [(t['code'], t['deals']) for t in список(клиент, date_to='2026-10-01')] == [('WH3', 3)]
+    assert список(клиент, date_from='2027-01-01') == []
+
+
+def test_список_товаров_поиск_на_сервере(клиент, данные):
+    assert [t['code'] for t in список(клиент, q='ПШЕН')] == ['WH3']
+    assert [t['code'] for t in список(клиент, q='wh3')] == ['WH3']  # по коду товара
+    assert [t['code'] for t in список(клиент, q='2701')] == ['CL1']  # по коду ТН ВЭД
+    assert [t['code'] for t in список(клиент, q='уголь мар')] == ['CL1']  # части слов
+    assert список(клиент, q='нет такого') == []
+
+
+def test_список_товаров_без_n_плюс_1(клиент, данные, django_assert_max_num_queries):
+    for номер in range(30):
+        сделка(данные.ets, Product.objects.create(name=f'Товар {номер}', code=f'T{номер}'), Д1)
+    with django_assert_max_num_queries(2):
+        assert len(список(клиент)) == 32
+
+
+@pytest.mark.parametrize('параметры', [
+    {'exchange': 'nasdaq'}, {'date_from': 'вчера'}, {'date_from': '2026-10-05', 'date_to': '2026-10-01'},
+])
+def test_список_товаров_ошибки(клиент, данные, параметры):
+    ответ = клиент.get('/api/analytics/products/', параметры)
+    assert ответ.status_code == 400 and ответ.json()['error']
+    assert клиент.post('/api/analytics/products/').status_code == 405
+
+
 # ---------------------------------------------------------------- страница
 
 def test_страница_аналитики(клиент, данные):
     ответ = клиент.get('/analytics/')
     assert ответ.status_code == 200
     html = ответ.content.decode('utf-8')
-    for элемент in ('chart-price', 'chart-turnover', 'chart-products', 'chart-parties', 'a-product_id'):
+    for элемент in ('chart-price', 'chart-turnover', 'chart-products', 'chart-parties',
+                    'a-products', 'a-products-input', 'a-products-list', 'compare-table'):
         assert f'id="{элемент}"' in html
+    assert 'role="combobox"' in html and 'role="listbox"' in html
+    assert 'placeholder="Все товары"' in html
+    # старые поля заменены одним выбором товаров
+    assert 'id="a-q"' not in html and 'id="a-product_id"' not in html
     assert '/static/portal/vendor/chart.umd.min.js' in html
     assert 'cdn.' not in html and 'jsdelivr' not in html  # без CDN
     assert 'data-page="analytics"' in html

@@ -797,14 +797,24 @@
   /* ===================================================== страница «Аналитика» */
 
   function initAnalytics() {
-    const FILTER_KEYS = ['exchange', 'date_from', 'date_to', 'q', 'product_id'];
+    const PERIOD_KEYS = ['exchange', 'date_from', 'date_to'];
+    const MAX_SELECTED = 10;
+    const LIST_RENDER_LIMIT = 400;
+    const LIMIT_MESSAGE = 'Можно выбрать не больше ' + MAX_SELECTED + ' товаров для сравнения. ' +
+      'Снимите отметку с одного из выбранных, чтобы добавить другой.';
     const COLORS = {
       accent: '#0e5a61', accentSoft: 'rgba(14, 90, 97, 0.10)', accentBar: 'rgba(14, 90, 97, 0.78)',
       caspy: '#b0681e', caspyBar: 'rgba(176, 104, 30, 0.8)',
       text: '#5b6068', grid: '#ebe9e3',
     };
+    /* Цвета линий сравнения: 8 приглушённых оттенков, порядок проверен на различимость
+     * (в том числе при нарушениях цветового зрения). 9-й и 10-й товар — те же оттенки пунктиром.
+     * Цвет закреплён за товаром, а не за позицией: снятие отметки не перекрашивает остальные. */
+    const SERIES_COLORS = ['#2a6fb5', '#d0652e', '#1f9472', '#c99a06', '#c75a8a', '#4e8a2a', '#6a58c4', '#c8433f'];
+
     const inputs = {};
-    FILTER_KEYS.forEach((key) => { inputs[key] = document.getElementById('a-' + key); });
+    PERIOD_KEYS.forEach((key) => { inputs[key] = document.getElementById('a-' + key); });
+    const form = document.getElementById('an-filters-form');
     const loader = document.getElementById('an-loader');
     const errorBox = document.getElementById('an-error');
     const errorText = document.getElementById('an-error-text');
@@ -812,14 +822,31 @@
     const summaryBox = document.getElementById('an-summary');
     const chartsBox = document.querySelector('.charts-grid');
     const roleButtons = [...document.querySelectorAll('.chart-switch [data-role]')];
+    const metricButtons = [...document.querySelectorAll('.chart-switch [data-metric]')];
 
-    const state = { role: 'buyers', data: null };
+    const state = {
+      role: 'buyers',
+      metric: 'price',
+      data: null,
+      selected: [],          // id выбранных товаров в порядке выбора
+      legacyQ: '',           // старый параметр q из адреса (ключевое слово)
+      products: [],          // товары текущей выборки (биржа и период) для списка
+      productsLoaded: false,
+      productsError: '',
+      inList: new Set(),     // id товаров, которые есть в текущей выборке
+      known: new Map(),      // id -> {id, name, code, tnved, ...}: названия для чипов
+      slots: new Map(),      // id -> номер цвета
+      hidden: new Set(),     // товары, скрытые на графике щелчком по легенде
+      sort: { key: null, dir: 'desc' },
+    };
     const charts = {};
     let requestSeq = 0;
     let abortController = null;
+    let productsController = null;
 
     const nfOne = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
     const nfTwo = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+    const nfPct = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
     /* ---- форматирование ---- */
 
@@ -850,40 +877,590 @@
       return (value > 0 && value < 0.1 ? '<0,1' : nfOne.format(value)) + '%';
     }
 
+    /** Изменение в процентах со знаком: +12,3 % / −4,5 % (минус — типографский). */
+    function signedPercent(value, format) {
+      if (!isNumber(value)) return '';
+      const text = (format || nfPct).format(Math.abs(value)) + ' %';
+      if (value > 0) return '+' + text;
+      if (value < 0) return '−' + text;
+      return '0 %';
+    }
+
     const RECORDS = ['запись', 'записи', 'записей'];
     const RECORDS_GEN = ['записи', 'записей', 'записей'];
+    const PRODUCTS = ['товар', 'товара', 'товаров'];
+    const DEALS = ['сделка', 'сделки', 'сделок'];
+
+    /** Строка для поиска: нижний регистр, ё = е. */
+    function normalize(text) {
+      return String(text || '').toLowerCase().replace(/ё/g, 'е');
+    }
+
+    function productName(id) {
+      const p = state.known.get(id);
+      return p ? p.name : 'Товар №' + id;
+    }
+
+    function rememberProducts(list) {
+      (list || []).forEach((p) => {
+        const old = state.known.get(p.id) || {};
+        const merged = Object.assign({}, old, p);
+        merged._hay = normalize([p.name, p.code, p.tnved].join(' '));
+        state.known.set(p.id, merged);
+      });
+    }
+
+    /* ---- цвета товаров ---- */
+
+    /** Каждому выбранному товару — свободный номер цвета; снятым — освобождаем. */
+    function assignSlots() {
+      for (const id of [...state.slots.keys()]) {
+        if (!state.selected.includes(id)) state.slots.delete(id);
+      }
+      const used = new Set(state.slots.values());
+      state.selected.forEach((id) => {
+        if (state.slots.has(id)) return;
+        let slot = 0;
+        while (used.has(slot)) slot += 1;
+        state.slots.set(id, slot);
+        used.add(slot);
+      });
+    }
+
+    function styleForSlot(slot) {
+      return { color: SERIES_COLORS[slot % SERIES_COLORS.length], dashed: slot >= SERIES_COLORS.length };
+    }
+
+    /** Стиль линии товара: у выбранных — закреплённый цвет, у «топ-5» — по порядку. */
+    function seriesStyle(id, index) {
+      if (state.slots.has(id)) return styleForSlot(state.slots.get(id));
+      return styleForSlot(index);
+    }
+
+    function swatch(style) {
+      return el('span', {
+        class: 'swatch' + (style.dashed ? ' swatch-dashed' : ''),
+        style: '--swatch:' + style.color,
+        'aria-hidden': 'true',
+      });
+    }
 
     /* ---- параметры и адресная строка ---- */
 
     function readUrl() {
       const params = new URLSearchParams(window.location.search);
-      ['exchange', 'date_from', 'date_to', 'q'].forEach((key) => {
+      PERIOD_KEYS.forEach((key) => {
         const value = params.get(key) || '';
         if (inputs[key].tagName === 'SELECT' && ![...inputs[key].options].some((o) => o.value === value)) return;
         inputs[key].value = value;
       });
-      const productId = params.get('product_id') || '';
-      if (/^\d+$/.test(productId)) {
-        // список товаров придёт с сервером; пока подставляем выбранный из адреса
-        inputs.product_id.appendChild(el('option', { value: productId, text: 'Товар №' + productId }));
-        inputs.product_id.value = productId;
-      }
+      const ids = [];
+      const add = (raw) => {
+        const value = String(raw || '').trim();
+        if (!/^\d+$/.test(value)) return;
+        const id = Number(value);
+        if (id > 0 && !ids.includes(id)) ids.push(id);
+      };
+      params.getAll('product').forEach(add);
+      params.getAll('products').forEach((chunk) => chunk.split(',').forEach(add));
+      // старые ссылки: product_id — один товар для графика цены
+      if (!ids.length) add(params.get('product_id'));
+      state.selected = ids.slice(0, MAX_SELECTED);
+      state.legacyQ = (params.get('q') || '').trim();
+      return ids.length > MAX_SELECTED;
     }
 
-    function filterParams() {
+    function periodParams() {
       const params = new URLSearchParams();
-      FILTER_KEYS.forEach((key) => {
+      PERIOD_KEYS.forEach((key) => {
         const value = (inputs[key].value || '').trim();
         if (value) params.set(key, value);
       });
       return params;
     }
 
-    function syncUrl(params) {
-      const query = params.toString();
+    function filterParams() {
+      const params = periodParams();
+      if (state.legacyQ) params.set('q', state.legacyQ);
+      state.selected.forEach((id) => params.append('product', String(id)));
+      return params;
+    }
+
+    function syncUrl() {
+      const query = filterParams().toString();
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
-      FILTER_KEYS.forEach((key) => inputs[key].classList.toggle('has-value', !!(inputs[key].value || '').trim()));
-      updateFiltersBadge(document.getElementById('an-filters-form'));
+      PERIOD_KEYS.forEach((key) => inputs[key].classList.toggle('has-value', !!(inputs[key].value || '').trim()));
+      picker.control.classList.toggle('has-value', state.selected.length > 0 || !!state.legacyQ);
+      updateFiltersBadge(form);
+    }
+
+    /* ================================================ выбор товаров (как в 1С) */
+
+    const picker = {
+      root: document.getElementById('a-products'),
+      control: document.querySelector('#a-products .combo-control'),
+      chips: document.getElementById('a-products-chips'),
+      input: document.getElementById('a-products-input'),
+      clearBtn: document.getElementById('a-products-clear'),
+      arrowBtn: document.getElementById('a-products-arrow'),
+      popup: document.getElementById('a-products-popup'),
+      allBtn: document.getElementById('a-products-all'),
+      foundBtn: document.getElementById('a-products-found'),
+      count: document.getElementById('a-products-count'),
+      msg: document.getElementById('a-products-msg'),
+      list: document.getElementById('a-products-list'),
+      note: document.getElementById('a-products-note'),
+      flash: document.getElementById('a-products-flash'),
+      open: false,
+      options: [],        // товары в порядке строк списка (для клавиатуры)
+      found: [],          // найденные по тексту товары выборки
+      active: -1,
+      keyboardNav: false, // пробел отмечает строку только после навигации стрелками
+      chipsExpanded: false,
+      msgTimer: null,
+      flashTimer: null,
+      silentFocus: false,
+    };
+
+    function isMissing(id) {
+      return state.productsLoaded && !state.inList.has(id);
+    }
+
+    function showPickerMessage(text) {
+      clearTimeout(picker.msgTimer);
+      picker.msg.textContent = text;
+      picker.msg.hidden = !text;
+      if (text) picker.msgTimer = setTimeout(() => { picker.msg.hidden = true; }, 6000);
+    }
+
+    /** Сообщение о выборе: в открытом списке — над строками, иначе — под полем. */
+    function notify(text) {
+      if (picker.open) { showPickerMessage(text); return; }
+      clearTimeout(picker.flashTimer);
+      picker.flash.textContent = text;
+      picker.flash.hidden = !text;
+      if (text) picker.flashTimer = setTimeout(() => { picker.flash.hidden = true; }, 6000);
+    }
+
+    function queryWords() {
+      return normalize(picker.input.value).split(/\s+/).filter(Boolean);
+    }
+
+    function matches(product, words) {
+      if (!words.length) return true;
+      const hay = product._hay || normalize([product.name, product.code, product.tnved].join(' '));
+      return words.every((w) => hay.includes(w));
+    }
+
+    function optionMeta(p) {
+      const meta = el('span', { class: 'combo-meta' });
+      (p.exchange_codes || []).forEach((code) => meta.appendChild(exchangeBadge(code, code === 'caspy' ? 'Каспий' : 'ETS')));
+      const codes = [];
+      if (p.code) codes.push('код ' + p.code);
+      if (p.tnved) codes.push('ТН ВЭД ' + p.tnved);
+      if (codes.length) meta.appendChild(el('span', { class: 'combo-codes', text: codes.join(' · ') }));
+      return meta;
+    }
+
+    function renderOption(p, index, missing) {
+      const selected = state.selected.includes(p.id);
+      const deals = missing
+        ? el('span', { class: 'combo-deals is-missing', text: 'нет сделок' })
+        : el('span', { class: 'combo-deals', text: nfInt.format(p.deals) + ' ' + plural(p.deals, DEALS) });
+      return el('li', {
+        id: 'a-opt-' + p.id,
+        role: 'option',
+        class: 'combo-option' + (selected ? ' is-selected' : '') + (missing ? ' is-missing' : ''),
+        'aria-selected': selected ? 'true' : 'false',
+        data: { id: String(p.id), index: String(index) },
+      }, [
+        el('span', { class: 'combo-check', 'aria-hidden': 'true' }),
+        el('span', { class: 'combo-text' }, [
+          el('span', { class: 'combo-name', title: p.name, text: p.name }),
+          optionMeta(p),
+        ]),
+        deals,
+      ]);
+    }
+
+    function renderList() {
+      const words = queryWords();
+      clear(picker.list);
+      picker.options = [];
+      const missing = state.productsLoaded
+        ? state.selected.filter((id) => !state.inList.has(id))
+            .map((id) => state.known.get(id) || { id, name: productName(id) })
+            .filter((p) => matches(p, words))
+        : [];
+      picker.found = state.products.filter((p) => matches(p, words));
+
+      if (missing.length) {
+        picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: 'Выбраны, но нет сделок в выбранной бирже и периоде' }));
+        missing.forEach((p) => {
+          picker.list.appendChild(renderOption(p, picker.options.length, true));
+          picker.options.push(p);
+        });
+        if (picker.found.length) {
+          picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: 'Товары выборки' }));
+        }
+      }
+      picker.found.slice(0, LIST_RENDER_LIMIT).forEach((p) => {
+        picker.list.appendChild(renderOption(p, picker.options.length, false));
+        picker.options.push(p);
+      });
+      if (picker.found.length > LIST_RENDER_LIMIT) {
+        picker.list.appendChild(el('li', {
+          role: 'presentation', class: 'combo-empty',
+          text: 'Показаны первые ' + LIST_RENDER_LIMIT + ' из ' + nfInt.format(picker.found.length) + ' — уточните поиск',
+        }));
+      }
+      if (!picker.options.length) {
+        let text = 'Ничего не найдено — попробуйте часть слова или код ТН ВЭД';
+        if (state.productsError) text = state.productsError;
+        else if (!state.productsLoaded) text = 'Загрузка списка товаров…';
+        else if (!words.length) text = 'В выбранной бирже и периоде нет сделок';
+        picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-empty', text }));
+      }
+      picker.active = Math.min(picker.active, picker.options.length - 1);
+      updatePickerActions();
+      setActive(picker.active, false);
+    }
+
+    function updatePickerActions() {
+      const words = queryWords();
+      const total = state.products.length;
+      const n = state.selected.length;
+      let text = '';
+      if (state.productsLoaded) {
+        text = words.length
+          ? 'Найдено: ' + nfInt.format(picker.found.length) + ' из ' + nfInt.format(total)
+          : nfInt.format(total) + ' ' + plural(total, PRODUCTS) + ' в выборке';
+      }
+      if (n) text += (text ? ' · ' : '') + 'выбрано ' + n + ' из ' + MAX_SELECTED;
+      picker.count.textContent = text;
+      picker.allBtn.setAttribute('aria-pressed', n === 0 && !state.legacyQ ? 'true' : 'false');
+      picker.allBtn.classList.toggle('is-active', n === 0 && !state.legacyQ);
+      const addable = picker.found.filter((p) => !state.selected.includes(p.id)).length;
+      picker.foundBtn.hidden = !words.length;
+      picker.foundBtn.disabled = addable === 0;
+      picker.foundBtn.textContent = 'Выбрать найденные' + (addable ? ' (' + nfInt.format(addable) + ')' : '');
+    }
+
+    /** Отметки в уже нарисованном списке (без перерисовки — не сбивает прокрутку). */
+    function updateOptionStates() {
+      picker.list.querySelectorAll('[role="option"]').forEach((li) => {
+        const on = state.selected.includes(Number(li.dataset.id));
+        li.classList.toggle('is-selected', on);
+        li.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      updatePickerActions();
+    }
+
+    function setActive(index, scroll) {
+      picker.list.querySelectorAll('.combo-option.is-active').forEach((li) => li.classList.remove('is-active'));
+      picker.active = index;
+      if (index < 0 || !picker.options[index]) {
+        picker.input.removeAttribute('aria-activedescendant');
+        return;
+      }
+      const li = document.getElementById('a-opt-' + picker.options[index].id);
+      if (!li) return;
+      li.classList.add('is-active');
+      picker.input.setAttribute('aria-activedescendant', li.id);
+      if (scroll !== false) li.scrollIntoView({ block: 'nearest' });
+    }
+
+    function moveActive(delta) {
+      const n = picker.options.length;
+      if (!n) return;
+      let next = picker.active < 0 ? (delta > 0 ? 0 : n - 1) : picker.active + delta;
+      next = Math.max(0, Math.min(n - 1, next));
+      setActive(next);
+    }
+
+    function openPicker() {
+      if (picker.open) return;
+      picker.open = true;
+      picker.popup.hidden = false;
+      picker.root.classList.add('is-open');
+      picker.input.setAttribute('aria-expanded', 'true');
+      picker.arrowBtn.setAttribute('aria-label', 'Закрыть список товаров');
+      picker.active = -1;
+      renderList();
+      picker.list.scrollTop = 0;
+    }
+
+    function closePicker() {
+      if (!picker.open) return;
+      picker.open = false;
+      picker.popup.hidden = true;
+      picker.root.classList.remove('is-open');
+      picker.input.setAttribute('aria-expanded', 'false');
+      picker.input.removeAttribute('aria-activedescendant');
+      picker.arrowBtn.setAttribute('aria-label', 'Открыть список товаров');
+      picker.input.value = '';
+      picker.active = -1;
+      picker.keyboardNav = false;
+      showPickerMessage('');
+    }
+
+    function focusInput() {
+      picker.silentFocus = true;
+      picker.input.focus();
+      picker.silentFocus = false;
+    }
+
+    function renderChips() {
+      clear(picker.chips);
+      const ids = state.selected;
+      const collapseAt = narrowScreen.matches ? 2 : 3;
+      const collapsed = ids.length > collapseAt && !picker.chipsExpanded;
+      if (state.legacyQ) {
+        picker.chips.appendChild(el('span', { class: 'combo-chip combo-chip-word', role: 'listitem', title: 'Старый фильтр по ключевому слову в названии товара' }, [
+          el('span', { class: 'combo-chip-text', text: 'Слово: «' + state.legacyQ + '»' }),
+          el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': 'Убрать фильтр по слову ' + state.legacyQ, data: { remove: 'q' } }, ['×']),
+        ]));
+      }
+      if (collapsed) {
+        const missing = ids.filter(isMissing).length;
+        picker.chips.appendChild(el('button', {
+          type: 'button', class: 'combo-chip combo-chip-toggle', 'aria-expanded': 'false', data: { toggle: '1' },
+          title: ids.map(productName).join('\n'),
+        }, [
+          'Выбрано: ' + ids.length + (missing ? ' (без сделок: ' + missing + ')' : ''),
+          el('span', { class: 'combo-chip-chevron', 'aria-hidden': 'true' }),
+        ]));
+      } else {
+        ids.forEach((id) => {
+          const missing = isMissing(id);
+          const name = productName(id);
+          picker.chips.appendChild(el('span', {
+            class: 'combo-chip' + (missing ? ' is-missing' : ''), role: 'listitem',
+            title: name + (missing ? '\nНет сделок в выбранной бирже и периоде' : ''),
+          }, [
+            swatch(styleForSlot(state.slots.get(id) || 0)),
+            el('span', { class: 'combo-chip-text', text: name }),
+            el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': 'Убрать: ' + name, data: { remove: String(id) } }, ['×']),
+          ]));
+        });
+        if (ids.length > collapseAt) {
+          picker.chips.appendChild(el('button', {
+            type: 'button', class: 'combo-chip combo-chip-toggle', 'aria-expanded': 'true', data: { toggle: '1' },
+          }, ['Свернуть', el('span', { class: 'combo-chip-chevron is-up', 'aria-hidden': 'true' })]));
+        }
+      }
+      picker.chips.hidden = !picker.chips.firstChild;
+      const any = ids.length > 0 || !!state.legacyQ;
+      picker.input.placeholder = any ? (ids.length >= MAX_SELECTED ? 'Выбрано ' + MAX_SELECTED + ' — максимум' : 'Добавить товар…') : 'Все товары';
+      picker.clearBtn.hidden = !any;
+      renderMissingNote();
+    }
+
+    function renderMissingNote() {
+      const missing = state.selected.filter(isMissing);
+      clear(picker.note);
+      picker.note.hidden = !missing.length;
+      if (!missing.length) return;
+      const n = missing.length;
+      picker.note.appendChild(el('span', {
+        text: (n === state.selected.length && n > 1 ? 'У всех выбранных товаров' : (n === 1 ? 'У 1 выбранного товара' : 'У ' + n + ' выбранных товаров')) +
+          ' нет сделок в выбранной бирже и периоде — они отмечены серым.',
+      }));
+      picker.note.appendChild(el('button', { type: 'button', class: 'link-btn', data: { dropMissing: '1' } }, [n === 1 ? 'Убрать его' : 'Убрать их']));
+    }
+
+    const loadDebounced = debounce(load, 300);
+
+    function selectionChanged() {
+      assignSlots();
+      renderChips();
+      updateOptionStates();
+      syncUrl();
+      loadDebounced();
+    }
+
+    function toggleProduct(id) {
+      const index = state.selected.indexOf(id);
+      if (index >= 0) {
+        state.selected.splice(index, 1);
+        showPickerMessage('');
+      } else {
+        if (state.selected.length >= MAX_SELECTED) {
+          showPickerMessage(LIMIT_MESSAGE);
+          return;
+        }
+        state.selected.push(id);
+      }
+      selectionChanged();
+    }
+
+    function removeProduct(id) {
+      state.selected = state.selected.filter((x) => x !== id);
+      state.hidden.delete(id);
+      if (state.selected.length <= (narrowScreen.matches ? 2 : 3)) picker.chipsExpanded = false;
+      selectionChanged();
+    }
+
+    function selectAll() {
+      // «Все товары»: сбросить выбор (и старое ключевое слово)
+      const hadQ = !!state.legacyQ;
+      state.selected = [];
+      state.legacyQ = '';
+      state.hidden.clear();
+      picker.chipsExpanded = false;
+      showPickerMessage('');
+      if (hadQ) loadProducts();
+      selectionChanged();
+    }
+
+    function removeLegacyQ() {
+      state.legacyQ = '';
+      loadProducts();
+      selectionChanged();
+    }
+
+    function selectFound() {
+      const toAdd = picker.found.filter((p) => !state.selected.includes(p.id));
+      const room = MAX_SELECTED - state.selected.length;
+      if (room <= 0) {
+        showPickerMessage(LIMIT_MESSAGE);
+        return;
+      }
+      toAdd.slice(0, room).forEach((p) => state.selected.push(p.id));
+      if (toAdd.length > room) {
+        showPickerMessage('Добавлено ' + room + ' из ' + toAdd.length + ' найденных: для сравнения можно выбрать не больше ' +
+          MAX_SELECTED + ' товаров (взяты самые торгуемые).');
+      } else {
+        showPickerMessage('');
+      }
+      selectionChanged();
+    }
+
+    /* события выбора товаров */
+    picker.input.addEventListener('focus', () => { if (!picker.silentFocus) openPicker(); });
+    picker.input.addEventListener('input', () => {
+      picker.keyboardNav = false;
+      openPicker();
+      picker.active = queryWords().length ? 0 : -1;
+      renderList();
+      picker.list.scrollTop = 0;
+    });
+    picker.input.addEventListener('keydown', (event) => {
+      const key = event.key;
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
+        event.preventDefault();
+        if (event.altKey && key === 'ArrowUp') { closePicker(); return; }
+        if (!picker.open) { openPicker(); if (key === 'ArrowDown') moveActive(1); }
+        else moveActive(key === 'ArrowDown' ? 1 : -1);
+        picker.keyboardNav = true;
+      } else if ((key === 'PageDown' || key === 'PageUp') && picker.open) {
+        event.preventDefault();
+        moveActive(key === 'PageDown' ? 10 : -10);
+        picker.keyboardNav = true;
+      } else if (key === 'Enter') {
+        event.preventDefault();
+        if (!picker.open) { openPicker(); return; }
+        if (picker.active < 0 && picker.options.length) setActive(0);
+        if (picker.active >= 0) toggleProduct(picker.options[picker.active].id);
+      } else if (key === ' ' && picker.open && picker.keyboardNav && picker.active >= 0) {
+        event.preventDefault();
+        toggleProduct(picker.options[picker.active].id);
+      } else if (key === 'Escape') {
+        if (picker.open) { event.preventDefault(); closePicker(); }
+        else if (picker.input.value) { event.preventDefault(); picker.input.value = ''; }
+      } else if (key === 'Backspace' && !picker.input.value) {
+        if (state.selected.length) {
+          event.preventDefault();
+          const last = state.selected[state.selected.length - 1];
+          notify('Убрано: ' + truncate(productName(last), 80));
+          removeProduct(last);
+        } else if (state.legacyQ) {
+          event.preventDefault();
+          removeLegacyQ();
+        }
+      } else if (key === 'Tab') {
+        closePicker();
+      }
+    });
+    picker.control.addEventListener('mousedown', (event) => {
+      // щелчок по пустому месту поля — фокус в поле ввода и открытие списка
+      if (event.target.closest('button') || event.target === picker.input) return;
+      event.preventDefault();
+      focusInput();
+      openPicker();
+    });
+    picker.arrowBtn.addEventListener('mousedown', (event) => event.preventDefault());
+    picker.arrowBtn.addEventListener('click', () => {
+      if (picker.open) closePicker();
+      else { focusInput(); openPicker(); }
+    });
+    picker.clearBtn.addEventListener('click', () => { selectAll(); focusInput(); });
+    picker.chips.addEventListener('click', (event) => {
+      const remove = event.target.closest('[data-remove]');
+      if (remove) {
+        if (remove.dataset.remove === 'q') removeLegacyQ();
+        else removeProduct(Number(remove.dataset.remove));
+        focusInput();
+        return;
+      }
+      const toggle = event.target.closest('[data-toggle]');
+      if (toggle) {
+        picker.chipsExpanded = !picker.chipsExpanded;
+        renderChips();
+        const again = picker.chips.querySelector('[data-toggle]');
+        if (again) again.focus();
+      }
+    });
+    picker.note.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-drop-missing]')) return;
+      state.selected = state.selected.filter((id) => !isMissing(id));
+      selectionChanged();
+    });
+    picker.list.addEventListener('mousedown', (event) => event.preventDefault());
+    picker.list.addEventListener('click', (event) => {
+      const li = event.target.closest('[role="option"]');
+      if (!li) return;
+      picker.keyboardNav = false;
+      setActive(Number(li.dataset.index), false);
+      toggleProduct(Number(li.dataset.id));
+    });
+    picker.allBtn.addEventListener('click', () => { selectAll(); focusInput(); });
+    picker.foundBtn.addEventListener('click', () => { selectFound(); focusInput(); });
+    document.addEventListener('pointerdown', (event) => {
+      if (picker.open && !picker.root.contains(event.target)) closePicker();
+    });
+    picker.root.addEventListener('focusout', (event) => {
+      if (picker.open && event.relatedTarget && !picker.root.contains(event.relatedTarget)) closePicker();
+    });
+
+    /* ---- список товаров выборки ---- */
+
+    async function loadProducts() {
+      if (productsController) productsController.abort();
+      productsController = new AbortController();
+      const params = periodParams();
+      if (state.legacyQ) params.set('q', state.legacyQ);
+      state.productsLoaded = false;
+      state.productsError = '';
+      if (picker.open) renderList();
+      try {
+        const response = await fetch('/api/analytics/products/?' + params.toString(), {
+          signal: productsController.signal, headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const data = await response.json();
+        rememberProducts(data.results);
+        state.products = data.results.map((p) => state.known.get(p.id));
+        state.inList = new Set(data.results.map((p) => p.id));
+        state.productsLoaded = true;
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        state.products = [];
+        state.inList = new Set();
+        state.productsError = 'Не удалось загрузить список товаров: ' + (error.message || 'нет связи с сервером');
+      }
+      renderChips();
+      if (picker.open) renderList();
     }
 
     /* ---- графики ---- */
@@ -925,53 +1502,285 @@
       }, extra || {});
     }
 
-    function renderPrice(block) {
-      const points = block.points;
-      const product = block.product;
-      document.getElementById('price-sub').textContent =
-        product ? product.name + (product.code ? ' · ' + product.code : '') : 'товар не выбран';
-      if (!points.length) {
-        setEmpty('price', product ? 'По этому товару нет цен за выбранный период' : 'Нет данных для графика');
-        resetChart('price');
+    /** Короткие подписи товаров для легенды и подсказок; одинаковые — с кодом или номером. */
+    function shortNames(series) {
+      const limit = narrowScreen.matches ? 30 : 42;
+      const names = series.map((s) => truncate(s.name, limit));
+      const counts = {};
+      names.forEach((n) => { counts[n] = (counts[n] || 0) + 1; });
+      return names.map((n, i) => (counts[n] > 1 ? truncate(series[i].name, limit - 8) + ' (' + (series[i].code || '№' + series[i].id) + ')' : n));
+    }
+
+    const METRIC_TEXT = {
+      price: 'средневзвешенная цена по дням, тг за единицу товара',
+      change: 'изменение средневзвешенной цены к первому дню с ценой, %',
+      amount: 'сумма сделок по дням, тг',
+    };
+
+    function seriesValues(s, labels) {
+      const byDate = new Map(s.points.map((p) => [p.date, p]));
+      if (state.metric === 'amount') {
+        return labels.map((d) => { const p = byDate.get(d); return p && isNumber(p.amount) ? p.amount : null; });
+      }
+      const prices = labels.map((d) => { const p = byDate.get(d); return p && isNumber(p.avg_price) ? p.avg_price : null; });
+      if (state.metric === 'price') return prices;
+      const base = prices.find((v) => v !== null && v > 0);
+      return prices.map((v) => (v === null || !base ? null : Math.round((v / base - 1) * 10000) / 100));
+    }
+
+    function formatMetric(value) {
+      if (state.metric === 'amount') return fullMoney(value);
+      if (state.metric === 'change') return signedPercent(value);
+      return fullMoney(value);
+    }
+
+    function renderCompareChart(data) {
+      const series = data.series;
+      const top = data.compare_mode === 'top';
+      const sub = document.getElementById('price-sub');
+      const hint = document.getElementById('price-hint');
+      if (top) {
+        sub.textContent = series.length
+          ? 'Показаны ' + series.length + ' ' + plural(series.length, ['самый торгуемый товар', 'самых торгуемых товара', 'самых торгуемых товаров']) +
+            ' — выберите товары для сравнения'
+          : 'Нет сделок в выбранной бирже и периоде';
+      } else {
+        sub.textContent = 'Выбрано: ' + series.length + ' ' + plural(series.length, PRODUCTS) + ' · ' + METRIC_TEXT[state.metric];
+      }
+      if (top && series.length) sub.textContent += ' · ' + METRIC_TEXT[state.metric];
+      hint.textContent = state.metric === 'price' && series.length > 1
+        ? 'Цены разных товаров могут быть в разных единицах (тонна, кубометр, литр) — для сопоставления динамики включите «Изменение, %».'
+        : (state.metric === 'amount' && series.length > 1 ? 'Столбцы товаров за один день сложены.' : '');
+      hint.hidden = !hint.textContent;
+
+      const labelSet = new Set();
+      series.forEach((s) => s.points.forEach((p) => labelSet.add(p.date)));
+      const labels = [...labelSet].sort();
+      const names = shortNames(series);
+      const isBar = state.metric === 'amount';
+      // период длиннее года: в подписях оси нужен и год (дд.мм.гг)
+      const manyYears = labels.length > 1 && labels[0].slice(0, 4) !== labels[labels.length - 1].slice(0, 4);
+      const dense = labels.length > 60;
+      const datasets = series.map((s, i) => {
+        const style = seriesStyle(s.id, i);
+        const values = seriesValues(s, labels);
+        const base = {
+          label: names[i], data: values, $id: s.id, $name: s.name,
+          borderColor: style.color, backgroundColor: style.color,
+          hidden: state.hidden.has(s.id),
+        };
+        if (isBar) return Object.assign(base, { type: 'bar', stack: 'sum', borderWidth: 0, borderRadius: 2, maxBarThickness: 28 });
+        return Object.assign(base, {
+          type: 'line', borderWidth: 2, borderDash: style.dashed ? [6, 4] : [], tension: 0.2, spanGaps: true,
+          pointRadius: dense ? 0 : 2.5, pointHoverRadius: 4, pointHitRadius: 8, pointBackgroundColor: style.color,
+          backgroundColor: style.color, fill: false,
+        });
+      });
+      renderLegend(series, names);
+
+      const hasValues = datasets.some((d) => d.data.some((v) => v !== null));
+      if (!series.length || !hasValues) {
+        let message = 'Нет данных для графика';
+        if (!series.length) message = 'Нет сделок в выбранной бирже и периоде';
+        else if (state.metric === 'amount') message = 'У выбранных товаров нет сумм сделок за выбранный период';
+        else message = series.length === 1 ? 'У этого товара нет цен за выбранный период' : 'У выбранных товаров нет цен за выбранный период';
+        setEmpty('price', message);
+        if (charts.price) { charts.price.destroy(); delete charts.price; }
         return;
       }
       setEmpty('price', '');
+      if (charts.price) { charts.price.destroy(); delete charts.price; }
+      const yTicks = {
+        callback: (v) => (state.metric === 'change' ? signedPercent(v, nfInt) : compactMoney(v)),
+        maxTicksLimit: 7,
+      };
       const chart = ensureChart('price', {
-        type: 'line',
-        data: { labels: [], datasets: [{
-          label: 'Средневзвешенная цена, тг',
-          data: [],
-          borderColor: COLORS.accent,
-          backgroundColor: COLORS.accentSoft,
-          fill: true, tension: 0.25, borderWidth: 2,
-          pointRadius: 2.5, pointHoverRadius: 5, pointBackgroundColor: COLORS.accent,
-        }] },
+        type: isBar ? 'bar' : 'line',
+        data: { labels: labels.map(manyYears ? (d) => shortDate(d) + '.' + d.slice(2, 4) : shortDate), datasets },
         options: Object.assign(baseOptions(), {
           scales: {
-            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 14 } },
-            y: valueAxis({ beginAtZero: false, ticks: { callback: (v) => nfInt.format(v) } }),
+            x: {
+              stacked: isBar, grid: { display: false },
+              ticks: { maxRotation: 0, autoSkip: true, autoSkipPadding: 14, maxTicksLimit: narrowScreen.matches ? 5 : 14 },
+            },
+            y: { stacked: isBar, beginAtZero: state.metric !== 'price', grid: { color: COLORS.grid }, ticks: yTicks },
           },
           plugins: {
             legend: { display: false },
             tooltip: {
               padding: 10,
+              filter: (item) => item.parsed.y !== null && item.parsed.y !== undefined,
+              itemSort: (a, b) => b.parsed.y - a.parsed.y,
               callbacks: {
-                title: (items) => formatDate(items[0].chart.$points[items[0].dataIndex].date),
-                label: (item) => 'Цена: ' + fullMoney(item.parsed.y),
-                afterLabel: (item) => {
-                  const n = item.chart.$points[item.dataIndex].records;
-                  return n + ' ' + plural(n, RECORDS) + ' за день';
-                },
+                title: (items) => formatDate(items[0].chart.$dates[items[0].dataIndex]),
+                label: (item) => truncate(item.dataset.label, 34) + ': ' + formatMetric(item.parsed.y),
               },
             },
           },
         }),
       });
-      chart.$points = points;
-      chart.data.labels = points.map((p) => shortDate(p.date));
-      chart.data.datasets[0].data = points.map((p) => p.price);
-      chart.update();
+      chart.$dates = labels;
     }
+
+    function renderLegend(series, names) {
+      const legend = document.getElementById('price-legend');
+      clear(legend);
+      legend.hidden = !series.length;
+      series.forEach((s, i) => {
+        const visible = !state.hidden.has(s.id);
+        const noData = !s.points.some((p) => isNumber(state.metric === 'amount' ? p.amount : p.avg_price));
+        legend.appendChild(el('li', {}, [
+          el('button', {
+            type: 'button', class: 'legend-item' + (visible ? '' : ' is-off'), 'aria-pressed': visible ? 'true' : 'false',
+            title: s.name + (noData ? '\nНет данных за выбранный период' : '') + '\nЩелчок — скрыть или показать на графике',
+            data: { id: String(s.id) },
+          }, [
+            swatch(seriesStyle(s.id, i)),
+            el('span', { class: 'legend-text', text: names[i] }),
+            noData ? el('span', { class: 'legend-note', text: 'нет данных' }) : null,
+          ]),
+        ]));
+      });
+    }
+
+    document.getElementById('price-legend').addEventListener('click', (event) => {
+      const button = event.target.closest('.legend-item');
+      if (!button) return;
+      const id = Number(button.dataset.id);
+      if (state.hidden.has(id)) state.hidden.delete(id);
+      else state.hidden.add(id);
+      const visible = !state.hidden.has(id);
+      button.classList.toggle('is-off', !visible);
+      button.setAttribute('aria-pressed', visible ? 'true' : 'false');
+      const chart = charts.price;
+      if (chart) {
+        const index = chart.data.datasets.findIndex((d) => d.$id === id);
+        if (index >= 0) { chart.setDatasetVisibility(index, visible); chart.update(); }
+      }
+    });
+
+    /* ---- таблица сравнения ---- */
+
+    const COMPARE_COLUMNS = [
+      { key: 'name', label: 'Товар', text: true },
+      { key: 'exchange', label: 'Биржа', text: true },
+      { key: 'deals', label: 'Сделок' },
+      { key: 'volume', label: 'Объём', optional: true },
+      { key: 'amount', label: 'Сумма, тг' },
+      { key: 'avg_price', label: 'Ср. взв. цена' },
+      { key: 'min_price', label: 'Мин. цена' },
+      { key: 'max_price', label: 'Макс. цена' },
+      { key: 'first_price', label: 'Первая' },
+      { key: 'last_price', label: 'Последняя' },
+      { key: 'change_pct', label: 'Изменение' },
+      { key: 'last_date', label: 'Посл. сделка', text: true },
+    ];
+
+    function sortValue(row, key) {
+      if (key === 'exchange') return (row.exchange_codes || []).join(',');
+      if (key === 'name') return normalize(row.name);
+      return row[key];
+    }
+
+    function sortedRows(rows) {
+      const { key, dir } = state.sort;
+      // без сортировки — порядок выбора, товары без сделок в выборке — в конце
+      if (!key) return rows.filter((r) => r.records).concat(rows.filter((r) => !r.records));
+      const sign = dir === 'asc' ? 1 : -1;
+      return rows.map((r, i) => [r, i]).sort((a, b) => {
+        const va = sortValue(a[0], key);
+        const vb = sortValue(b[0], key);
+        const ea = va === null || va === undefined || va === '';
+        const eb = vb === null || vb === undefined || vb === '';
+        if (ea || eb) return ea === eb ? a[1] - b[1] : (ea ? 1 : -1); // пустые — всегда в конце
+        if (va < vb) return -sign;
+        if (va > vb) return sign;
+        return a[1] - b[1];
+      }).map((pair) => pair[0]);
+    }
+
+    function numCell(value, format, extra) {
+      return el('td', { class: 'num', title: extra && extra.title }, [
+        isNumber(value) ? el('span', { class: 'cell-main', text: format(value) }) : dash(),
+        extra && extra.sub ? el('div', { class: 'cell-sub', text: extra.sub }) : null,
+      ]);
+    }
+
+    function renderCompareTable(data) {
+      const rows = data.comparison;
+      const wrap = document.getElementById('compare-wrap');
+      const head = document.getElementById('compare-head');
+      const body = document.getElementById('compare-body');
+      wrap.hidden = !rows.length;
+      clear(head);
+      clear(body);
+      if (!rows.length) return;
+      const hasVolume = rows.some((r) => isNumber(r.volume));
+      const columns = COMPARE_COLUMNS.filter((c) => !c.optional || hasVolume);
+      columns.forEach((c) => {
+        const active = state.sort.key === c.key;
+        const th = el('th', {
+          scope: 'col', class: c.text ? '' : 'num',
+          'aria-sort': active ? (state.sort.dir === 'asc' ? 'ascending' : 'descending') : 'none',
+        }, [el('button', { type: 'button', class: 'th-sort', data: { sort: c.key } }, [
+          c.label, el('span', { class: 'th-arrow', 'aria-hidden': 'true', text: active ? (state.sort.dir === 'asc' ? '▲' : '▼') : '' }),
+        ])]);
+        head.appendChild(th);
+      });
+      const order = new Map(data.series.map((s, i) => [s.id, i]));
+      sortedRows(rows).forEach((r) => {
+        const style = seriesStyle(r.id, order.has(r.id) ? order.get(r.id) : 0);
+        const codes = [];
+        if (r.code) codes.push('код ' + r.code);
+        if (r.tnved) codes.push('ТН ВЭД ' + r.tnved);
+        const empty = !r.records;
+        const cells = [
+          el('td', { class: 'cell-compare-product' }, [
+            el('div', { class: 'compare-name' }, [
+              swatch(style),
+              el('span', { class: 'cell-main', title: r.name, text: r.name }),
+            ]),
+            el('div', { class: 'cell-sub', text: empty ? 'нет сделок в выбранной бирже и периоде' : codes.join(' · ') }),
+          ]),
+          el('td', {}, (r.exchange_codes || []).length
+            ? r.exchange_codes.map((code) => exchangeBadge(code, code === 'caspy' ? 'Каспий' : 'ETS'))
+            : [dash()]),
+          numCell(r.deals, (v) => nfInt.format(v)),
+        ];
+        if (hasVolume) cells.push(numCell(r.volume, (v) => nfQty.format(v)));
+        cells.push(
+          numCell(r.amount, (v) => compactMoney(v), { title: isNumber(r.amount) ? fullMoney(r.amount) : '' }),
+          numCell(r.avg_price, (v) => nfMoney.format(v)),
+          numCell(r.min_price, (v) => nfMoney.format(v)),
+          numCell(r.max_price, (v) => nfMoney.format(v)),
+          numCell(r.first_price, (v) => nfMoney.format(v), { sub: r.first_date ? formatDate(r.first_date) : '' }),
+          numCell(r.last_price, (v) => nfMoney.format(v), { sub: r.last_price_date ? formatDate(r.last_price_date) : '' }),
+        );
+        const change = r.change_pct;
+        cells.push(el('td', {
+          class: 'num',
+          title: isNumber(change) ? 'Последняя цена к первой за период' : 'Нужно хотя бы два дня с ценой',
+        }, [
+          isNumber(change)
+            ? el('span', { class: 'change ' + (change > 0 ? 'change-up' : (change < 0 ? 'change-down' : '')), text: signedPercent(change) })
+            : dash(),
+        ]));
+        cells.push(el('td', { class: 'cell-date' }, [r.last_date ? formatDate(r.last_date) : dash()]));
+        body.appendChild(el('tr', { class: empty ? 'is-empty' : '' }, cells));
+      });
+    }
+
+    document.getElementById('compare-head').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-sort]');
+      if (!button) return;
+      const key = button.dataset.sort;
+      const column = COMPARE_COLUMNS.find((c) => c.key === key);
+      if (state.sort.key === key) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+      else state.sort = { key, dir: column && column.text && key !== 'last_date' ? 'asc' : 'desc' };
+      if (state.data) renderCompareTable(state.data);
+      const again = document.querySelector('#compare-head [data-sort="' + key + '"]');
+      if (again) again.focus();
+    });
 
     function renderTurnover(days) {
       if (!days.length) {
@@ -1113,32 +1922,21 @@
       }
     }
 
-    function renderProductSelect(products, selected) {
-      const select = inputs.product_id;
-      clear(select);
-      if (!products.length && !selected) {
-        select.appendChild(el('option', { value: '', text: 'Нет товаров' }));
-        select.disabled = true;
-        return;
-      }
-      products.forEach((p) => {
-        select.appendChild(el('option', {
-          value: String(p.id), title: p.name,
-          text: truncate(p.name, 90) + ' (' + nfInt.format(p.records) + ')',
-        }));
-      });
-      if (selected && !products.some((p) => p.id === selected.id)) {
-        select.appendChild(el('option', { value: String(selected.id), text: truncate(selected.name, 90), title: selected.name }));
-      }
-      select.disabled = false;
-      if (selected) select.value = String(selected.id);
-    }
-
     function render(data) {
       state.data = data;
+      rememberProducts(data.selected);
+      if (data.unknown_ids && data.unknown_ids.length) {
+        // товары из старой ссылки, которых больше нет в базе, — убираем из выбора
+        state.selected = state.selected.filter((id) => !data.unknown_ids.includes(id));
+        assignSlots();
+        syncUrl();
+        notify('Не найдены и убраны из выбора: ' + data.unknown_ids.map((id) => '№' + id).join(', '));
+      }
+      renderChips();
+      if (picker.open) renderList();
       renderSummary(data.summary, data.turnover_by_day);
-      renderProductSelect(data.products, data.price_dynamics.product);
-      renderPrice(data.price_dynamics);
+      renderCompareChart(data);
+      renderCompareTable(data);
       renderTurnover(data.turnover_by_day);
       renderTop('products', data.top_products, COLORS.accentBar, 'Нет товаров с суммой сделок');
       renderParties();
@@ -1154,11 +1952,12 @@
     }
 
     async function load() {
+      loadDebounced.cancel();
       const seq = ++requestSeq;
       if (abortController) abortController.abort();
       abortController = new AbortController();
       const params = filterParams();
-      syncUrl(params);
+      syncUrl();
       setLoading(true);
       try {
         const response = await fetch('/api/analytics/?' + params.toString(), {
@@ -1181,28 +1980,30 @@
 
     /* ---- события ---- */
 
-    /** Смена любого фильтра, кроме самого товара, возвращает график цены к самому частому товару. */
-    function reloadWithDefaultProduct() {
-      inputs.product_id.value = '';
+    /** Смена биржи или периода: новый список товаров и пересчёт (выбор сохраняется). */
+    function periodChanged() {
+      loadProducts();
       load();
     }
-    const loadDebounced = debounce(reloadWithDefaultProduct, 350);
-    inputs.q.addEventListener('input', loadDebounced);
-    ['exchange', 'date_from', 'date_to'].forEach((key) => {
-      inputs[key].addEventListener('change', () => { loadDebounced.cancel(); reloadWithDefaultProduct(); });
-    });
-    inputs.product_id.addEventListener('change', load);
-    document.getElementById('an-filters-form').addEventListener('submit', (event) => {
+    PERIOD_KEYS.forEach((key) => inputs[key].addEventListener('change', periodChanged));
+    form.addEventListener('submit', (event) => {
       event.preventDefault();
-      loadDebounced.cancel();
-      reloadWithDefaultProduct();
-    });
-    document.getElementById('a-reset').addEventListener('click', () => {
-      FILTER_KEYS.forEach((key) => { inputs[key].value = ''; });
-      loadDebounced.cancel();
       load();
     });
-    document.getElementById('an-retry').addEventListener('click', load);
+    document.getElementById('a-reset').addEventListener('click', () => {
+      PERIOD_KEYS.forEach((key) => { inputs[key].value = ''; });
+      state.selected = [];
+      state.legacyQ = '';
+      state.hidden.clear();
+      state.sort = { key: null, dir: 'desc' };
+      picker.chipsExpanded = false;
+      closePicker();
+      assignSlots();
+      renderChips();
+      loadProducts();
+      load();
+    });
+    document.getElementById('an-retry').addEventListener('click', () => { loadProducts(); load(); });
     roleButtons.forEach((button) => {
       button.addEventListener('click', () => {
         state.role = button.dataset.role;
@@ -1214,8 +2015,25 @@
         renderParties();
       });
     });
+    metricButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        state.metric = button.dataset.metric;
+        metricButtons.forEach((b) => {
+          const active = b === button;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if (state.data) renderCompareChart(state.data);
+      });
+    });
 
     /* ---- старт ---- */
+    const truncated = readUrl();
+    assignSlots();
+    renderChips();
+    syncUrl();
+    if (truncated) notify('В ссылке больше ' + MAX_SELECTED + ' товаров — взяты первые ' + MAX_SELECTED + '.');
+    loadProducts();
     if (typeof Chart === 'undefined') {
       errorText.textContent = 'Библиотека графиков не загружена (static/portal/vendor/chart.umd.min.js).';
       errorBox.hidden = false;
@@ -1224,7 +2042,6 @@
     Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     Chart.defaults.font.size = narrowScreen.matches ? 11.5 : 12.5;
     Chart.defaults.color = COLORS.text;
-    readUrl();
     load();
   }
 
