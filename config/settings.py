@@ -25,8 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
-# Vercel сам выставляет VERCEL=1 в окружении функции
+# Vercel сам выставляет VERCEL=1 в окружении функции, Render — RENDER=true
 IS_VERCEL = env_bool('VERCEL', False)
+IS_RENDER = env_bool('RENDER', False)
 
 DEBUG = False if IS_VERCEL else env_bool('DJANGO_DEBUG', True)
 
@@ -63,8 +64,14 @@ if IS_VERCEL:
             ALLOWED_HOSTS.append(env_str(_name))
     CSRF_TRUSTED_ORIGINS += ['https://*.vercel.app']
 
+if IS_RENDER:
+    ALLOWED_HOSTS += ['.onrender.com']
+    if env_str('RENDER_EXTERNAL_HOSTNAME'):
+        ALLOWED_HOSTS.append(env_str('RENDER_EXTERNAL_HOSTNAME'))
+    CSRF_TRUSTED_ORIGINS += ['https://*.onrender.com']
+
 # Сайт открыт по HTTPS (обычно за прокси: nginx, Traefik, Vercel)
-HTTPS = IS_VERCEL or env_bool('DJANGO_HTTPS', False)
+HTTPS = IS_VERCEL or IS_RENDER or env_bool('DJANGO_HTTPS', False)
 if HTTPS:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
@@ -287,7 +294,11 @@ PORTAL_READ_ONLY = IS_VERCEL or env_bool('PORTAL_READ_ONLY', False)
 # Реквизиты для юридических страниц /legal/ (пусто — плейсхолдеры по умолчанию из portal/legal.py)
 SITE_OWNER = env_str('SITE_OWNER')
 SITE_CONTACT_EMAIL = env_str('SITE_CONTACT_EMAIL')
-SITE_HOSTING_PROVIDER = env_str('SITE_HOSTING_PROVIDER') or ('Vercel Inc. (США)' if IS_VERCEL else '[хостинг-провайдер]')
+SITE_HOSTING_PROVIDER = env_str('SITE_HOSTING_PROVIDER') or (
+    'Vercel Inc. (США)' if IS_VERCEL else 'Render Services, Inc. (США)' if IS_RENDER else '[хостинг-провайдер]')
+# Обезличивать индивидуальных предпринимателей сразу при сборе (размещение за пределами РК:
+# по Закону РК № 94-V персональные данные граждан РК хранятся в РК). На Render включено по умолчанию.
+ANONYMIZE_INDIVIDUALS = env_bool('ANONYMIZE_INDIVIDUALS', IS_RENDER)
 LEGAL_EDITION_DATE = env_str('LEGAL_EDITION_DATE')
 PROJECT_REPO_URL = env_str('PROJECT_REPO_URL') or 'https://github.com/Vladi2lav/task1'
 # Не больше стольких строк в выгрузке Excel за один раз

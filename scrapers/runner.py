@@ -5,6 +5,7 @@ import logging
 from datetime import date
 from typing import List, Optional
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -51,6 +52,9 @@ def run_scraper(scraper: BaseScraper, date_from: date, date_to: date, trigger: s
         fatal_error = fatal_error or f'{type(exc).__name__}: {exc}'
 
     _finish_run(run, saver, list(getattr(scraper, 'errors', None) or []), fatal_error)
+    if getattr(settings, 'ANONYMIZE_INDIVIDUALS', False) and saver.added:
+        from setup_tools.anonymize import anonymize_individuals
+        logger.info('[%s] обезличено ИП: %s', scraper.exchange_code, anonymize_individuals())
     logger.info('[%s] запуск #%d завершён: %s, добавлено %d, пропущено %d',
                 exchange.code, run.pk, run.get_status_display(), run.rows_added, run.rows_skipped)
     return run

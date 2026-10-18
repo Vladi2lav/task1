@@ -2,6 +2,7 @@
 # Точка входа контейнера.
 #   web        — дождаться БД, manage.py bootstrap (миграции, данные из дампа, админ), затем gunicorn
 #   scheduler  — дождаться БД, затем планировщик ежедневного сбора
+#   all        — сайт и планировщик в одном контейнере (хостинги без фоновых воркеров, например Render Free)
 #   любая другая команда выполняется как есть: docker compose run --rm web python manage.py shell
 set -e
 
@@ -45,11 +46,25 @@ case "$1" in
             --workers "${WEB_CONCURRENCY:-3}" \
             --timeout "${GUNICORN_TIMEOUT:-120}" \
             --access-logfile - \
+            --control-socket /tmp/gunicorn.ctl \
             --forwarded-allow-ips "*"
         ;;
     scheduler)
         wait_for_db
         exec python manage.py run_scheduler
+        ;;
+    all)
+        wait_for_db
+        python manage.py bootstrap --skip-static
+        # планировщик — фоновым процессом; при старте он сам дособерёт пропущенные дни
+        python manage.py run_scheduler &
+        exec gunicorn config.wsgi:application \
+            --bind "0.0.0.0:${PORT:-8000}" \
+            --workers "${WEB_CONCURRENCY:-2}" \
+            --timeout "${GUNICORN_TIMEOUT:-120}" \
+            --access-logfile - \
+            --control-socket /tmp/gunicorn.ctl \
+            --forwarded-allow-ips "*"
         ;;
     *)
         exec "$@"

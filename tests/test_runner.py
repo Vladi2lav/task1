@@ -122,3 +122,14 @@ def test_ets_end_to_end_with_rerun(ets_site):
     assert Exchange.objects.get(code='ets').website == 'https://ets.kz'
     assert sum(t.amount for t in Trade.objects.all()) == Decimal('1320088000')
     assert Broker.objects.filter(name='ATC Brok ТОО').count() == 1
+
+
+@pytest.mark.django_db
+def test_individuals_are_anonymized_on_collect_when_enabled(settings):
+    settings.ANONYMIZE_INDIVIDUALS = True
+    record = make_record()
+    record.buyer_name, record.buyer_bin = 'ИП Иванов Иван Иванович', '850101300123'
+    run_scraper(FakeScraper([record]), *PERIOD)
+    names = set(Participant.objects.values_list('name', flat=True))
+    assert not any('Иванов' in n for n in names)
+    assert not Participant.objects.filter(bin='850101300123').exists()

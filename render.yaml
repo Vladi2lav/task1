@@ -1,0 +1,29 @@
+# Blueprint для Render (https://render.com): Dashboard -> New -> Blueprint -> репозиторий.
+# Один бесплатный веб-сервис из Dockerfile: сайт + планировщик в одном контейнере (режим `all`).
+# База — SQLite внутри контейнера: при каждом старте загружается дамп docs/db, а недостающие дни
+# планировщик дособирает с сайтов бирж. Бесплатный сервис засыпает без посетителей; после
+# пробуждения пропущенный сбор выполняется автоматически.
+# Серверы Render — за пределами РК, поэтому ИП обезличиваются при сборе (ANONYMIZE_INDIVIDUALS).
+services:
+  - type: web
+    name: trades-portal
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerCommand: all
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////app/data/db.sqlite3
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: ANONYMIZE_INDIVIDUALS
+        value: "1"
+      - key: SITE_OWNER
+        value: ИМЯ ФАМИЛИЯ
+      - key: SITE_CONTACT_EMAIL
+        value: ПОЧТА
