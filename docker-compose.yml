@@ -10,7 +10,6 @@
 name: trades-portal
 
 x-app: &app
-  build: .
   image: trades-portal:latest
   restart: unless-stopped
   env_file:
@@ -19,6 +18,9 @@ x-app: &app
   environment:
     DATABASE_URL: postgres://${POSTGRES_USER:-trades}:${POSTGRES_PASSWORD:-trades}@db:5432/${POSTGRES_DB:-trades}
     DJANGO_DEBUG: ${DJANGO_DEBUG:-0}
+    # если DJANGO_SECRET_KEY не задан, ключ генерируется в этот файл при первом старте;
+    # переменная нужна и командам `docker compose exec`
+    DJANGO_SECRET_KEY_FILE: /app/data/secret_key
     # логи контейнера — в stdout (docker compose logs)
     DJANGO_LOG_FILE: "off"
     TZ: Asia/Almaty
@@ -46,6 +48,8 @@ services:
 
   web:
     <<: *app
+    # образ собирает только web; scheduler использует тот же образ
+    build: .
     command: ["web"]
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -55,6 +59,7 @@ services:
 
   scheduler:
     <<: *app
+    pull_policy: never
     command: ["scheduler"]
     # веб-сервера в этом контейнере нет — проверка /healthz из образа не нужна
     healthcheck:
