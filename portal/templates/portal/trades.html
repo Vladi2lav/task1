@@ -4,7 +4,13 @@
 
 {% block content %}
 <h1 class="visually-hidden">Итоги торгов бирж ETS и Каспий</h1>
-<section class="panel filters" aria-label="Фильтры">
+<section class="panel filters" aria-label="Фильтры" data-collapsible>
+  <div class="filters-bar">
+    <button type="button" class="btn filters-toggle" aria-expanded="false" aria-controls="filters-form">
+      <span>Фильтры <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="btn filters-bar-reset" data-reset="btn-reset" hidden>Сбросить</button>
+  </div>
   <form id="filters-form" autocomplete="off" novalidate>
     <div class="filters-grid">
       <label class="field">
@@ -15,11 +21,11 @@
           <option value="caspy">Каспий</option>
         </select>
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Период с</span>
         <input type="date" name="date_from" id="f-date_from">
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Период по</span>
         <input type="date" name="date_to" id="f-date_to">
       </label>
@@ -38,11 +44,11 @@
         <input type="text" name="broker" id="f-broker" placeholder="название брокера" list="dl-broker">
         <datalist id="dl-broker"></datalist>
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Сумма от, тг</span>
         <input type="text" inputmode="decimal" name="amount_min" id="f-amount_min" placeholder="0">
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Сумма до, тг</span>
         <input type="text" inputmode="decimal" name="amount_max" id="f-amount_max" placeholder="без ограничения">
       </label>
@@ -66,6 +72,10 @@
       <span id="found-sum" class="found-sum"></span>
     </div>
     <div class="toolbar-controls">
+      <label class="inline-field sort-field">
+        <span>Сортировка</span>
+        <select id="sort-select" aria-label="Сортировка"></select>
+      </label>
       <label class="inline-field">
         <span>Строк на странице</span>
         <select id="page-size">

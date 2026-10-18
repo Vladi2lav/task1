@@ -5,7 +5,13 @@
 {% block content %}
 <h1 class="page-title">Аналитика торгов</h1>
 
-<section class="panel filters" aria-label="Фильтры аналитики">
+<section class="panel filters" aria-label="Фильтры аналитики" data-collapsible>
+  <div class="filters-bar">
+    <button type="button" class="btn filters-toggle" aria-expanded="false" aria-controls="an-filters-form">
+      <span>Фильтры <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="btn filters-bar-reset" data-reset="a-reset" hidden>Сбросить</button>
+  </div>
   <form id="an-filters-form" autocomplete="off" novalidate>
     <div class="filters-grid">
       <label class="field">
@@ -16,11 +22,11 @@
           <option value="caspy">Каспий</option>
         </select>
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Период с</span>
         <input type="date" name="date_from" id="a-date_from">
       </label>
-      <label class="field">
+      <label class="field field-pair">
         <span class="field-label">Период по</span>
         <input type="date" name="date_to" id="a-date_to">
       </label>

@@ -93,6 +93,41 @@
     return meta ? meta.content : '';
   }
 
+  /** Число заполненных фильтров формы — в кнопке «Фильтры (N)» на телефоне. */
+  function updateFiltersBadge(form) {
+    const panel = form && form.closest('.filters');
+    if (!panel) return;
+    const count = form.querySelectorAll('.has-value').length;
+    const counter = panel.querySelector('.filters-count');
+    if (counter) counter.textContent = count ? '(' + count + ')' : '';
+    const reset = panel.querySelector('.filters-bar-reset');
+    if (reset) reset.hidden = count === 0;
+  }
+
+  /** На узком экране панель фильтров сворачивается в кнопку (раскладка — в CSS). */
+  function initCollapsibleFilters() {
+    document.querySelectorAll('.filters[data-collapsible]').forEach((panel) => {
+      const toggle = panel.querySelector('.filters-toggle');
+      if (!toggle) return;
+      panel.classList.add('filters-collapsible');
+      toggle.addEventListener('click', () => {
+        const open = !panel.classList.contains('is-open');
+        panel.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      const reset = panel.querySelector('.filters-bar-reset');
+      if (reset) {
+        reset.addEventListener('click', () => {
+          const target = document.getElementById(reset.dataset.reset);
+          if (target) target.click();
+        });
+      }
+    });
+  }
+
+  /** Совпадает с точкой перелома в CSS, где таблица торгов становится списком карточек. */
+  const narrowScreen = window.matchMedia ? window.matchMedia('(max-width: 700px)') : { matches: false };
+
   /* ===================================================== страница «Итоги торгов» */
 
   function initTrades() {
@@ -133,6 +168,9 @@
     const foundSum = document.getElementById('found-sum');
     const pagination = document.getElementById('pagination');
     const exportLink = document.getElementById('btn-export');
+    const sortSelect = document.getElementById('sort-select');
+    const filtersForm = document.getElementById('filters-form');
+    const resultsPanel = document.querySelector('.panel.results');
 
     const state = { ordering: DEFAULT_ORDERING, page: 1, pageSize: DEFAULT_PAGE_SIZE };
     let requestSeq = 0;
@@ -199,6 +237,7 @@
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
       exportLink.href = '/api/trades/export.xlsx?' + exportParams().toString();
       FILTER_KEYS.forEach((key) => inputs[key].classList.toggle('has-value', !!(inputs[key].value || '').trim()));
+      updateFiltersBadge(filtersForm);
     }
 
     /* ---- шапка таблицы и сортировка ---- */
@@ -216,6 +255,28 @@
         th.setAttribute('aria-sort', active ? (desc ? 'descending' : 'ascending') : 'none');
         headRow.appendChild(th);
       });
+      if (sortSelect) sortSelect.value = state.ordering;
+    }
+
+    /** Сортировка на телефоне, где шапки таблицы нет: те же поля и направления. */
+    function initSortSelect() {
+      if (!sortSelect) return;
+      COLUMNS.forEach((col) => {
+        const order = col.firstDir === '-' ? ['-', ''] : ['', '-'];
+        order.forEach((dir) => {
+          const isDate = col.key === 'trade_date';
+          const suffix = dir === '-'
+            ? (isDate ? ': сначала новые' : ': по убыванию')
+            : (isDate ? ': сначала старые' : ': по возрастанию');
+          sortSelect.appendChild(el('option', { value: dir + col.key, text: col.label + suffix }));
+        });
+      });
+      sortSelect.addEventListener('change', () => {
+        state.ordering = sortSelect.value;
+        state.page = 1;
+        renderHead();
+        load();
+      });
     }
 
     function onSort(col) {
@@ -232,15 +293,15 @@
 
     /* ---- отрисовка строк ---- */
 
-    function textCell(value, className) {
-      const td = el('td', { class: className || '' });
+    function textCell(value, className, label) {
+      const td = el('td', { class: className || '', 'data-label': label });
       if (value) td.appendChild(el('div', { class: 'cell-main', text: value }));
       else td.appendChild(dash());
       return td;
     }
 
-    function partyCell(name, bin) {
-      const td = el('td', { class: 'cell-party' });
+    function partyCell(name, bin, className, label) {
+      const td = el('td', { class: 'cell-party ' + className, 'data-label': label });
       if (!name) { td.appendChild(dash()); return td; }
       td.appendChild(el('div', { class: 'cell-main', text: name }));
       if (bin) td.appendChild(el('div', { class: 'cell-sub', text: 'БИН ' + bin }));
@@ -248,16 +309,16 @@
     }
 
     /** Место поставки; базис (FCA, EXW…) — второй строкой. У ETS места нет — показываем базис. */
-    function placeCell(place, basis) {
-      const td = el('td', { class: 'cell-place' });
+    function placeCell(place, basis, label) {
+      const td = el('td', { class: 'cell-place', 'data-label': label });
       if (!place && !basis) { td.appendChild(dash()); return td; }
       td.appendChild(el('div', { class: 'cell-main', text: place || basis }));
       if (place && basis) td.appendChild(el('div', { class: 'cell-sub', text: 'базис ' + basis }));
       return td;
     }
 
-    function numCell(value, formatter, className, sub) {
-      const td = el('td', { class: 'num ' + (className || '') });
+    function numCell(value, formatter, className, sub, label) {
+      const td = el('td', { class: 'num ' + (className || ''), 'data-label': label });
       if (isNumber(value)) {
         td.appendChild(el('div', { class: 'cell-main', text: formatter.format(value) }));
         if (sub) td.appendChild(el('div', { class: 'cell-sub', text: sub }));
@@ -322,16 +383,16 @@
     function renderRow(row) {
       const tr = el('tr', { class: 'trade-row', tabindex: '0', 'aria-expanded': 'false', title: 'Показать подробности' }, [
         el('td', { class: 'cell-date', text: formatDate(row.trade_date) }),
-        el('td', {}, [exchangeBadge(row.exchange, row.exchange_name)]),
+        el('td', { class: 'cell-exchange' }, [exchangeBadge(row.exchange, row.exchange_name)]),
         textCell(row.product, 'cell-product'),
-        partyCell(row.seller, row.seller_bin),
-        partyCell(row.buyer, row.buyer_bin),
-        textCell(row.seller_broker, 'cell-broker'),
-        textCell(row.buyer_broker, 'cell-broker'),
-        numCell(row.quantity, nfQty, '', row.unit),
-        numCell(row.price_avg, nfMoney),
+        partyCell(row.seller, row.seller_bin, 'cell-seller', 'Продавец'),
+        partyCell(row.buyer, row.buyer_bin, 'cell-buyer', 'Покупатель'),
+        textCell(row.seller_broker, 'cell-broker cell-sbroker', 'Брокер продавца'),
+        textCell(row.buyer_broker, 'cell-broker cell-bbroker', 'Брокер покупателя'),
+        numCell(row.quantity, nfQty, 'cell-qty', row.unit, 'Объём'),
+        numCell(row.price_avg, nfMoney, 'cell-price', null, 'Цена ср., тг'),
         numCell(row.amount, nfMoney, 'amount'),
-        placeCell(row.delivery_place, row.delivery_basis),
+        placeCell(row.delivery_place, row.delivery_basis, 'Место / базис поставки'),
       ]);
       tr.addEventListener('click', (event) => {
         if (event.target.closest('a')) return;
@@ -366,6 +427,7 @@
           state.page = page;
           load();
           tableWrap.scrollTop = 0;
+          if (narrowScreen.matches && resultsPanel) resultsPanel.scrollIntoView({ block: 'start' });
         });
       }
       return button;
@@ -544,6 +606,7 @@
 
     /* ---- старт ---- */
     readUrl();
+    initSortSelect();
     renderHead();
     syncUrl();
     load();
@@ -736,9 +799,9 @@
   function initAnalytics() {
     const FILTER_KEYS = ['exchange', 'date_from', 'date_to', 'q', 'product_id'];
     const COLORS = {
-      accent: '#1d5fd0', accentSoft: 'rgba(29, 95, 208, 0.16)', accentBar: 'rgba(29, 95, 208, 0.82)',
-      caspy: '#c2701a', caspyBar: 'rgba(194, 112, 26, 0.85)',
-      text: '#667085', grid: '#e6ebf2',
+      accent: '#0e5a61', accentSoft: 'rgba(14, 90, 97, 0.10)', accentBar: 'rgba(14, 90, 97, 0.78)',
+      caspy: '#b0681e', caspyBar: 'rgba(176, 104, 30, 0.8)',
+      text: '#5b6068', grid: '#ebe9e3',
     };
     const inputs = {};
     FILTER_KEYS.forEach((key) => { inputs[key] = document.getElementById('a-' + key); });
@@ -820,6 +883,7 @@
       const query = params.toString();
       history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
       FILTER_KEYS.forEach((key) => inputs[key].classList.toggle('has-value', !!(inputs[key].value || '').trim()));
+      updateFiltersBadge(document.getElementById('an-filters-form'));
     }
 
     /* ---- графики ---- */
@@ -879,8 +943,8 @@
           data: [],
           borderColor: COLORS.accent,
           backgroundColor: COLORS.accentSoft,
-          fill: true, tension: 0.25, borderWidth: 2.5,
-          pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: COLORS.accent,
+          fill: true, tension: 0.25, borderWidth: 2,
+          pointRadius: 2.5, pointHoverRadius: 5, pointBackgroundColor: COLORS.accent,
         }] },
         options: Object.assign(baseOptions(), {
           scales: {
@@ -1157,8 +1221,8 @@
       errorBox.hidden = false;
       return;
     }
-    Chart.defaults.font.family = '"Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
-    Chart.defaults.font.size = 12.5;
+    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    Chart.defaults.font.size = narrowScreen.matches ? 11.5 : 12.5;
     Chart.defaults.color = COLORS.text;
     readUrl();
     load();
@@ -1240,6 +1304,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.page;
+    initCollapsibleFilters();
     if (page === 'trades') initTrades();
     else if (page === 'status') initStatus();
     else if (page === 'analytics') initAnalytics();
