@@ -3,7 +3,8 @@
  * страница «/status/» — состояние данных и ручной запуск сбора;
  * страница «/analytics/» — сводка и графики Chart.js (fetch к /api/analytics/);
  * страница «/news/»   — лента новостей (серверная разметка, JS только применяет фильтр);
- * на всех страницах   — баннер уведомления о cookie (согласие в localStorage).
+ * на всех страницах   — баннер уведомления о cookie (согласие в localStorage)
+ *                       и переключатель светлой / тёмной темы (выбор в localStorage).
  * Данные в DOM выводятся только через textContent / createElement (без innerHTML).
  */
 (function () {
@@ -127,6 +128,69 @@
 
   /** Совпадает с точкой перелома в CSS, где таблица торгов становится списком карточек. */
   const narrowScreen = window.matchMedia ? window.matchMedia('(max-width: 700px)') : { matches: false };
+
+  /* ===================================================== тема оформления */
+
+  /* Без явного выбора — системная настройка (prefers-color-scheme). Нажатие на кнопку —
+   * явный выбор: атрибут data-theme на <html> и запись в localStorage (её же читает
+   * маленький скрипт в <head> до отрисовки). Смена темы — событие 'portal:themechange'. */
+  const THEME_KEY = 'portal_theme';
+  const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+  function storedTheme() {
+    try {
+      const value = window.localStorage.getItem(THEME_KEY);
+      return value === 'dark' || value === 'light' ? value : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function currentTheme() {
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark' || attr === 'light') return attr;
+    return darkQuery && darkQuery.matches ? 'dark' : 'light';
+  }
+
+  function initThemeToggle() {
+    const root = document.documentElement;
+    const button = document.getElementById('theme-toggle');
+
+    function updateButton() {
+      if (!button) return;
+      const label = currentTheme() === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+      button.setAttribute('aria-label', label);
+      button.title = label;
+    }
+
+    function changed() {
+      updateButton();
+      document.dispatchEvent(new CustomEvent('portal:themechange', { detail: { theme: currentTheme() } }));
+    }
+
+    updateButton();
+    if (button) {
+      button.addEventListener('click', () => {
+        const next = currentTheme() === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* хранилище недоступно: выбор до перезагрузки */ }
+        changed();
+      });
+    }
+    if (darkQuery) {
+      const onSystemChange = () => { if (!root.hasAttribute('data-theme')) changed(); };
+      if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemChange);
+      else if (darkQuery.addListener) darkQuery.addListener(onSystemChange);
+    }
+    // тему сменили в другой вкладке
+    window.addEventListener('storage', (event) => {
+      if (event.key !== THEME_KEY) return;
+      const value = storedTheme();
+      if (value) root.setAttribute('data-theme', value);
+      else root.removeAttribute('data-theme');
+      changed();
+    });
+  }
 
   /* ===================================================== страница «Итоги торгов» */
 
@@ -802,15 +866,48 @@
     const LIST_RENDER_LIMIT = 400;
     const LIMIT_MESSAGE = 'Можно выбрать не больше ' + MAX_SELECTED + ' товаров для сравнения. ' +
       'Снимите отметку с одного из выбранных, чтобы добавить другой.';
-    const COLORS = {
-      accent: '#0e5a61', accentSoft: 'rgba(14, 90, 97, 0.10)', accentBar: 'rgba(14, 90, 97, 0.78)',
-      caspy: '#b0681e', caspyBar: 'rgba(176, 104, 30, 0.8)',
-      text: '#5b6068', grid: '#ebe9e3',
+    /* Цвета графиков берутся из CSS-переменных (--chart-*, --series-*) текущей темы
+     * и перечитываются при её смене; здесь — запасные значения светлой темы. */
+    const COLOR_VARS = {
+      accentBar: ['--chart-bar', 'rgba(14, 90, 97, 0.78)'],
+      accentBarSoft: ['--chart-bar-soft', 'rgba(14, 90, 97, 0.3)'],
+      caspy: ['--chart-line', '#b0681e'],
+      caspyBar: ['--chart-bar-alt', 'rgba(176, 104, 30, 0.8)'],
+      text: ['--chart-text', '#5b6068'],
+      grid: ['--chart-grid', '#ebe9e3'],
+      tooltipBg: ['--chart-tooltip-bg', 'rgba(30, 34, 39, 0.92)'],
+      tooltipText: ['--chart-tooltip-text', '#ffffff'],
+      tooltipBorder: ['--chart-tooltip-border', 'rgba(30, 34, 39, 0)'],
     };
+    const COLORS = {};
     /* Цвета линий сравнения: 8 приглушённых оттенков, порядок проверен на различимость
      * (в том числе при нарушениях цветового зрения). 9-й и 10-й товар — те же оттенки пунктиром.
-     * Цвет закреплён за товаром, а не за позицией: снятие отметки не перекрашивает остальные. */
-    const SERIES_COLORS = ['#2a6fb5', '#d0652e', '#1f9472', '#c99a06', '#c75a8a', '#4e8a2a', '#6a58c4', '#c8433f'];
+     * Цвет закреплён за товаром, а не за позицией: снятие отметки не перекрашивает остальные.
+     * В тёмной теме — те же оттенки, осветлённые для контраста с тёмным фоном. */
+    const DEFAULT_SERIES = ['#2a6fb5', '#d0652e', '#1f9472', '#c99a06', '#c75a8a', '#4e8a2a', '#6a58c4', '#c8433f'];
+    let SERIES_COLORS = DEFAULT_SERIES.slice();
+
+    function readColors() {
+      const style = window.getComputedStyle(document.documentElement);
+      const read = (name, fallback) => (style.getPropertyValue(name) || '').trim() || fallback;
+      Object.keys(COLOR_VARS).forEach((key) => { COLORS[key] = read(COLOR_VARS[key][0], COLOR_VARS[key][1]); });
+      SERIES_COLORS = DEFAULT_SERIES.map((fallback, i) => read('--series-' + (i + 1), fallback));
+    }
+    readColors();
+
+    /** Общие цвета Chart.js (подписи, сетка, подсказки) — по текущей теме. */
+    function applyChartTheme() {
+      if (typeof Chart === 'undefined') return;
+      Chart.defaults.color = COLORS.text;
+      Chart.defaults.borderColor = COLORS.grid;
+      const tooltip = Chart.defaults.plugins.tooltip;
+      tooltip.backgroundColor = COLORS.tooltipBg;
+      tooltip.titleColor = COLORS.tooltipText;
+      tooltip.bodyColor = COLORS.tooltipText;
+      tooltip.footerColor = COLORS.tooltipText;
+      tooltip.borderColor = COLORS.tooltipBorder;
+      tooltip.borderWidth = 1;
+    }
 
     const inputs = {};
     PERIOD_KEYS.forEach((key) => { inputs[key] = document.getElementById('a-' + key); });
@@ -1831,6 +1928,90 @@
       chart.update();
     }
 
+    const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const MONTHS_FULL = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август',
+      'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+
+    /** 'ГГГГ-ММ' -> 'окт 2026' (или 'октябрь 2026'). */
+    function monthLabel(value, full) {
+      const m = /^(\d{4})-(\d{2})/.exec(value || '');
+      if (!m) return value;
+      const names = full ? MONTHS_FULL : MONTHS_SHORT;
+      return (names[Number(m[2]) - 1] || m[2]) + ' ' + m[1];
+    }
+
+    /** «месяц неполный: данные с 14.07» / «… по 17.10» / «… с 14.07 по 17.10»; полный месяц — ''. */
+    function partialText(month) {
+      const parts = [];
+      if (month.partial_start) parts.push('с ' + shortDate(month.period_from));
+      if (month.partial_end) parts.push('по ' + shortDate(month.period_to));
+      return parts.length ? 'месяц неполный: данные ' + parts.join(' ') : '';
+    }
+
+    function renderMonths(months) {
+      const hint = document.getElementById('months-hint');
+      if (!months.length) {
+        setEmpty('months', 'Нет данных за выбранный период');
+        resetChart('months');
+        hint.hidden = true;
+        return;
+      }
+      setEmpty('months', '');
+      const chart = ensureChart('months', {
+        data: { labels: [], datasets: [
+          { type: 'bar', label: 'Сумма сделок', data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3,
+            maxBarThickness: 56, order: 2 },
+          { type: 'line', label: 'Число сделок', data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
+            borderWidth: 2, tension: 0.2, pointRadius: 3, order: 1 },
+        ] },
+        options: Object.assign(baseOptions(), {
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: narrowScreen.matches ? 5 : 12 } },
+            y: valueAxis({ position: 'left' }),
+            y1: {
+              position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+              ticks: { callback: (v) => nfInt.format(v) },
+            },
+          },
+          plugins: {
+            legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
+            tooltip: {
+              padding: 10,
+              callbacks: {
+                title: (items) => monthLabel(items[0].chart.$months[items[0].dataIndex].month, true),
+                label: (item) => item.dataset.label + ': ' +
+                  (item.datasetIndex === 0 ? fullMoney(item.parsed.y) : nfInt.format(item.parsed.y)),
+                afterBody: (items) => {
+                  const m = items[0].chart.$months[items[0].dataIndex];
+                  const lines = [];
+                  const partial = partialText(m);
+                  if (partial) lines.push(partial.charAt(0).toUpperCase() + partial.slice(1));
+                  if (m.records_without_amount) {
+                    lines.push('Без суммы: ' + m.records_without_amount + ' ' + plural(m.records_without_amount, RECORDS));
+                  }
+                  return lines;
+                },
+              },
+            },
+          },
+        }),
+      });
+      chart.$months = months;
+      chart.data.labels = months.map((m) => monthLabel(m.month));
+      chart.data.datasets[0].data = months.map((m) => m.amount);
+      // неполные месяцы на краях периода — бледнее
+      chart.data.datasets[0].backgroundColor = months.map((m) => (partialText(m) ? COLORS.accentBarSoft : COLORS.accentBar));
+      chart.data.datasets[1].data = months.map((m) => (m.deals > 0 ? m.deals : m.records));
+      chart.update();
+
+      const partial = months.filter((m) => partialText(m));
+      hint.textContent = partial.length
+        ? (partial.length === 1 ? 'Бледный столбец — неполный месяц: ' : 'Бледные столбцы — неполные месяцы: ') +
+          partial.map((m) => monthLabel(m.month) + ' — ' + partialText(m).replace('месяц неполный: ', '')).join('; ') + '.'
+        : '';
+      hint.hidden = !hint.textContent;
+    }
+
     /** Горизонтальные столбцы «топ по сумме» — для товаров и участников. */
     function renderTop(name, items, color, emptyMessage) {
       if (!items.length) {
@@ -1937,10 +2118,27 @@
       renderSummary(data.summary, data.turnover_by_day);
       renderCompareChart(data);
       renderCompareTable(data);
+      renderCharts(data);
+    }
+
+    function renderCharts(data) {
       renderTurnover(data.turnover_by_day);
+      renderMonths(data.turnover_by_month || []);
       renderTop('products', data.top_products, COLORS.accentBar, 'Нет товаров с суммой сделок');
       renderParties();
     }
+
+    /** Смена темы: новые цвета из CSS, графики пересоздаются без перезагрузки страницы. */
+    document.addEventListener('portal:themechange', () => {
+      readColors();
+      applyChartTheme();
+      Object.keys(charts).forEach((name) => { charts[name].destroy(); delete charts[name]; });
+      renderChips(); // цветные метки товаров
+      if (!state.data || typeof Chart === 'undefined') return;
+      renderCompareChart(state.data);
+      renderCompareTable(state.data);
+      renderCharts(state.data);
+    });
 
     /* ---- загрузка ---- */
 
@@ -2041,7 +2239,7 @@
     }
     Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
     Chart.defaults.font.size = narrowScreen.matches ? 11.5 : 12.5;
-    Chart.defaults.color = COLORS.text;
+    applyChartTheme();
     load();
   }
 
@@ -2121,6 +2319,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.page;
+    initThemeToggle();
     initCollapsibleFilters();
     if (page === 'trades') initTrades();
     else if (page === 'status') initStatus();

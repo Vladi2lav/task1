@@ -91,6 +91,7 @@ def test_формат_ответа(клиент, данные):
     assert set(тело) == {
         'filters', 'selected', 'unknown_ids', 'compare_mode', 'summary', 'products', 'price_dynamics',
         'series', 'comparison', 'top_products', 'top_buyers', 'top_sellers', 'turnover_by_day',
+        'turnover_by_month',
     }
     assert тело['filters'] == {'exchange': '', 'date_from': None, 'date_to': None, 'q': ''}
 
@@ -236,6 +237,95 @@ def test_оборот_по_дням(клиент, данные):
     ]
 
 
+# ------------------------------------------------------------ оборот по месяцам
+# Календарь 2026: 01.10 — четверг, 03.10 — суббота, 01.11 — воскресенье, 27.11 — пятница,
+# 30.11 — понедельник, 14.09 — понедельник.
+
+def месяц(тело, ключ):
+    return next(m for m in тело['turnover_by_month'] if m['month'] == ключ)
+
+
+def test_оборот_по_месяцам(клиент, данные):
+    assert получить(клиент)['turnover_by_month'] == [{
+        'month': '2026-10', 'amount': 16000.0, 'deals': 7, 'records': 8, 'records_without_amount': 3,
+        'period_from': '2026-10-01', 'period_to': '2026-10-03',
+        # данные есть только по 03.10, дальше в октябре есть будни — месяц неполный в конце
+        'partial_start': False, 'partial_end': True,
+    }]
+
+
+def test_оборот_по_месяцам_несколько_месяцев_и_края_периода(клиент, данные):
+    сделка(данные.ets, данные.пшеница, date(2026, 9, 14), amount=D(500), deals_count=2)
+    сделка(данные.ets, данные.пшеница, date(2026, 9, 30), amount=D(250))
+    сделка(данные.каспий, данные.уголь, date(2026, 11, 27), amount=D(100), deals_count=1)
+    тело = получить(клиент)
+    месяцы = тело['turnover_by_month']
+    assert [(m['month'], m['amount'], m['deals'], m['records']) for m in месяцы] == [
+        ('2026-09', 750.0, 2, 2), ('2026-10', 16000.0, 7, 8), ('2026-11', 100.0, 1, 1),
+    ]
+    # сентябрь: данные с понедельника 14.09, а 1–11 сентября — будни -> неполный в начале
+    assert (месяцы[0]['partial_start'], месяцы[0]['partial_end']) == (True, False)
+    assert месяцы[0]['period_from'] == '2026-09-14' and месяцы[0]['period_to'] == '2026-09-30'
+    # октябрь внутри периода — полный, хотя сделки были только 1–3 числа
+    assert (месяцы[1]['partial_start'], месяцы[1]['partial_end']) == (False, False)
+    assert (месяцы[1]['period_from'], месяцы[1]['period_to']) == ('2026-10-01', '2026-10-31')
+    # ноябрь: данные по пятницу 27.11, а 30.11 — понедельник -> неполный в конце
+    assert (месяцы[2]['partial_start'], месяцы[2]['partial_end']) == (False, True)
+    assert месяцы[2]['period_to'] == '2026-11-27'
+    # суммы по месяцам сходятся со сводкой и с оборотом по дням
+    assert sum(m['amount'] for m in месяцы) == тело['summary']['total_amount']
+    assert sum(m['records'] for m in месяцы) == sum(d['records'] for d in тело['turnover_by_day'])
+
+
+def test_оборот_по_месяцам_выходные_на_краю_не_делают_месяц_неполным(клиент, данные):
+    # 01.11 — воскресенье: данные с понедельника 02.11 — начало месяца полное
+    сделка(данные.ets, данные.пшеница, date(2026, 11, 2), amount=D(10))
+    сделка(данные.ets, данные.пшеница, date(2026, 11, 30), amount=D(20))
+    ноябрь = месяц(получить(клиент, date_from='2026-11-01'), '2026-11')
+    assert (ноябрь['partial_start'], ноябрь['partial_end']) == (False, False)
+    # период обрезан пользователем посреди месяца -> неполный с обеих сторон
+    ноябрь = месяц(получить(клиент, date_from='2026-11-02', date_to='2026-11-20'), '2026-11')
+    assert ноябрь['amount'] == 10.0
+    assert (ноябрь['partial_start'], ноябрь['partial_end']) == (False, True)
+    assert ноябрь['period_to'] == '2026-11-02'  # последний день данных в периоде
+
+
+def test_оборот_по_месяцам_учитывает_биржу_и_период(клиент, данные):
+    assert получить(клиент, exchange='caspy')['turnover_by_month'] == [{
+        'month': '2026-10', 'amount': 5000.0, 'deals': 4, 'records': 1, 'records_without_amount': 0,
+        'period_from': '2026-10-03', 'period_to': '2026-10-03', 'partial_start': True, 'partial_end': True,
+    }]
+    октябрь = получить(клиент, date_from='2026-10-02', date_to='2026-10-02')['turnover_by_month']
+    assert [(m['amount'], m['records'], m['records_without_amount']) for m in октябрь] == [(4000.0, 3, 1)]
+    assert октябрь[0]['period_from'] == октябрь[0]['period_to'] == '2026-10-02'
+    assert получить(клиент, date_from='2027-01-01')['turnover_by_month'] == []
+
+
+def test_оборот_по_месяцам_по_выбранным_товарам(клиент, данные):
+    тело = получить(клиент, product=данные.уголь.id)
+    assert [(m['month'], m['amount'], m['deals'], m['records'], m['records_without_amount'])
+            for m in тело['turnover_by_month']] == [('2026-10', 5000.0, 4, 2, 1)]
+    # уголь торговался только 03.10, но данные выборки (все товары) начинаются 01.10:
+    # начало месяца не считается неполным из-за того, что товар не торговался
+    assert тело['turnover_by_month'][0]['period_from'] == '2026-10-01'
+    assert тело['turnover_by_month'][0]['partial_start'] is False
+    тело = получить(клиент, product=[данные.уголь.id, данные.пшеница.id], exchange='ets')
+    assert тело['turnover_by_month'][0]['amount'] == 11000.0
+    assert получить(клиент, product=данные.сахар.id)['turnover_by_month'] == []
+
+
+def test_оборот_по_месяцам_один_запрос(данные, django_assert_num_queries):
+    from portal import analytics
+    for номер in range(1, 13):
+        сделка(данные.ets, данные.пшеница, date(2025, номер, 15), amount=D(номер), deals_count=1)
+    qs = Trade.objects.all()
+    with django_assert_num_queries(1):
+        месяцы = analytics.turnover_by_month(qs)
+    assert len(месяцы) == 13
+    assert [m['month'] for m in месяцы][:2] == ['2025-01', '2025-02']
+    assert месяцы[-1]['month'] == '2026-10'
+
+
 # ---------------------------------------------------------------------- фильтры
 
 def test_фильтр_по_бирже(клиент, данные):
@@ -319,6 +409,7 @@ def test_пустая_база(клиент):
         'price_dynamics': {'product': None, 'points': [], 'records_without_price': 0},
         'series': [], 'comparison': [],
         'top_products': [], 'top_buyers': [], 'top_sellers': [], 'turnover_by_day': [],
+        'turnover_by_month': [],
     }
 
 
@@ -327,6 +418,7 @@ def test_пустая_выборка_после_фильтра(клиент, д�
     assert тело['summary']['records'] == 0
     assert тело['price_dynamics']['product'] is None
     assert тело['turnover_by_day'] == []
+    assert тело['turnover_by_month'] == []
 
 
 # ------------------------------------------------------------------- ошибки
@@ -589,7 +681,7 @@ def test_страница_аналитики(клиент, данные):
     ответ = клиент.get('/analytics/')
     assert ответ.status_code == 200
     html = ответ.content.decode('utf-8')
-    for элемент in ('chart-price', 'chart-turnover', 'chart-products', 'chart-parties',
+    for элемент in ('chart-price', 'chart-turnover', 'chart-months', 'months-hint', 'chart-products', 'chart-parties',
                     'a-products', 'a-products-input', 'a-products-list', 'compare-table'):
         assert f'id="{элемент}"' in html
     assert 'role="combobox"' in html and 'role="listbox"' in html
@@ -599,6 +691,17 @@ def test_страница_аналитики(клиент, данные):
     assert '/static/portal/vendor/chart.umd.min.js' in html
     assert 'cdn.' not in html and 'jsdelivr' not in html  # без CDN
     assert 'data-page="analytics"' in html
+    assert 'Оборот по месяцам' in html
+
+
+def test_скрипт_графика_по_месяцам_и_цвета_из_темы():
+    from pathlib import Path
+    скрипт = (Path(__file__).resolve().parent.parent / 'portal' / 'static' / 'portal' / 'app.js').read_text('utf-8')
+    assert 'turnover_by_month' in скрипт and "ensureChart('months'" in скрипт
+    assert "'окт'" in скрипт and 'месяц неполный: данные ' in скрипт
+    # цвета графиков — из CSS-переменных, перерисовка при смене темы
+    assert "'--chart-grid'" in скрипт and "'--series-'" in скрипт
+    assert "addEventListener('portal:themechange'" in скрипт
 
 
 def test_пункт_меню_аналитика_на_всех_страницах(клиент):

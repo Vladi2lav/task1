@@ -302,6 +302,112 @@ def test_favicon_ico_served(client):
     assert b'<svg' in response.content
 
 
+# ---------------------------------------------------------------- тёмная тема
+
+ROOT = __import__('pathlib').Path(__file__).resolve().parent.parent
+THEME_PAGES = list(SITE_PAGES) + ['/no-such-page/']
+
+
+def page_html(client, address):
+    return client.get(address).content.decode('utf-8')
+
+
+@pytest.mark.parametrize('address', THEME_PAGES)
+def test_theme_toggle_in_header(client, address):
+    html = page_html(client, address)
+    header = html[html.index('<header class="site-header">'):html.index('</header>')]
+    assert 'id="theme-toggle"' in header
+    button = header[header.index('<button type="button" class="theme-toggle"'):]
+    button = button[:button.index('>') + 1]
+    assert 'aria-label="Тёмная тема"' in button and 'type="button"' in button
+    # обе иконки в разметке, нужную показывает CSS (без мигания при загрузке)
+    assert 'theme-icon-moon' in header and 'theme-icon-sun' in header
+
+
+@pytest.mark.parametrize('address', THEME_PAGES)
+def test_theme_script_runs_in_head_before_styles(client, address):
+    html = page_html(client, address)
+    head = html[:html.index('</head>')]
+    assert '<meta name="color-scheme" content="light dark">' in head
+    script_at = head.index("localStorage.getItem('portal_theme')")
+    assert script_at < head.index('rel="stylesheet"')  # тема применяется до загрузки стилей
+    script = head[head.rindex('<script>', 0, script_at):head.index('</script>', script_at)]
+    assert 'try{' in script and 'catch(e)' in script
+    assert "setAttribute('data-theme',t)" in script
+    assert "t==='dark'||t==='light'" in script  # чужие значения игнорируются
+
+
+def test_500_page_has_theme():
+    html = render_to_string('500.html')
+    head = html[:html.index('</head>')]
+    assert '<meta name="color-scheme" content="light dark">' in head
+    assert "localStorage.getItem('portal_theme')" in head
+    assert 'id="theme-toggle"' in html and 'portal/app' in html
+
+
+def test_theme_css_variables_for_dark_mode():
+    css = (ROOT / 'portal' / 'static' / 'portal' / 'style.css').read_text('utf-8')
+    assert ':root[data-theme="dark"] {' in css
+    assert '@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {' in css
+    dark = css[css.index(':root[data-theme="dark"] {'):]
+    dark = dark[:dark.index('}')]
+    for name in ('--bg', '--surface', '--text', '--accent', '--border', '--chart-grid', '--chart-text',
+                 '--chart-tooltip-bg', '--series-1', '--on-accent'):
+        assert f'  {name}:' in dark, name
+    assert 'color-scheme: dark' in dark
+    # кнопки с акцентным фоном берут цвет текста из темы
+    assert 'color: #fff' not in css
+
+
+def test_theme_toggle_script():
+    script = (ROOT / 'portal' / 'static' / 'portal' / 'app.js').read_text('utf-8')
+    assert "const THEME_KEY = 'portal_theme'" in script
+    assert "'Светлая тема'" in script and "'Тёмная тема'" in script
+    assert "prefers-color-scheme: dark" in script
+    toggle = script[script.index('function initThemeToggle'):]
+    toggle = toggle[:toggle.index('\n  }\n')]
+    assert 'try { window.localStorage.setItem(THEME_KEY' in toggle
+    assert "new CustomEvent('portal:themechange'" in toggle
+
+
+def test_cookie_policy_lists_theme_storage(client):
+    html = page_html(client, '/legal/cookies/')
+    assert '<code>portal_theme</code>' in html
+
+
+# ------------------------------------------------ формулировки о проекте
+
+FORBIDDEN_WORDS = re.compile(r'учебн|практик|студент|стажир|образовательн', re.I)
+
+
+@pytest.mark.parametrize('address', THEME_PAGES)
+def test_no_student_project_wording_on_pages(client, address):
+    html = page_html(client, address)
+    assert not FORBIDDEN_WORDS.search(html), FORBIDDEN_WORDS.search(html)
+
+
+def test_footer_describes_noncommercial_project(client):
+    footer = page_html(client, '/')
+    footer = footer[footer.index('<footer class="site-footer">'):]
+    assert 'некоммерческий информационный проект' in footer
+
+
+def test_no_student_project_wording_in_static_and_readme():
+    files = [
+        ROOT / 'portal' / 'static' / 'portal' / 'app.js',
+        ROOT / 'portal' / 'static' / 'portal' / 'style.css',
+        ROOT / 'portal' / 'legal.py',
+        ROOT / 'README.md',
+    ]
+    files += sorted((ROOT / 'portal' / 'templates').rglob('*.html'))
+    for path in files:
+        text = path.read_text('utf-8')
+        if path.name == 'README.md':
+            # ссылки на материалы в docs/ допустимы только в конце, в разделе «Документация»
+            text = text[:text.index('## Документация')]
+        assert not FORBIDDEN_WORDS.search(text), (path, FORBIDDEN_WORDS.search(text))
+
+
 # ------------------------------------------------------------- фильтр ссылок
 
 @pytest.mark.parametrize('value, expected', [

@@ -140,6 +140,18 @@
     </div>
   </section>
 
+  <section class="panel chart-panel" aria-labelledby="t-months">
+    <div class="chart-head">
+      <h2 class="panel-title" id="t-months">Оборот по месяцам</h2>
+      <div class="chart-sub">столбцы — сумма сделок, линия — число сделок</div>
+    </div>
+    <div class="chart-box">
+      <canvas id="chart-months" role="img" aria-label="Оборот по месяцам: сумма и число сделок"></canvas>
+      <div class="chart-empty" id="empty-months" hidden></div>
+    </div>
+    <p class="chart-hint" id="months-hint" hidden></p>
+  </section>
+
   <section class="panel chart-panel" aria-labelledby="t-products">
     <div class="chart-head">
       <h2 class="panel-title" id="t-products">Топ-10 товаров по сумме</h2>
@@ -151,7 +163,7 @@
     </div>
   </section>
 
-  <section class="panel chart-panel chart-panel-wide" aria-labelledby="t-parties">
+  <section class="panel chart-panel" aria-labelledby="t-parties">
     <div class="chart-head">
       <h2 class="panel-title" id="t-parties">Топ-10 участников по сумме</h2>
       <div class="chart-switch" role="group" aria-label="Роль участника">

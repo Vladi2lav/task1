@@ -17,7 +17,7 @@ days = 92
 delay_seconds = 1.5
 timeout_seconds = 30
 retries = 3
-user_agent = "Mozilla/5.0 (compatible; TradeResultsStudentBot/1.0; educational project)"
+user_agent = "Mozilla/5.0 (compatible; TradeResultsBot/1.0; non-commercial open data aggregator)"
 
 [sources.ets]
 base_url = "https://ets.kz"

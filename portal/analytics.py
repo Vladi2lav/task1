@@ -13,17 +13,22 @@
 Старые параметры ``product_id`` / ``product_code`` по-прежнему выбирают товар
 для блока ``price_dynamics`` и выборку не сужают; ``q`` — ключевое слово по названию.
 
+Оборот считается по дням (``turnover_by_day``) и по месяцам (``turnover_by_month``,
+группировка в SQL); месяцы на краях периода, покрытые не целиком, помечаются.
+
 Суммы сделок (amount) у части записей отсутствуют (NULL) — например, у части
 данных ETS. Такие записи:
   * не попадают в суммы и в топы «по сумме» (SQL SUM игнорирует NULL);
   * считаются отдельно и выводятся как доля записей без суммы.
 """
+from calendar import monthrange
 from collections import defaultdict
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
-from django.db.models import Count, F, IntegerField, Q, QuerySet, Sum
-from django.db.models.functions import Coalesce
+from django.db.models import Count, F, IntegerField, Max, Min, Q, QuerySet, Sum
+from django.db.models.functions import Coalesce, TruncMonth
 
 from exchanges.models import Product, Trade
 
@@ -467,6 +472,73 @@ def turnover_by_day(qs: QuerySet) -> list:
     ]
 
 
+def _month_end(month_start: date) -> date:
+    return date(month_start.year, month_start.month, monthrange(month_start.year, month_start.month)[1])
+
+
+def _has_weekdays(first: date, last: date) -> bool:
+    """Есть ли будни (пн–пт) среди дней first..last включительно; выходные торгов не дают."""
+    day = first
+    while day <= last:
+        if day.weekday() < 5:
+            return True
+        day += timedelta(days=1)
+    return False
+
+
+def turnover_by_month(qs: QuerySet, coverage: Optional[tuple] = None) -> list:
+    """Оборот по месяцам: сумма, число сделок, число записей, записей без суммы.
+
+    Группировка — в SQL (TruncMonth), один запрос. ``coverage`` — (первый, последний)
+    день данных выборки без учёта выбора товаров; если не передан, берётся из самих
+    месяцев. Месяц на краю периода, покрытый не целиком, помечается
+    ``partial_start`` / ``partial_end`` (выходные на краю месяца пробелом не считаются),
+    а ``period_from`` / ``period_to`` — какие дни месяца попали в период.
+    """
+    rows = list(
+        qs.annotate(month=TruncMonth('trade_date'))
+        .values('month')
+        .annotate(
+            total=Sum('amount'),
+            deals=Sum('deals_count'),
+            n=Count('id'),
+            without_amount=Count('id', filter=Q(amount__isnull=True)),
+            first=Min('trade_date'),
+            last=Max('trade_date'),
+        )
+        .order_by('month')
+    )
+    if not rows:
+        return []
+    if coverage is None or coverage[0] is None:
+        coverage = (min(r['first'] for r in rows), max(r['last'] for r in rows))
+    begin, end = coverage
+
+    result = []
+    for r in rows:
+        month = r['month']
+        if isinstance(month, datetime):  # на некоторых СУБД TruncMonth даёт datetime
+            month = month.date()
+        month_start = month.replace(day=1)
+        month_end = _month_end(month_start)
+        period_from = max(month_start, begin)
+        period_to = min(month_end, end)
+        partial_start = period_from > month_start and _has_weekdays(month_start, period_from - timedelta(days=1))
+        partial_end = period_to < month_end and _has_weekdays(period_to + timedelta(days=1), month_end)
+        result.append({
+            'month': month_start.strftime('%Y-%m'),
+            'amount': _amount_or_zero(r['total']),
+            'deals': int(r['deals'] or 0),
+            'records': r['n'],
+            'records_without_amount': r['without_amount'],
+            'period_from': period_from.isoformat(),
+            'period_to': period_to.isoformat(),
+            'partial_start': partial_start,
+            'partial_end': partial_end,
+        })
+    return result
+
+
 def build_analytics(params) -> dict:
     """Полный ответ /api/analytics/; при некорректных параметрах бросает ParamError."""
     base_qs, filters = analytics_queryset(params)
@@ -487,6 +559,13 @@ def build_analytics(params) -> dict:
         compared, mode = [by_id[pid] for pid in top_ids if pid in by_id], 'top'
     series, comparison = compare_products(qs, compared)
 
+    # Границы данных для пометки неполных месяцев — без учёта выбора товаров:
+    # товар мог просто не торговаться в начале месяца, месяц от этого не неполный.
+    coverage = None
+    if selected:
+        bounds = base_qs.aggregate(first=Min('trade_date'), last=Max('trade_date'))
+        coverage = (bounds['first'], bounds['last'])
+
     products = product_list(qs)
     if product_id is None and not product_code and selected:
         product = selected[0]
@@ -506,6 +585,7 @@ def build_analytics(params) -> dict:
         'top_buyers': top_participants(qs, 'buyer'),
         'top_sellers': top_participants(qs, 'seller'),
         'turnover_by_day': turnover_by_day(qs),
+        'turnover_by_month': turnover_by_month(qs, coverage),
     }
 
 

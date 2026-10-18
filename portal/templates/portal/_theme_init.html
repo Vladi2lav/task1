@@ -1,0 +1,2 @@
+{# Тема оформления: явный выбор посетителя (localStorage) применяется до отрисовки, без «вспышки». Без выбора — системная настройка (prefers-color-scheme). #}
+<script>(function(){try{var t=localStorage.getItem('portal_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>

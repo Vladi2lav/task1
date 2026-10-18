@@ -236,7 +236,7 @@ def api_trades(request):
 
 @require_GET
 def api_analytics(request):
-    """Сводная аналитика: динамика цены, топы, оборот по дням, сводка.
+    """Сводная аналитика: динамика цены, топы, оборот по дням и по месяцам, сводка.
 
     Параметры: exchange, date_from, date_to, q (как в /api/trades/);
     product=ID (повторяемый) и/или products=1,2,3 — выбранные товары (до 10):

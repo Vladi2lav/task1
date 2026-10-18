@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  {% include 'portal/_theme_init.html' %}
   <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="description" content="{% block description %}Итоги торгов товарных бирж Казахстана ETS и Каспий: поиск, фильтры, аналитика, экспорт в Excel.{% endblock %}">
   <title>{% block title %}Итоги торгов{% endblock %} — ETS и Каспий</title>
@@ -26,6 +28,7 @@
         <a href="{% url 'portal:news' %}" {% if page == 'news' %}aria-current="page" {% endif %}class="{% if page == 'news' %}active{% endif %}">Новости</a>
         <a href="{% url 'portal:status' %}" {% if page == 'status' %}aria-current="page" {% endif %}class="{% if page == 'status' %}active{% endif %}">Состояние данных</a>
       </nav>
+      {% include 'portal/_theme_toggle.html' %}
     </div>
   </header>
 
@@ -38,7 +41,7 @@
       <div class="footer-info">
         <div>Данные: <a href="https://ets.kz/" target="_blank" rel="noopener noreferrer">ETS</a>,
           <a href="https://ccx.kz/" target="_blank" rel="noopener noreferrer">Каспий</a>
-          · учебный некоммерческий проект · {% now "Y" %}</div>
+          · некоммерческий информационный проект · {% now "Y" %}</div>
         <div class="footer-note">Сведения носят справочный характер и не являются офертой или инвестиционной рекомендацией.</div>
       </div>
       <nav class="footer-nav" aria-label="Правовая информация">

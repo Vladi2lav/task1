@@ -29,7 +29,7 @@
     {% if http_config.delay_seconds %}{{ http_config.delay_seconds }} с{% else %}не менее секунды{% endif %}
     между запросами и ограниченным числом повторов при ошибках;</li>
   <li>запросы подписаны понятным заголовком User-Agent{% if http_config.user_agent %}
-    (<code>{{ http_config.user_agent }}</code>){% endif %}, указывающим на учебный проект;</li>
+    (<code>{{ http_config.user_agent }}</code>){% endif %}, по которому администраторы сайтов бирж могут узнать портал;</li>
   <li>сбор выполняется один раз в день{% if schedule_config.hour is not None %} (около {{ schedule_config.hour|stringformat:"02d" }}:{{ schedule_config.minute|default:0|stringformat:"02d" }} по времени Казахстана){% endif %}
     после окончания торгов, повторно загружаются только последние дни; дубли не сохраняются;</li>
   <li>сведения приводятся к единому формату (даты, числа, регистр, БИН) без изменения их смысла;</li>
