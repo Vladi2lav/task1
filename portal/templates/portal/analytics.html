@@ -1,69 +1,70 @@
 {% extends 'portal/base.html' %}
-{% load static %}
-{% block title %}Аналитика{% endblock %}
+{% load static i18n %}
+{% block title %}{% translate 'Аналитика' %}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Аналитика торгов</h1>
+<h1 class="page-title">{% translate 'Аналитика торгов' %}</h1>
+{% include 'portal/_source_language_note.html' %}
 
-<section class="panel filters" aria-label="Фильтры аналитики" data-collapsible>
+<section class="panel filters" aria-label="{% translate 'Фильтры аналитики' %}" data-collapsible>
   <div class="filters-bar">
     <button type="button" class="btn filters-toggle" aria-expanded="false" aria-controls="an-filters-form">
-      <span>Фильтры <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
+      <span>{% translate 'Фильтры' %} <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
     </button>
-    <button type="button" class="btn filters-bar-reset" data-reset="a-reset" hidden>Сбросить</button>
+    <button type="button" class="btn filters-bar-reset" data-reset="a-reset" hidden>{% translate 'Сбросить' %}</button>
   </div>
   <form id="an-filters-form" autocomplete="off" novalidate>
     <div class="filters-grid">
       <label class="field">
-        <span class="field-label">Биржа</span>
+        <span class="field-label">{% translate 'Биржа' %}</span>
         <select name="exchange" id="a-exchange">
-          <option value="">Обе биржи</option>
+          <option value="">{% translate 'Обе биржи' %}</option>
           <option value="ets">ETS</option>
-          <option value="caspy">Каспий</option>
+          <option value="caspy">{% translate 'Каспий' %}</option>
         </select>
       </label>
       <label class="field field-pair">
-        <span class="field-label">Период с</span>
+        <span class="field-label">{% translate 'Период с' %}</span>
         <input type="date" name="date_from" id="a-date_from">
       </label>
       <label class="field field-pair">
-        <span class="field-label">Период по</span>
+        <span class="field-label">{% translate 'Период по' %}</span>
         <input type="date" name="date_to" id="a-date_to">
       </label>
       <div class="field field-products">
-        <span class="field-label" id="a-products-label">Товары</span>
+        <span class="field-label" id="a-products-label">{% translate 'Товары' %}</span>
         <div class="combo" id="a-products">
           <div class="combo-control">
             <div class="combo-field">
-              <div class="combo-chips" id="a-products-chips" role="list" aria-label="Выбранные товары"></div>
+              <div class="combo-chips" id="a-products-chips" role="list" aria-label="{% translate 'Выбранные товары' %}"></div>
               <input type="text" id="a-products-input" class="combo-input" role="combobox"
                      aria-labelledby="a-products-label" aria-controls="a-products-list"
                      aria-expanded="false" aria-autocomplete="list" aria-haspopup="listbox"
-                     aria-describedby="a-products-hint" placeholder="Все товары" spellcheck="false" enterkeyhint="search">
+                     aria-describedby="a-products-hint" placeholder="{% translate 'Все товары' %}" spellcheck="false" enterkeyhint="search">
             </div>
-            <button type="button" class="combo-clear" id="a-products-clear" aria-label="Сбросить выбор товаров" title="Сбросить выбор (все товары)" hidden>
+            <button type="button" class="combo-clear" id="a-products-clear" aria-label="{% translate 'Сбросить выбор товаров' %}" title="{% translate 'Сбросить выбор (все товары)' %}" hidden>
               <span aria-hidden="true">&times;</span>
             </button>
-            <button type="button" class="combo-arrow" id="a-products-arrow" tabindex="-1" aria-label="Открыть список товаров">
+            <button type="button" class="combo-arrow" id="a-products-arrow" tabindex="-1" aria-label="{% translate 'Открыть список товаров' %}">
               <span class="combo-arrow-icon" aria-hidden="true"></span>
             </button>
           </div>
           <div class="combo-popup" id="a-products-popup" hidden>
             <div class="combo-actions">
-              <button type="button" class="chip" id="a-products-all">Все товары</button>
-              <button type="button" class="chip" id="a-products-found" hidden>Выбрать найденные</button>
+              <button type="button" class="chip" id="a-products-all">{% translate 'Все товары' %}</button>
+              <button type="button" class="chip" id="a-products-found" hidden>{% translate 'Выбрать найденные' %}</button>
               <span class="combo-count" id="a-products-count"></span>
             </div>
             <div class="combo-msg" id="a-products-msg" role="status" aria-live="polite" hidden></div>
             <ul class="combo-list" id="a-products-list" role="listbox" aria-multiselectable="true" aria-labelledby="a-products-label"></ul>
           </div>
-          <span class="visually-hidden" id="a-products-hint">Стрелки вниз и вверх — выбор строки, Enter или пробел — отметить товар, Escape — закрыть список. Можно выбрать до 10 товаров.</span>
+          <span class="visually-hidden" id="a-products-hint">{% translate 'Стрелки вниз и вверх — выбор строки, Enter или пробел — отметить товар, Escape — закрыть список. Можно выбрать до 10 товаров.' %}</span>
         </div>
         <div class="combo-flash" id="a-products-flash" role="status" aria-live="polite" hidden></div>
         <div class="combo-note" id="a-products-note" hidden></div>
       </div>
       <div class="field field-actions">
-        <button type="button" class="btn btn-ghost" id="a-reset">Сбросить</button>
+        <button type="button" class="btn btn-ghost" id="a-reset">{% translate 'Сбросить' %}</button>
       </div>
     </div>
   </form>
@@ -73,26 +74,26 @@
 
 <div class="note note-error" id="an-error" role="alert" hidden>
   <span id="an-error-text"></span>
-  <button type="button" class="btn" id="an-retry">Повторить</button>
+  <button type="button" class="btn" id="an-retry">{% translate 'Повторить' %}</button>
 </div>
 
-<section class="summary-cards" id="an-summary" aria-label="Сводка" aria-live="polite">
+<section class="summary-cards" id="an-summary" aria-label="{% translate 'Сводка' %}" aria-live="polite">
   <div class="summary-card">
-    <div class="summary-label">Записей</div>
+    <div class="summary-label">{% translate 'Записей' %}</div>
     <div class="summary-value" id="s-records">—</div>
   </div>
   <div class="summary-card">
-    <div class="summary-label">Торговых дней</div>
+    <div class="summary-label">{% translate 'Торговых дней' %}</div>
     <div class="summary-value" id="s-days">—</div>
     <div class="summary-sub" id="s-days-sub"></div>
   </div>
   <div class="summary-card summary-card-wide">
-    <div class="summary-label">Общая сумма сделок</div>
+    <div class="summary-label">{% translate 'Общая сумма сделок' %}</div>
     <div class="summary-value" id="s-amount">—</div>
     <div class="summary-sub" id="s-amount-sub"></div>
   </div>
   <div class="summary-card">
-    <div class="summary-label">Записей без суммы</div>
+    <div class="summary-label">{% translate 'Записей без суммы' %}</div>
     <div class="summary-value" id="s-noamount">—</div>
     <div class="summary-sub" id="s-noamount-sub"></div>
   </div>
@@ -104,25 +105,25 @@
   <section class="panel chart-panel chart-panel-wide" aria-labelledby="t-price">
     <div class="chart-head">
       <div class="chart-head-text">
-        <h2 class="panel-title" id="t-price">Сравнение товаров</h2>
+        <h2 class="panel-title" id="t-price">{% translate 'Сравнение товаров' %}</h2>
         <div class="chart-sub" id="price-sub">—</div>
       </div>
-      <div class="chart-switch" role="group" aria-label="Что показать на графике">
-        <button type="button" class="chip is-active" data-metric="price" aria-pressed="true">Цена</button>
-        <button type="button" class="chip" data-metric="change" aria-pressed="false">Изменение, %</button>
-        <button type="button" class="chip" data-metric="amount" aria-pressed="false">Сумма по дням</button>
+      <div class="chart-switch" role="group" aria-label="{% translate 'Что показать на графике' %}">
+        <button type="button" class="chip is-active" data-metric="price" aria-pressed="true">{% translate 'Цена' %}</button>
+        <button type="button" class="chip" data-metric="change" aria-pressed="false">{% translate 'Изменение' %}, %</button>
+        <button type="button" class="chip" data-metric="amount" aria-pressed="false">{% translate 'Сумма по дням' %}</button>
       </div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-price" role="img" aria-label="Средневзвешенная цена выбранных товаров по дням"></canvas>
+      <canvas id="chart-price" role="img" aria-label="{% translate 'Средневзвешенная цена выбранных товаров по дням' %}"></canvas>
       <div class="chart-empty" id="empty-price" hidden></div>
     </div>
-    <ul class="chart-legend" id="price-legend" aria-label="Товары на графике"></ul>
+    <ul class="chart-legend" id="price-legend" aria-label="{% translate 'Товары на графике' %}"></ul>
     <p class="chart-hint" id="price-hint"></p>
 
     <div class="compare-wrap" id="compare-wrap">
       <table class="data-table compare-table" id="compare-table">
-        <caption class="visually-hidden">Сравнение товаров за выбранный период</caption>
+        <caption class="visually-hidden">{% translate 'Сравнение товаров за выбранный период' %}</caption>
         <thead><tr id="compare-head"></tr></thead>
         <tbody id="compare-body"></tbody>
       </table>
@@ -131,22 +132,22 @@
 
   <section class="panel chart-panel" aria-labelledby="t-turnover">
     <div class="chart-head">
-      <h2 class="panel-title" id="t-turnover">Оборот по дням</h2>
-      <div class="chart-sub">столбцы — сумма сделок, линия — число сделок</div>
+      <h2 class="panel-title" id="t-turnover">{% translate 'Оборот по дням' %}</h2>
+      <div class="chart-sub">{% translate 'столбцы — сумма сделок, линия — число сделок' %}</div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-turnover" role="img" aria-label="Оборот по дням: сумма и число сделок"></canvas>
+      <canvas id="chart-turnover" role="img" aria-label="{% translate 'Оборот по дням: сумма и число сделок' %}"></canvas>
       <div class="chart-empty" id="empty-turnover" hidden></div>
     </div>
   </section>
 
   <section class="panel chart-panel" aria-labelledby="t-months">
     <div class="chart-head">
-      <h2 class="panel-title" id="t-months">Оборот по месяцам</h2>
-      <div class="chart-sub">столбцы — сумма сделок, линия — число сделок</div>
+      <h2 class="panel-title" id="t-months">{% translate 'Оборот по месяцам' %}</h2>
+      <div class="chart-sub">{% translate 'столбцы — сумма сделок, линия — число сделок' %}</div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-months" role="img" aria-label="Оборот по месяцам: сумма и число сделок"></canvas>
+      <canvas id="chart-months" role="img" aria-label="{% translate 'Оборот по месяцам: сумма и число сделок' %}"></canvas>
       <div class="chart-empty" id="empty-months" hidden></div>
     </div>
     <p class="chart-hint" id="months-hint" hidden></p>
@@ -154,25 +155,25 @@
 
   <section class="panel chart-panel" aria-labelledby="t-products">
     <div class="chart-head">
-      <h2 class="panel-title" id="t-products">Топ-10 товаров по сумме</h2>
-      <div class="chart-sub">сумма сделок, тг</div>
+      <h2 class="panel-title" id="t-products">{% translate 'Топ-10 товаров по сумме' %}</h2>
+      <div class="chart-sub">{% translate 'сумма сделок, тг' %}</div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-products" role="img" aria-label="Топ-10 товаров по сумме сделок"></canvas>
+      <canvas id="chart-products" role="img" aria-label="{% translate 'Топ-10 товаров по сумме сделок' %}"></canvas>
       <div class="chart-empty" id="empty-products" hidden></div>
     </div>
   </section>
 
   <section class="panel chart-panel" aria-labelledby="t-parties">
     <div class="chart-head">
-      <h2 class="panel-title" id="t-parties">Топ-10 участников по сумме</h2>
-      <div class="chart-switch" role="group" aria-label="Роль участника">
-        <button type="button" class="chip is-active" data-role="buyers" aria-pressed="true">Покупатели</button>
-        <button type="button" class="chip" data-role="sellers" aria-pressed="false">Продавцы</button>
+      <h2 class="panel-title" id="t-parties">{% translate 'Топ-10 участников по сумме' %}</h2>
+      <div class="chart-switch" role="group" aria-label="{% translate 'Роль участника' %}">
+        <button type="button" class="chip is-active" data-role="buyers" aria-pressed="true">{% translate 'Покупатели' %}</button>
+        <button type="button" class="chip" data-role="sellers" aria-pressed="false">{% translate 'Продавцы' %}</button>
       </div>
     </div>
     <div class="chart-box">
-      <canvas id="chart-parties" role="img" aria-label="Топ-10 участников торгов по сумме сделок"></canvas>
+      <canvas id="chart-parties" role="img" aria-label="{% translate 'Топ-10 участников торгов по сумме сделок' %}"></canvas>
       <div class="chart-empty" id="empty-parties" hidden></div>
     </div>
   </section>

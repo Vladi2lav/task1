@@ -13,12 +13,13 @@ from django.db.models import Count, Max, Min, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.translation import gettext as _, gettext_lazy
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from exchanges.models import Broker, Exchange, News, ParseRun, Participant, Product, Trade
 
-from . import analytics, collect_runner, legal
+from . import analytics, collect_runner, i18n, legal
 from .excel_export import build_xlsx
 from .queries import (
     EXCHANGE_CODES,
@@ -34,7 +35,7 @@ from .serializers import news_to_dict, run_to_dict, trade_to_dict
 
 logger = logging.getLogger(__name__)
 
-# Названия бирж по умолчанию (пока в БД нет записей Exchange)
+# Биржи по умолчанию (пока в БД нет записей Exchange); названия выводятся на языке интерфейса
 DEFAULT_EXCHANGE_NAMES = {'ets': 'ETS', 'caspy': 'Каспий'}
 
 # Глубина ручного запуска, дней
@@ -45,7 +46,7 @@ SUGGEST_FIELDS = ('product', 'party', 'broker', 'delivery')
 # Сколько новостей показывать в блоке «Последние новости»
 LATEST_NEWS_COUNT = 5
 
-READ_ONLY_MESSAGE = (
+READ_ONLY_MESSAGE = gettext_lazy(
     'Демо-версия: сбор данных отключён. Запустите проект локально, '
     'чтобы собирать данные с сайтов бирж.'
 )
@@ -73,19 +74,20 @@ def favicon(request):
 
 
 def _json(data, status=200):
-    """JsonResponse с русским текстом без \\uXXXX."""
+    """JsonResponse с текстом на любом языке без \\uXXXX."""
     return JsonResponse(data, status=status, json_dumps_params={'ensure_ascii': False})
 
 
 def _error(message, status=400):
-    return _json({'error': message}, status=status)
+    """Ответ с ошибкой; текст — на языке интерфейса (cookie django_language / Accept-Language)."""
+    return _json({'error': str(message)}, status=status)
 
 
 def _exchange_names() -> dict:
-    """Код биржи -> название: из БД, недостающие — по умолчанию."""
-    names = {e.code: e.name for e in Exchange.objects.order_by('id')}
+    """Код биржи -> название на языке интерфейса: биржи из БД, недостающие — по умолчанию."""
+    names = {e.code: i18n.exchange_label(e.code, e.name) for e in Exchange.objects.order_by('id')}
     for code, name in DEFAULT_EXCHANGE_NAMES.items():
-        names.setdefault(code, name)
+        names.setdefault(code, i18n.exchange_label(code, name))
     return names
 
 
@@ -170,26 +172,43 @@ def news_page(request):
     })
 
 
-def _legal_page(template, page):
+def _legal_templates(name: str) -> list:
+    """Шаблоны юридической страницы: перевод на язык интерфейса, затем русская редакция.
+
+    Русская редакция (portal/legal/<name>.html) — юридически значимая; переводы лежат
+    в portal/legal/<язык>/<name>.html. Нет перевода — показывается русская редакция.
+    """
+    lang = i18n.current_language()
+    candidates = [f'portal/legal/{name}.html']
+    if lang != i18n.DEFAULT_LANGUAGE:
+        candidates.insert(0, f'portal/legal/{lang}/{name}.html')
+    return candidates
+
+
+def _legal_page(name, page):
     def view(request):
-        return render(request, template, {'page': page, **legal.legal_context()})
+        return render(request, _legal_templates(name), {'page': page, **legal.legal_context()})
     view.__name__ = page.replace('-', '_') + '_page'
-    view.__doc__ = f'Юридическая страница ({template}).'
+    view.__doc__ = f'Юридическая страница (portal/legal/{name}.html и переводы).'
     return view
 
 
-legal_terms_page = _legal_page('portal/legal/terms.html', 'legal-terms')
-legal_privacy_page = _legal_page('portal/legal/privacy.html', 'legal-privacy')
+legal_terms_page = _legal_page('terms', 'legal-terms')
+legal_privacy_page = _legal_page('privacy', 'legal-privacy')
 
 
 def legal_cookies_page(request):
     """Политика использования cookie: сроки берутся из фактических настроек Django."""
-    return render(request, 'portal/legal/cookies.html', {
+    language_age = getattr(settings, 'LANGUAGE_COOKIE_AGE', None)
+    return render(request, _legal_templates('cookies'), {
         'page': 'legal-cookies',
         'csrf_cookie_name': settings.CSRF_COOKIE_NAME,
         'csrf_cookie_days': round(settings.CSRF_COOKIE_AGE / 86400),
         'session_cookie_name': settings.SESSION_COOKIE_NAME,
         'session_cookie_days': round(settings.SESSION_COOKIE_AGE / 86400),
+        'language_cookie_name': settings.LANGUAGE_COOKIE_NAME,
+        # None — cookie живёт до закрытия браузера
+        'language_cookie_days': round(language_age / 86400) if language_age else None,
         **legal.legal_context(),
     })
 
@@ -197,7 +216,7 @@ def legal_cookies_page(request):
 def legal_sources_page(request):
     """Источники данных и лицензии используемых библиотек."""
     config = getattr(settings, 'SCRAPER_CONFIG', {})
-    return render(request, 'portal/legal/sources.html', {
+    return render(request, _legal_templates('sources'), {
         'page': 'legal-sources',
         'libraries': legal.used_libraries(),
         'http_config': config.get('http', {}),
@@ -323,7 +342,7 @@ def api_filters(request):
     field = request.GET.get('field', '').strip()
     if field:
         if field not in SUGGEST_FIELDS:
-            return _error('Параметр field: допустимы ' + ', '.join(SUGGEST_FIELDS))
+            return _error(_('Параметр field: допустимы %(values)s') % {'values': ', '.join(SUGGEST_FIELDS)})
         text = request.GET.get('term', '').strip()
         if len(text) < 2:
             return _json({'field': field, 'suggestions': []})
@@ -347,8 +366,9 @@ def api_status(request):
     }
     exchanges = list(Exchange.objects.order_by('id'))
     known = {e.code for e in exchanges}
-    items = [(e.code, e.name, e) for e in exchanges] + [
-        (code, name, None) for code, name in DEFAULT_EXCHANGE_NAMES.items() if code not in known
+    items = [(e.code, i18n.exchange_label(e.code, e.name), e) for e in exchanges] + [
+        (code, i18n.exchange_label(code, name), None)
+        for code, name in DEFAULT_EXCHANGE_NAMES.items() if code not in known
     ]
     exchanges_data = []
     for code, name, exchange in items:
@@ -415,9 +435,9 @@ def _parse_body(request) -> dict:
         try:
             data = json.loads(request.body or b'{}')
         except ValueError:
-            raise ParamError('Тело запроса: некорректный JSON')
+            raise ParamError(_('Тело запроса: некорректный JSON'))
         if not isinstance(data, dict):
-            raise ParamError('Тело запроса: ожидается JSON-объект')
+            raise ParamError(_('Тело запроса: ожидается JSON-объект'))
         return data
     data = {key: request.POST.get(key) for key in request.POST}
     if 'exchanges' in request.POST:
@@ -435,14 +455,14 @@ def _exchange_codes(data: dict) -> list:
     if isinstance(raw, str):
         raw = raw.split(',')
     if not isinstance(raw, list):
-        raise ParamError('Биржа: допустимы ets, caspy или all')
+        raise ParamError(_('Биржа: допустимы ets, caspy или all'))
     codes = []
     for code in raw:
         code = str(code).strip().lower()
         if code == 'all':
             return list(EXCHANGE_CODES)
         if code not in EXCHANGE_CODES:
-            raise ParamError('Биржа: допустимы ets, caspy или all')
+            raise ParamError(_('Биржа: допустимы ets, caspy или all'))
         if code not in codes:
             codes.append(code)
     return codes
@@ -458,17 +478,18 @@ def _collect_period(data: dict) -> tuple:
             raw_days = data.get('days')
             days = 3 if raw_days in (None, '') else int(raw_days)
             if not COLLECT_DAYS_MIN <= days <= COLLECT_DAYS_MAX:
-                raise ParamError(f'Глубина: от {COLLECT_DAYS_MIN} до {COLLECT_DAYS_MAX} дней')
+                raise ParamError(_('Глубина: от %(min)s до %(max)s дней') % {
+                    'min': COLLECT_DAYS_MIN, 'max': COLLECT_DAYS_MAX})
             end = timezone.localdate()
             begin = end - timedelta(days=days - 1)
     except (ValueError, TypeError) as exc:
         if isinstance(exc, ParamError):
             raise
-        raise ParamError('Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней')
+        raise ParamError(_('Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней'))
     if begin > end:
-        raise ParamError('Дата начала позже даты окончания')
+        raise ParamError(_('Дата начала позже даты окончания'))
     if (end - begin).days + 1 > COLLECT_DAYS_MAX:
-        raise ParamError(f'Период не должен превышать {COLLECT_DAYS_MAX} дней')
+        raise ParamError(_('Период не должен превышать %(max)s дней') % {'max': COLLECT_DAYS_MAX})
     return begin, end
 
 
@@ -489,12 +510,12 @@ def api_collect(request):
         from scrapers.service import collect
     except ImportError as exc:
         logger.warning('Сервис сбора недоступен: %s', exc)
-        return _error('Сервис сбора данных пока не подключён (scrapers.service.collect)', status=503)
+        return _error(_('Сервис сбора данных пока не подключён (scrapers.service.collect)'), status=503)
 
     if collect_runner.is_running() or collect_runner.has_active_run_in_log():
-        return _error('Сбор уже выполняется — дождитесь завершения', status=409)
+        return _error(_('Сбор уже выполняется — дождитесь завершения'), status=409)
     if not collect_runner.start(collect, codes, begin, end):
-        return _error('Сбор уже выполняется — дождитесь завершения', status=409)
+        return _error(_('Сбор уже выполняется — дождитесь завершения'), status=409)
     return _json({
         'started': True,
         'exchanges': codes,

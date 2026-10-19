@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from django.db.models import F, Q, QuerySet
+from django.utils.translation import gettext as _
 
 from exchanges.models import News, Trade
 
@@ -53,7 +54,10 @@ ORDERING_FIELDS = {
 
 
 class ParamError(ValueError):
-    """Некорректный параметр запроса (превращается в ответ 400)."""
+    """Некорректный параметр запроса (превращается в ответ 400).
+
+    Текст сообщения — на языке интерфейса (gettext в момент разбора запроса).
+    """
 
 
 @dataclass
@@ -82,7 +86,7 @@ def _parse_date(params, name):
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise ParamError(f'Параметр {name}: ожидается дата в формате ГГГГ-ММ-ДД')
+        raise ParamError(_('Параметр %(name)s: ожидается дата в формате ГГГГ-ММ-ДД') % {'name': name})
 
 
 def _parse_amount(params, name):
@@ -92,9 +96,9 @@ def _parse_amount(params, name):
     try:
         number = Decimal(value)
     except InvalidOperation:
-        raise ParamError(f'Параметр {name}: ожидается число')
+        raise ParamError(_('Параметр %(name)s: ожидается число') % {'name': name})
     if not number.is_finite() or abs(number) >= Decimal('1e20'):
-        raise ParamError(f'Параметр {name}: ожидается число')
+        raise ParamError(_('Параметр %(name)s: ожидается число') % {'name': name})
     return number
 
 
@@ -104,7 +108,7 @@ def parse_exchange(params) -> str:
     if exchange in ('all', 'both'):
         exchange = ''
     if exchange and exchange not in EXCHANGE_CODES:
-        raise ParamError('Параметр exchange: допустимы ets, caspy или пусто')
+        raise ParamError(_('Параметр exchange: допустимы ets, caspy или пусто'))
     return exchange
 
 
@@ -129,7 +133,7 @@ def parse_ordering(params) -> str:
     field = raw.lstrip('-')
     if field not in ORDERING_FIELDS:
         raise ParamError(
-            'Параметр ordering: недопустимое поле. Допустимы: ' + ', '.join(ORDERING_FIELDS)
+            _('Параметр ordering: недопустимое поле. Допустимы: %(fields)s') % {'fields': ', '.join(ORDERING_FIELDS)}
         )
     return ('-' if raw.startswith('-') else '') + field
 
@@ -140,7 +144,7 @@ def parse_page(params, default_size=PAGE_SIZE_DEFAULT, min_size=PAGE_SIZE_MIN, m
         page = int(_text_param(params, 'page') or 1)
         size = int(_text_param(params, 'page_size') or default_size)
     except ValueError:
-        raise ParamError('Параметры page и page_size должны быть целыми числами')
+        raise ParamError(_('Параметры page и page_size должны быть целыми числами'))
     size = max(min_size, min(max_size, size))
     return max(1, page), size
 

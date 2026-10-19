@@ -1,0 +1,64 @@
+{% extends 'portal/legal/_layout.html' %}
+{# Ыңғайлылық үшін қазақ тіліне аударма; сәйкессіздік болса, орыс тіліндегі нұсқа (portal/legal/sources.html) қолданылады. #}
+{% block title %}Деректер көздері және лицензиялар{% endblock %}
+{% block description %}«ETS және Каспий биржаларының сауда-саттық нәтижелері» порталының деректері қайдан алынады және ол қандай ашық кітапханаларды пайдаланады.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Деректер көздері және лицензиялар</h1>
+
+<h2>1. Биржалар — деректер көздері</h2>
+<div class="sources-grid">
+  {% for source in data_sources %}
+  <section class="source-card">
+    <h3><span class="badge badge-{{ source.code }}">{{ source.short }}</span> {{ source.name }}</h3>
+    <dl>
+      <div><dt>Сайт</dt><dd><a href="{{ source.site }}" target="_blank" rel="noopener noreferrer">{{ source.site }}</a></dd></div>
+      <div><dt>Сауда-саттық нәтижелері</dt><dd><a href="{{ source.page }}" target="_blank" rel="noopener noreferrer">{{ source.page }}</a></dd></div>
+      <div><dt>Не алынады</dt><dd>{{ source.how }}</dd></div>
+    </dl>
+  </section>
+  {% endfor %}
+</div>
+<p>Бастапқы мәліметтерге құқықтар биржаларға тиесілі. Портал биржалардың ресми ресурсы болып табылмайды;
+  сәйкессіздіктер болған жағдайда биржа сайтындағы мәліметтер дұрыс деп саналады.</p>
+
+<h2>2. Деректер қалай жиналады</h2>
+<ul>
+  <li>тек тіркелусіз және жүйеге кірусіз кез келген келушіге қолжетімді жария беттер мен файлдар пайдаланылады;
+    сайттардың техникалық шектеулері айналып өтілмейді;</li>
+  <li>сұраулар бір ағынмен кезекпен, сұраулар арасында
+    {% if http_config.delay_seconds %}{{ http_config.delay_seconds }} с{% else %}кемінде бір секунд{% endif %}
+    үзіліспен және қателер кезінде қайталаулардың шектеулі санымен орындалады;</li>
+  <li>сұраулар түсінікті User-Agent тақырыбымен қол қойылады{% if http_config.user_agent %}
+    (<code>{{ http_config.user_agent }}</code>){% endif %}, ол бойынша биржа сайттарының әкімшілері порталды тани алады;</li>
+  <li>жинау күніне бір рет{% if schedule_config.hour is not None %} (Қазақстан уақыты бойынша шамамен {{ schedule_config.hour|stringformat:"02d" }}:{{ schedule_config.minute|default:0|stringformat:"02d" }}){% endif %}
+    сауда-саттық аяқталғаннан кейін орындалады, тек соңғы күндер қайта жүктеледі; қайталанатын жазбалар
+    сақталмайды;</li>
+  <li>мәліметтер мағынасы өзгертілмей бірыңғай пішімге келтіріледі (күндер, сандар, әріп регистрі, БСН);</li>
+  <li>беттер ашылған кезде портал биржа сайттарына жүгінбейді — ол тек сақталған дерекқорды көрсетеді.</li>
+</ul>
+
+<h2>3. Ашық кітапханалар</h2>
+<p>Портал еркін бағдарламалық қамтамасыз етуді пайдалана отырып жасалған. Кітапханалар өздерінің лицензиялары
+  шарттарымен таратылады; авторлық құқықтар олардың авторларына тиесілі.</p>
+<div class="table-wrap legal-table">
+  <table class="data-table" id="licenses-table">
+    <thead>
+      <tr><th scope="col">Кітапхана</th><th scope="col">Мақсаты</th><th scope="col">Лицензия</th></tr>
+    </thead>
+    <tbody>
+      {% for lib in libraries %}
+      <tr>
+        <td>{{ lib.name }}</td>
+        <td>{{ lib.purpose }}</td>
+        <td><a href="{{ lib.url }}" target="_blank" rel="noopener noreferrer">{{ lib.license }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p>Лицензиялардың толық мәтіндері мен авторлық құқық туралы хабарламалар
+  <a href="{{ repo_url }}" target="_blank" rel="noopener noreferrer">жоба репозиторийіндегі</a>
+  <a href="{{ third_party_url }}" target="_blank" rel="noopener noreferrer">THIRD_PARTY_LICENSES.md</a>
+  файлында жиналған.</p>
+{% endblock %}

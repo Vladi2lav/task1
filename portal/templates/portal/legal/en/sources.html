@@ -1,0 +1,64 @@
+{% extends 'portal/legal/_layout.html' %}
+{# English translation for convenience; the Russian version (portal/legal/sources.html) prevails. #}
+{% block title %}Data sources and licences{% endblock %}
+{% block description %}Where the data of the “ETS and Caspy Exchange Trading Results” portal comes from and which open-source libraries it uses.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Data sources and licences</h1>
+
+<h2>1. Exchanges as data sources</h2>
+<div class="sources-grid">
+  {% for source in data_sources %}
+  <section class="source-card">
+    <h3><span class="badge badge-{{ source.code }}">{{ source.short }}</span> {{ source.name }}</h3>
+    <dl>
+      <div><dt>Website</dt><dd><a href="{{ source.site }}" target="_blank" rel="noopener noreferrer">{{ source.site }}</a></dd></div>
+      <div><dt>Trading results</dt><dd><a href="{{ source.page }}" target="_blank" rel="noopener noreferrer">{{ source.page }}</a></dd></div>
+      <div><dt>What is taken</dt><dd>{{ source.how }}</dd></div>
+    </dl>
+  </section>
+  {% endfor %}
+</div>
+<p>The rights to the original information belong to the exchanges. The Portal is not an official resource of
+  the exchanges; in case of discrepancies, the information on the exchange’s website is considered correct.</p>
+
+<h2>2. How the data is collected</h2>
+<ul>
+  <li>only public pages and files available to any visitor without registration or signing in are used;
+    technical restrictions of the websites are not bypassed;</li>
+  <li>requests are made sequentially in a single thread, with a pause of
+    {% if http_config.delay_seconds %}{{ http_config.delay_seconds }} s{% else %}at least one second{% endif %}
+    between requests and a limited number of retries on errors;</li>
+  <li>requests carry a clear User-Agent header{% if http_config.user_agent %}
+    (<code>{{ http_config.user_agent }}</code>){% endif %} by which the exchanges’ website administrators can identify the portal;</li>
+  <li>collection runs once a day{% if schedule_config.hour is not None %} (at about {{ schedule_config.hour|stringformat:"02d" }}:{{ schedule_config.minute|default:0|stringformat:"02d" }} Kazakhstan time){% endif %}
+    after the end of trading; only the last few days are reloaded; duplicates are not saved;</li>
+  <li>the information is brought to a single format (dates, numbers, letter case, BIN) without changing its
+    meaning;</li>
+  <li>when pages are opened, the portal does not contact the exchanges’ websites — it shows only the stored
+    database.</li>
+</ul>
+
+<h2>3. Open-source libraries</h2>
+<p>The Portal is built with free software. The libraries are distributed under their licences; the copyrights
+  belong to their authors.</p>
+<div class="table-wrap legal-table">
+  <table class="data-table" id="licenses-table">
+    <thead>
+      <tr><th scope="col">Library</th><th scope="col">Purpose</th><th scope="col">Licence</th></tr>
+    </thead>
+    <tbody>
+      {% for lib in libraries %}
+      <tr>
+        <td>{{ lib.name }}</td>
+        <td>{{ lib.purpose }}</td>
+        <td><a href="{{ lib.url }}" target="_blank" rel="noopener noreferrer">{{ lib.license }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p>The full licence texts and copyright notices are collected in the
+  <a href="{{ third_party_url }}" target="_blank" rel="noopener noreferrer">THIRD_PARTY_LICENSES.md</a> file
+  in the <a href="{{ repo_url }}" target="_blank" rel="noopener noreferrer">project repository</a>.</p>
+{% endblock %}

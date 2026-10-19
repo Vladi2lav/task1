@@ -6,3 +6,6 @@ Dockerfile text eol=lf
 # двоичные файлы
 *.sqlite3 binary
 *.xlsx binary
+*.mo binary
+# переводы gettext — LF (как у makemessages)
+*.po text eol=lf

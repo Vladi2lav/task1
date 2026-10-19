@@ -1,71 +1,72 @@
 {% extends 'portal/base.html' %}
-{% load portal_extras %}
-{% block title %}Итоги торгов{% endblock %}
+{% load i18n portal_extras %}
+{% block title %}{% translate 'Итоги торгов' %}{% endblock %}
 
 {% block content %}
-<h1 class="visually-hidden">Итоги торгов бирж ETS и Каспий</h1>
-<section class="panel filters" aria-label="Фильтры" data-collapsible>
+<h1 class="visually-hidden">{% translate 'Итоги торгов бирж ETS и Каспий' %}</h1>
+{% include 'portal/_source_language_note.html' %}
+<section class="panel filters" aria-label="{% translate 'Фильтры' %}" data-collapsible>
   <div class="filters-bar">
     <button type="button" class="btn filters-toggle" aria-expanded="false" aria-controls="filters-form">
-      <span>Фильтры <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
+      <span>{% translate 'Фильтры' %} <span class="filters-count"></span></span><span class="filters-chevron" aria-hidden="true"></span>
     </button>
-    <button type="button" class="btn filters-bar-reset" data-reset="btn-reset" hidden>Сбросить</button>
+    <button type="button" class="btn filters-bar-reset" data-reset="btn-reset" hidden>{% translate 'Сбросить' %}</button>
   </div>
   <form id="filters-form" autocomplete="off" novalidate>
     <div class="filters-grid">
       <label class="field">
-        <span class="field-label">Биржа</span>
+        <span class="field-label">{% translate 'Биржа' %}</span>
         <select name="exchange" id="f-exchange">
-          <option value="">Обе биржи</option>
+          <option value="">{% translate 'Обе биржи' %}</option>
           <option value="ets">ETS</option>
-          <option value="caspy">Каспий</option>
+          <option value="caspy">{% translate 'Каспий' %}</option>
         </select>
       </label>
       <label class="field field-pair">
-        <span class="field-label">Период с</span>
+        <span class="field-label">{% translate 'Период с' %}</span>
         <input type="date" name="date_from" id="f-date_from">
       </label>
       <label class="field field-pair">
-        <span class="field-label">Период по</span>
+        <span class="field-label">{% translate 'Период по' %}</span>
         <input type="date" name="date_to" id="f-date_to">
       </label>
       <label class="field field-wide">
-        <span class="field-label">Товар (ключевое слово)</span>
-        <input type="text" name="q" id="f-q" placeholder="например, пшеница" list="dl-product">
+        <span class="field-label">{% translate 'Товар (ключевое слово)' %}</span>
+        <input type="text" name="q" id="f-q" placeholder="{% translate 'например, пшеница' %}" list="dl-product">
         <datalist id="dl-product"></datalist>
       </label>
       <label class="field field-wide">
-        <span class="field-label">Продавец или покупатель (название / БИН)</span>
-        <input type="text" name="party" id="f-party" placeholder="название или БИН" list="dl-party">
+        <span class="field-label">{% translate 'Продавец или покупатель (название / БИН)' %}</span>
+        <input type="text" name="party" id="f-party" placeholder="{% translate 'название или БИН' %}" list="dl-party">
         <datalist id="dl-party"></datalist>
       </label>
       <label class="field field-wide">
-        <span class="field-label">Брокер</span>
-        <input type="text" name="broker" id="f-broker" placeholder="название брокера" list="dl-broker">
+        <span class="field-label">{% translate 'Брокер' %}</span>
+        <input type="text" name="broker" id="f-broker" placeholder="{% translate 'название брокера' %}" list="dl-broker">
         <datalist id="dl-broker"></datalist>
       </label>
       <label class="field field-pair">
-        <span class="field-label">Сумма от, тг</span>
+        <span class="field-label">{% translate 'Сумма от, тг' %}</span>
         <input type="text" inputmode="decimal" name="amount_min" id="f-amount_min" placeholder="0">
       </label>
       <label class="field field-pair">
-        <span class="field-label">Сумма до, тг</span>
-        <input type="text" inputmode="decimal" name="amount_max" id="f-amount_max" placeholder="без ограничения">
+        <span class="field-label">{% translate 'Сумма до, тг' %}</span>
+        <input type="text" inputmode="decimal" name="amount_max" id="f-amount_max" placeholder="{% translate 'без ограничения' %}">
       </label>
       <label class="field field-wide">
-        <span class="field-label">Место или базис поставки</span>
-        <input type="text" name="delivery" id="f-delivery" placeholder="город, станция, базис (FCA, EXW…)" list="dl-delivery"
-               title="Ищется в месте поставки, базисе поставки, а у записей без места — в названии товара">
+        <span class="field-label">{% translate 'Место или базис поставки' %}</span>
+        <input type="text" name="delivery" id="f-delivery" placeholder="{% translate 'город, станция, базис (FCA, EXW…)' %}" list="dl-delivery"
+               title="{% translate 'Ищется в месте поставки, базисе поставки, а у записей без места — в названии товара' %}">
         <datalist id="dl-delivery"></datalist>
       </label>
       <div class="field field-actions">
-        <button type="button" class="btn btn-ghost" id="btn-reset">Сбросить</button>
+        <button type="button" class="btn btn-ghost" id="btn-reset">{% translate 'Сбросить' %}</button>
       </div>
     </div>
   </form>
 </section>
 
-<section class="panel results" aria-label="Результаты">
+<section class="panel results" aria-label="{% translate 'Результаты' %}">
   <div class="toolbar">
     <div class="toolbar-info" aria-live="polite">
       <span id="found-count" class="found-count">—</span>
@@ -73,11 +74,11 @@
     </div>
     <div class="toolbar-controls">
       <label class="inline-field sort-field">
-        <span>Сортировка</span>
-        <select id="sort-select" aria-label="Сортировка"></select>
+        <span>{% translate 'Сортировка' %}</span>
+        <select id="sort-select" aria-label="{% translate 'Сортировка' %}"></select>
       </label>
       <label class="inline-field">
-        <span>Строк на странице</span>
+        <span>{% translate 'Строк на странице' %}</span>
         <select id="page-size">
           <option value="25">25</option>
           <option value="50" selected>50</option>
@@ -85,7 +86,7 @@
           <option value="200">200</option>
         </select>
       </label>
-      <a class="btn btn-primary" id="btn-export" href="/api/trades/export.xlsx" download>Скачать Excel</a>
+      <a class="btn btn-primary" id="btn-export" href="/api/trades/export.xlsx" download>{% translate 'Скачать Excel' %}</a>
     </div>
   </div>
 
@@ -99,36 +100,36 @@
       <tbody id="trades-body"></tbody>
     </table>
     <div class="empty-state" id="empty-state" hidden>
-      <div class="empty-title">Ничего не найдено</div>
-      <div class="empty-text">Измените условия поиска или сбросьте фильтры.</div>
+      <div class="empty-title">{% translate 'Ничего не найдено' %}</div>
+      <div class="empty-text">{% translate 'Измените условия поиска или сбросьте фильтры.' %}</div>
     </div>
     <div class="error-state" id="error-state" hidden>
-      <div class="empty-title">Не удалось загрузить данные</div>
+      <div class="empty-title">{% translate 'Не удалось загрузить данные' %}</div>
       <div class="empty-text" id="error-text"></div>
-      <button type="button" class="btn" id="btn-retry">Повторить</button>
+      <button type="button" class="btn" id="btn-retry">{% translate 'Повторить' %}</button>
     </div>
   </div>
 
-  <nav class="pagination" id="pagination" aria-label="Страницы"></nav>
+  <nav class="pagination" id="pagination" aria-label="{% translate 'Страницы' %}"></nav>
 </section>
 
 <section class="panel latest-news" aria-labelledby="latest-news-title">
   <div class="panel-head">
-    <h2 class="panel-title" id="latest-news-title">Последние новости</h2>
-    <a class="panel-link" href="{% url 'portal:news' %}">Все новости →</a>
+    <h2 class="panel-title" id="latest-news-title">{% translate 'Последние новости' %}</h2>
+    <a class="panel-link" href="{% url 'portal:news' %}">{% translate 'Все новости →' %}</a>
   </div>
   {% if latest_news %}
   <ul class="latest-news-list">
     {% for item in latest_news %}
     <li class="latest-news-item">
-      <time class="news-date" datetime="{{ item.published_at|date:'Y-m-d' }}">{{ item.published_at|date:'d.m.Y' }}</time>
-      <span class="badge badge-{% if item.exchange.code == 'caspy' %}caspy{% else %}ets{% endif %}">{{ item.exchange.name }}</span>
+      <time class="news-date" datetime="{{ item.published_at|date:'Y-m-d' }}">{{ item.published_at|date:'SHORT_DATE_FORMAT' }}</time>
+      <span class="badge badge-{% if item.exchange.code == 'caspy' %}caspy{% else %}ets{% endif %}">{{ item.exchange|exchange_label }}</span>
       {% with link=item.url|http_url %}{% if link %}<a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>{% else %}<span>{{ item.title }}</span>{% endif %}{% endwith %}
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p class="muted">Новостей пока нет — запустите сбор новостей.</p>
+  <p class="muted">{% translate 'Новостей пока нет — запустите сбор новостей.' %}</p>
   {% endif %}
 </section>
 {% endblock %}

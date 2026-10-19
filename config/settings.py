@@ -18,6 +18,7 @@ import tomllib
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.translation import gettext_lazy as _
 
 from .env import env_bool, env_int, env_list, env_str, load_dotenv, parse_database_url
 
@@ -117,6 +118,8 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # язык интерфейса: cookie django_language, иначе Accept-Language, иначе LANGUAGE_CODE
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -197,7 +200,22 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # --- Язык и время ---
+# Интерфейс на трёх языках; русский — по умолчанию. Префиксов в адресах (/en/...) нет:
+# язык выбирается переключателем в шапке (cookie django_language), при первом визите —
+# по заголовку Accept-Language. Переводы — locale/<язык>/LC_MESSAGES/django.po (см. README).
 LANGUAGE_CODE = 'ru'
+LANGUAGES = [
+    ('ru', 'Русский'),
+    ('kk', 'Қазақша'),
+    ('en', 'English'),
+]
+LOCALE_PATHS = [BASE_DIR / 'locale']
+# форматы дат для kk и en (дд.мм.гггг и дд/мм/гггг) — config/formats/
+FORMAT_MODULE_PATH = ['config.formats']
+LANGUAGE_COOKIE_NAME = 'django_language'
+LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 365  # выбор языка помнится год
+LANGUAGE_COOKIE_SAMESITE = 'Lax'
+LANGUAGE_COOKIE_SECURE = HTTPS
 TIME_ZONE = 'Asia/Almaty'
 USE_I18N = True
 USE_TZ = True
@@ -294,8 +312,9 @@ PORTAL_READ_ONLY = IS_VERCEL or env_bool('PORTAL_READ_ONLY', False)
 # Реквизиты для юридических страниц /legal/ (пусто — плейсхолдеры по умолчанию из portal/legal.py)
 SITE_OWNER = env_str('SITE_OWNER')
 SITE_CONTACT_EMAIL = env_str('SITE_CONTACT_EMAIL')
+# (пусто — плейсхолдер на языке страницы из portal/legal.py)
 SITE_HOSTING_PROVIDER = env_str('SITE_HOSTING_PROVIDER') or (
-    'Vercel Inc. (США)' if IS_VERCEL else 'Render Services, Inc. (США)' if IS_RENDER else '[хостинг-провайдер]')
+    _('Vercel Inc. (США)') if IS_VERCEL else _('Render Services, Inc. (США)') if IS_RENDER else '')
 # Обезличивать индивидуальных предпринимателей сразу при сборе (размещение за пределами РК:
 # по Закону РК № 94-V персональные данные граждан РК хранятся в РК). На Render включено по умолчанию.
 ANONYMIZE_INDIVIDUALS = env_bool('ANONYMIZE_INDIVIDUALS', IS_RENDER)

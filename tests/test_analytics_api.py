@@ -698,7 +698,9 @@ def test_скрипт_графика_по_месяцам_и_цвета_из_те
     from pathlib import Path
     скрипт = (Path(__file__).resolve().parent.parent / 'portal' / 'static' / 'portal' / 'app.js').read_text('utf-8')
     assert 'turnover_by_month' in скрипт and "ensureChart('months'" in скрипт
-    assert "'окт'" in скрипт and 'месяц неполный: данные ' in скрипт
+    # названия месяцев — из словаря переводов (12 названий через «|»), русские — исходные строки
+    assert "_('янв|фев|мар|апр|май|июн|июл|авг|сен|окт|ноя|дек')" in скрипт
+    assert 'месяц неполный: данные ' in скрипт
     # цвета графиков — из CSS-переменных, перерисовка при смене темы
     assert "'--chart-grid'" in скрипт and "'--series-'" in скрипт
     assert "addEventListener('portal:themechange'" in скрипт

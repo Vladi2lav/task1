@@ -1,0 +1,110 @@
+{% extends 'portal/legal/_layout.html' %}
+{# English translation for convenience; the Russian version (portal/legal/privacy.html) prevails. #}
+{% block title %}Privacy policy{% endblock %}
+{% block description %}Privacy and personal data processing policy of the “ETS and Caspy Exchange Trading Results” portal.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Privacy and personal data processing policy</h1>
+
+<h2>1. General provisions</h2>
+<p>1.1. This Policy sets out how personal data is collected, processed and protected when using the website
+  “ETS and Caspy Exchange Trading Results” (the “Portal”). It has been drawn up in accordance with Law of the
+  Republic of Kazakhstan No. 94-V of 21 May 2013 “On Personal Data and Their Protection” (the “Law”).</p>
+<p>1.2. The owner and operator of the Portal’s database is the site owner: {{ site_owner }}
+  (the “Operator”). Contact address: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+<p>1.3. The Portal is a non-commercial information project. The Operator processes personal data to the
+  minimum extent necessary and only for the purposes set out in section 3.</p>
+
+<h2>2. What data is processed</h2>
+<h3>2.1. Visitor data</h3>
+<p>The Portal does not require registration, does not create visitor accounts and has no forms for entering a
+  visitor’s name, phone number, email address or other details.</p>
+<p>When the Portal is accessed, the server and the hosting provider automatically record technical data in
+  their logs: IP address, date and time of the request, address of the requested page, response code, browser
+  details (User-Agent) and the address of the page from which the visitor came. This data is not used to
+  identify the visitor and is not combined with other information.</p>
+<p>The Portal uses only necessary cookies and a consent record in the browser storage — see the
+  <a href="{% url 'portal:legal_cookies' %}">Cookie Policy</a>. Web analytics tools and advertising or
+  tracking services are not used on the Portal.</p>
+<p>If a visitor writes to the Operator by email, the Operator processes the sender’s address and the content of
+  the message in order to reply.</p>
+
+<h3>2.2. Information in trading results</h3>
+<p>The exchange trading results that the exchanges publish openly include the names and identification numbers
+  (BIN, and for individual entrepreneurs also IIN) of buyers, sellers and brokers. The name of an individual
+  entrepreneur may contain their surname, first name and patronymic; such information is personal data.</p>
+<p>The basis for processing this information is its prior lawful publication by the exchanges in publicly
+  available form as part of the exchange trading results. The Portal reproduces the information to the extent
+  published by the original source, does not supplement it with other data about the data subject, does not
+  build profiles of individuals and uses the information solely for non-commercial information purposes.</p>
+
+<h2>3. Purposes of processing</h2>
+<ul>
+  <li>ensuring the operation of the Portal and its technical security (protection against request forgery,
+    detection of failures and attacks);</li>
+  <li>providing users with information on exchange trading results, search and export;</li>
+  <li>handling requests and demands of personal data subjects.</li>
+</ul>
+
+<h2>4. Retention periods</h2>
+<ul>
+  <li>server logs — no longer than necessary to ensure the operation and security of the Portal, and within the
+    log retention periods set by the hosting provider;</li>
+  <li>cookies — for the periods stated in the <a href="{% url 'portal:legal_cookies' %}">Cookie Policy</a>;</li>
+  <li>information in trading results — for as long as the Portal exists or until a data subject’s demand for its
+    deletion is satisfied;</li>
+  <li>correspondence with data subjects — no more than one year after the request has been dealt with.</li>
+</ul>
+<p>When the retention period expires or the purpose of processing has been achieved, the data is destroyed or
+  anonymised.</p>
+
+<h2>5. Disclosure to third parties</h2>
+<p>5.1. The Operator does not sell personal data and does not transfer it to third parties for advertising or
+  marketing.</p>
+<p>5.2. The Portal is hosted by a hosting provider: {{ hosting_provider }}. The hosting provider processes
+  technical data (request logs) in the course of providing hosting services. If the hosting provider’s servers
+  are located outside the Republic of Kazakhstan, technical data is transferred in compliance with the
+  requirements of the Law on cross-border transfer of personal data.</p>
+<p>5.3. Data may be provided to government authorities in the cases and in the manner provided for by the
+  legislation of the Republic of Kazakhstan.</p>
+<p>5.4. The Portal contains links to the exchanges’ websites. When you follow them, data is processed by the
+  owners of those websites in accordance with their own policies.</p>
+
+<h2>6. Data protection</h2>
+<p>The Operator takes the necessary legal, organisational and technical measures to protect personal data: it
+  minimises the amount of data collected, does not create visitor accounts, restricts access to the
+  administrative section and the database, and uses protection against cross-site request forgery (CSRF).</p>
+
+<h2>7. Rights of the personal data subject</h2>
+<p>In accordance with the Law, the personal data subject has the right to:</p>
+<ul>
+  <li>know whether the Operator holds their personal data and receive information about its processing;</li>
+  <li>demand that their personal data be changed or supplemented where there are documented grounds;</li>
+  <li>demand that their personal data be blocked and destroyed if its processing does not comply with the
+    legislation of the Republic of Kazakhstan;</li>
+  <li>withdraw consent to processing if the processing was based on consent;</li>
+  <li>appeal against the actions (or inaction) of the Operator to the authorised body for personal data
+    protection or to a court;</li>
+  <li>exercise other rights provided for by the legislation of the Republic of Kazakhstan.</li>
+</ul>
+
+<h2>8. How to send a request or a deletion demand</h2>
+<p>8.1. Requests are sent to <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+  A request should include:</p>
+<ul>
+  <li>the applicant’s surname and first name (or company name) and contact details for the reply;</li>
+  <li>which information the request concerns (participant name, exchange, trading date or a link to a page of
+    the Portal);</li>
+  <li>the substance of the demand: to provide information, correct, block or delete information.</li>
+</ul>
+<p>8.2. To protect against unlawful requests, the Operator may ask for confirmation that the applicant is the
+  personal data subject or their representative.</p>
+<p>8.3. The Operator considers the request and reports the results within the time limits established by the
+  legislation of the Republic of Kazakhstan. A satisfied demand is fulfilled for the Portal’s data; the
+  information on the exchange’s website is not changed — questions about its publication should be addressed to
+  the respective exchange.</p>
+
+<h2>9. Changes to the Policy</h2>
+<p>The Operator may change this Policy. A new version takes effect when it is published on this page. The date
+  of the current version is given at the end of the document.</p>
+{% endblock %}

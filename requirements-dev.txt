@@ -2,3 +2,4 @@
 -r requirements.txt
 pytest>=8
 pytest-django>=4.8
+polib>=1.2  # компиляция переводов без GNU gettext: scripts/compile_messages.py, scripts/make_messages.py

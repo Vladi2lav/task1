@@ -1,0 +1,89 @@
+{% extends 'portal/legal/_layout.html' %}
+{# English translation for convenience; the Russian version (portal/legal/cookies.html) prevails. #}
+{% block title %}Cookie policy{% endblock %}
+{% block description %}Which cookies and browser storage records the “ETS and Caspy Exchange Trading Results” portal uses.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Cookie policy</h1>
+
+<h2>1. What cookies are</h2>
+<p>Cookies are small text files that a website stores in the visitor’s browser and receives back with
+  subsequent requests. Besides cookies, a website may store data in the browser’s local storage
+  (localStorage); such data stays on the device and is not sent to the server automatically.</p>
+
+<h2>2. Which cookies the Portal uses</h2>
+<p>The Portal uses only necessary (technical and functional) first-party cookies. Without them, form
+  protection, signing in to the administrative section and remembering the selected interface language do not
+  work.</p>
+<div class="table-wrap legal-table">
+  <table class="data-table">
+    <thead>
+      <tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Purpose</th><th scope="col">Retention period</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>{{ csrf_cookie_name }}</code></td>
+        <td>cookie, necessary</td>
+        <td>Protection against cross-site request forgery (CSRF): confirms that a request, such as a manual
+          collection run, was sent from a Portal page.</td>
+        <td>{{ csrf_cookie_days }} days (about a year)</td>
+      </tr>
+      <tr>
+        <td><code>{{ session_cookie_name }}</code></td>
+        <td>cookie, necessary</td>
+        <td>Sign-in session for the administrative section <code>/admin/</code>. Set only after an
+          administrator signs in; not issued to ordinary visitors.</td>
+        <td>until signing out, but no more than {{ session_cookie_days }} days</td>
+      </tr>
+      <tr>
+        <td><code>{{ language_cookie_name }}</code></td>
+        <td>cookie, necessary (functional)</td>
+        <td>Remembers the interface language (Russian, Kazakh or English) chosen with the switcher in the site
+          header. Set only after a language is chosen; without a choice, the language is determined by the browser
+          settings.</td>
+        <td>{% if language_cookie_days %}{{ language_cookie_days }} days (about a year){% else %}until the browser is closed{% endif %}</td>
+      </tr>
+      <tr>
+        <td><code>messages</code></td>
+        <td>cookie, necessary</td>
+        <td>Service messages of the administrative section (for example, “The record was saved”). Used only by
+          the administrator.</td>
+        <td>until the message is shown</td>
+      </tr>
+      <tr>
+        <td><code>cookie_consent</code></td>
+        <td>localStorage record</td>
+        <td>Stores a note that the visitor has read the cookie notice, and the date of the note, so that the notice
+          is not shown again. Not sent to the server.</td>
+        <td>until the site data is cleared in the browser</td>
+      </tr>
+      <tr>
+        <td><code>portal_theme</code></td>
+        <td>localStorage record</td>
+        <td>Remembers the colour theme (light or dark) if the visitor chose it with the switcher in the site
+          header. Without a choice, the theme follows the device setting and no record is created. Not sent to the
+          server.</td>
+        <td>until the site data is cleared in the browser</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>3. What the Portal does not have</h2>
+<ul>
+  <li>analytics and statistics cookies (visit counters, web analytics systems);</li>
+  <li>advertising and tracking cookies, including third-party cookies;</li>
+  <li>embedded external scripts, fonts and widgets: the chart library is loaded from the Portal’s server.</li>
+</ul>
+
+<h2>4. How to manage cookies</h2>
+<p>The visitor can delete cookies and site data or block them in the browser settings. Refusing necessary
+  cookies does not prevent viewing tables and news, but may make sending forms (for example, a manual collection
+  run), signing in to the administrative section and remembering the chosen language unavailable.</p>
+<p>By clicking “Accept” in the notice, the visitor confirms that they have read this Policy. Since the Portal
+  uses only necessary cookies, their operation does not depend on this note.</p>
+
+<h2>5. Related documents</h2>
+<p><a href="{% url 'portal:legal_privacy' %}">Privacy and personal data processing policy</a>,
+  <a href="{% url 'portal:legal_terms' %}">Terms of use</a>.</p>
+{% endblock %}

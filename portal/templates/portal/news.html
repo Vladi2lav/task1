@@ -1,37 +1,38 @@
 {% extends 'portal/base.html' %}
-{% load portal_extras %}
-{% block title %}{% if page_obj.number > 1 %}Новости бирж, страница {{ page_obj.number }}{% else %}Новости бирж{% endif %}{% endblock %}
-{% block description %}Лента новостей товарных бирж ETS и Каспий со ссылками на оригинальные публикации.{% endblock %}
+{% load i18n portal_extras %}
+{% block title %}{% if page_obj.number > 1 %}{% blocktranslate trimmed with number=page_obj.number %}Новости бирж, страница {{ number }}{% endblocktranslate %}{% else %}{% translate 'Новости бирж' %}{% endif %}{% endblock %}
+{% block description %}{% translate 'Лента новостей товарных бирж ETS и Каспий со ссылками на оригинальные публикации.' %}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Новости бирж</h1>
+<h1 class="page-title">{% translate 'Новости бирж' %}</h1>
+{% include 'portal/_source_language_note.html' %}
 
-<section class="panel filters" aria-label="Фильтр новостей">
+<section class="panel filters" aria-label="{% translate 'Фильтр новостей' %}">
   <form id="news-filters-form" class="news-filters" method="get" action="{% url 'portal:news' %}" role="search">
     <label class="field">
-      <span class="field-label">Биржа</span>
+      <span class="field-label">{% translate 'Биржа' %}</span>
       <select name="exchange" id="n-exchange">
-        <option value="">Все биржи</option>
+        <option value="">{% translate 'Все биржи' %}</option>
         {% for code, name in exchanges %}
         <option value="{{ code }}"{% if code == exchange %} selected{% endif %}>{{ name }}</option>
         {% endfor %}
       </select>
     </label>
     <label class="field field-grow">
-      <span class="field-label">Поиск по заголовку</span>
-      <input type="search" name="q" id="n-q" value="{{ q }}" placeholder="например, торги углём">
+      <span class="field-label">{% translate 'Поиск по заголовку' %}</span>
+      <input type="search" name="q" id="n-q" value="{{ q }}" placeholder="{% translate 'например, торги углём' %}">
     </label>
     <div class="news-filters-actions">
-      <button type="submit" class="btn btn-primary">Найти</button>
-      {% if exchange or q %}<a class="btn" href="{% url 'portal:news' %}">Сбросить</a>{% endif %}
+      <button type="submit" class="btn btn-primary">{% translate 'Найти' %}</button>
+      {% if exchange or q %}<a class="btn" href="{% url 'portal:news' %}">{% translate 'Сбросить' %}</a>{% endif %}
     </div>
   </form>
 </section>
 
-<section aria-label="Список новостей" aria-live="polite">
+<section aria-label="{% translate 'Список новостей' %}" aria-live="polite">
   {% if news_list %}
   <p class="muted news-count">
-    Найдено: {{ page_obj.paginator.count }}{% if page_obj.paginator.num_pages > 1 %} · страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}{% endif %}
+    {% blocktranslate trimmed with count=page_obj.paginator.count %}Найдено: {{ count }}{% endblocktranslate %}{% if page_obj.paginator.num_pages > 1 %} · {% blocktranslate trimmed with number=page_obj.number pages=page_obj.paginator.num_pages %}страница {{ number }} из {{ pages }}{% endblocktranslate %}{% endif %}
   </p>
   <ul class="news-grid">
     {% for item in news_list %}
@@ -39,11 +40,11 @@
     <li class="panel news-card">
       <div class="news-body">
         <div class="news-meta">
-          <time class="news-date" datetime="{{ item.published_at|date:'Y-m-d' }}">{{ item.published_at|date:'d.m.Y' }}</time>
-          <span class="badge badge-{% if item.exchange.code == 'caspy' %}caspy{% else %}ets{% endif %}">{{ item.exchange.name }}</span>
+          <time class="news-date" datetime="{{ item.published_at|date:'Y-m-d' }}">{{ item.published_at|date:'SHORT_DATE_FORMAT' }}</time>
+          <span class="badge badge-{% if item.exchange.code == 'caspy' %}caspy{% else %}ets{% endif %}">{{ item.exchange|exchange_label }}</span>
         </div>
         <h2 class="news-title">
-          {% if link %}<a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}<span class="visually-hidden"> (откроется в новой вкладке)</span></a>{% else %}{{ item.title }}{% endif %}
+          {% if link %}<a href="{{ link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}<span class="visually-hidden"> ({% translate 'откроется в новой вкладке' %})</span></a>{% else %}{{ item.title }}{% endif %}
         </h2>
         {% if item.summary %}<p class="news-summary">{{ item.summary|truncatechars:400 }}</p>{% endif %}
       </div>
@@ -53,35 +54,35 @@
   </ul>
 
   {% if page_numbers %}
-  <nav class="pagination" aria-label="Страницы новостей">
+  <nav class="pagination" aria-label="{% translate 'Страницы новостей' %}">
     {% if page_obj.has_previous %}
-    <a class="page-btn" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev">‹ Назад</a>
-    {% else %}<span class="page-btn" aria-disabled="true">‹ Назад</span>{% endif %}
+    <a class="page-btn" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" rel="prev">{% translate '‹ Назад' %}</a>
+    {% else %}<span class="page-btn" aria-disabled="true">{% translate '‹ Назад' %}</span>{% endif %}
     {% for number in page_numbers %}
       {% if number is None %}<span class="page-gap">…</span>
       {% elif number == page_obj.number %}<span class="page-btn" aria-current="page">{{ number }}</span>
       {% else %}<a class="page-btn" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ number }}">{{ number }}</a>{% endif %}
     {% endfor %}
     {% if page_obj.has_next %}
-    <a class="page-btn" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next">Вперёд ›</a>
-    {% else %}<span class="page-btn" aria-disabled="true">Вперёд ›</span>{% endif %}
+    <a class="page-btn" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}" rel="next">{% translate 'Вперёд ›' %}</a>
+    {% else %}<span class="page-btn" aria-disabled="true">{% translate 'Вперёд ›' %}</span>{% endif %}
   </nav>
   {% endif %}
 
   {% elif has_any_news %}
   <div class="panel empty-state">
-    <div class="empty-title">Ничего не найдено</div>
-    <div class="empty-text">Измените условия поиска или сбросьте фильтр.</div>
-    <a class="btn" href="{% url 'portal:news' %}">Показать все новости</a>
+    <div class="empty-title">{% translate 'Ничего не найдено' %}</div>
+    <div class="empty-text">{% translate 'Измените условия поиска или сбросьте фильтр.' %}</div>
+    <a class="btn" href="{% url 'portal:news' %}">{% translate 'Показать все новости' %}</a>
   </div>
   {% else %}
   <div class="panel empty-state" id="news-empty">
-    <div class="empty-title">Новостей пока нет — запустите сбор</div>
+    <div class="empty-title">{% translate 'Новостей пока нет — запустите сбор' %}</div>
     <div class="empty-text">
       {% if news_commands %}
-        Выполните в консоли {% for command in news_commands %}<code>python manage.py {{ command }}</code>{% if not forloop.last %} или {% endif %}{% endfor %}.
+        {% translate 'Выполните в консоли' %} {% for command in news_commands %}<code>python manage.py {{ command }}</code>{% if not forloop.last %} {% translate 'или' %} {% endif %}{% endfor %}.
       {% else %}
-        Новости появятся после первого запуска сбора новостей с сайтов бирж.
+        {% translate 'Новости появятся после первого запуска сбора новостей с сайтов бирж.' %}
       {% endif %}
     </div>
   </div>

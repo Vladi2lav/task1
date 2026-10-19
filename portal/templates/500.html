@@ -1,11 +1,16 @@
-{% load static %}<!doctype html>
-<html lang="ru">
+{% load static i18n portal_extras %}{% get_current_language as LANGUAGE_CODE %}<!doctype html>
+{% comment %}
+  Страница 500 рендерится без request и контекста (django.views.defaults.server_error),
+  поэтому здесь нет переключателя языка и CSRF. Язык — тот, что LocaleMiddleware активировал
+  для запроса (cookie django_language / Accept-Language), иначе русский. Только теги i18n.
+{% endcomment %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   {% include 'portal/_theme_init.html' %}
-  <title>Ошибка сервера — ETS и Каспий</title>
+  <title>{% translate 'Ошибка сервера' %} — {% translate 'ETS и Каспий' %}</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e5a61'/%3E%3Cpath d='M9 8h14M9 12.5h14M16 12.5V25' stroke='white' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="{% static 'portal/style.css' %}">
 </head>
@@ -15,24 +20,26 @@
       <a class="brand" href="/">
         <span class="brand-mark" aria-hidden="true">₸</span>
         <span class="brand-text">
-          <span class="brand-title">Итоги торгов</span>
-          <span class="brand-sub">биржи ETS и Каспий</span>
+          <span class="brand-title">{% translate 'Итоги торгов' %}</span>
+          <span class="brand-sub">{% translate 'биржи ETS и Каспий' %}</span>
         </span>
       </a>
-      {% include 'portal/_theme_toggle.html' %}
+      <div class="header-tools">
+        {% include 'portal/_theme_toggle.html' %}
+      </div>
     </div>
   </header>
   <main class="container" id="main">
     <section class="panel error-page" aria-labelledby="error-title">
-      <div class="error-code" aria-hidden="true">500</div>
-      <h1 class="page-title" id="error-title">Внутренняя ошибка сервера</h1>
-      <p class="muted">Что-то пошло не так. Попробуйте обновить страницу через минуту.
-        Ранее собранные данные не пострадали.</p>
+      <div class="error-code" aria-hidden="true">{% translate "Ошибка" context "заголовок страницы ошибки: Ошибка 404" %} 500</div>
+      <h1 class="page-title" id="error-title">{% translate 'Внутренняя ошибка сервера' %}</h1>
+      <p class="muted">{% translate 'Что-то пошло не так. Попробуйте обновить страницу через минуту. Ранее собранные данные не пострадали.' %}</p>
       <div class="error-actions">
-        <a class="btn btn-primary" href="/">На главную</a>
+        <a class="btn btn-primary" href="/">{% translate 'На главную' %}</a>
       </div>
     </section>
   </main>
+  {% portal_i18n %}
   <script src="{% static 'portal/app.js' %}"></script>
 </body>
 </html>

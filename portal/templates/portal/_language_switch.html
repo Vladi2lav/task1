@@ -1,0 +1,9 @@
+{% load i18n portal_extras %}{% get_current_language as CURRENT_LANGUAGE %}{% portal_languages as language_list %}
+{# Переключатель языка: стандартный set_language (POST + CSRF), возврат на ту же страницу с тем же query string. #}
+<form class="lang-switch" action="{% url 'set_language' %}" method="post" aria-label="{% translate 'Язык интерфейса' %}">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  {% for code, short, name in language_list %}
+  <button type="submit" class="lang-btn{% if code == CURRENT_LANGUAGE %} is-current{% endif %}" name="language" value="{{ code }}" lang="{{ code }}" title="{{ name }}"{% if code == CURRENT_LANGUAGE %} aria-current="true"{% endif %}><span aria-hidden="true">{{ short }}</span><span class="visually-hidden">{{ name }}</span></button>
+  {% endfor %}
+</form>

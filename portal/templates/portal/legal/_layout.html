@@ -1,19 +1,32 @@
 {% extends 'portal/base.html' %}
+{% load i18n %}
 
 {% block content %}
+{% get_current_language as CURRENT_LANGUAGE %}
 <div class="legal-layout">
-  <nav class="legal-nav panel" aria-label="Правовые документы">
-    <h2 class="legal-nav-title">Правовая информация</h2>
-    <a href="{% url 'portal:legal_terms' %}" {% if page == 'legal-terms' %}aria-current="page" class="active"{% endif %}>Пользовательское соглашение</a>
-    <a href="{% url 'portal:legal_privacy' %}" {% if page == 'legal-privacy' %}aria-current="page" class="active"{% endif %}>Политика конфиденциальности</a>
-    <a href="{% url 'portal:legal_cookies' %}" {% if page == 'legal-cookies' %}aria-current="page" class="active"{% endif %}>Политика cookie</a>
-    <a href="{% url 'portal:legal_sources' %}" {% if page == 'legal-sources' %}aria-current="page" class="active"{% endif %}>Источники данных и лицензии</a>
+  <nav class="legal-nav panel" aria-label="{% translate 'Правовые документы' %}">
+    <h2 class="legal-nav-title">{% translate 'Правовая информация' %}</h2>
+    <a href="{% url 'portal:legal_terms' %}" {% if page == 'legal-terms' %}aria-current="page" class="active"{% endif %}>{% translate 'Пользовательское соглашение' %}</a>
+    <a href="{% url 'portal:legal_privacy' %}" {% if page == 'legal-privacy' %}aria-current="page" class="active"{% endif %}>{% translate 'Политика конфиденциальности' %}</a>
+    <a href="{% url 'portal:legal_cookies' %}" {% if page == 'legal-cookies' %}aria-current="page" class="active"{% endif %}>{% translate 'Политика cookie' %}</a>
+    <a href="{% url 'portal:legal_sources' %}" {% if page == 'legal-sources' %}aria-current="page" class="active"{% endif %}>{% translate 'Источники данных и лицензии' %}</a>
   </nav>
   <article class="legal-doc panel">
+    {% if CURRENT_LANGUAGE != 'ru' %}
+    {# Юридически значимая редакция — русская; переводы на kk и en — для удобства #}
+    <div class="note note-info legal-translation-note" id="legal-translation-note">
+      <span>{% translate 'Перевод для удобства; при расхождении действует русская версия.' %}</span>
+      <form class="inline-form" action="{% url 'set_language' %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="link-btn" name="language" value="ru">{% translate 'Открыть русскую версию' %}</button>
+      </form>
+    </div>
+    {% endif %}
     {% block legal_body %}{% endblock %}
     <footer class="legal-meta">
-      <p>Дата редакции: {{ edition_date }}</p>
-      <p>Владелец сайта: {{ site_owner }}. Контакт: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+      <p>{% blocktranslate trimmed %}Дата редакции: {{ edition_date }}{% endblocktranslate %}</p>
+      <p>{% blocktranslate trimmed %}Владелец сайта: {{ site_owner }}. Контакт: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.{% endblocktranslate %}</p>
     </footer>
   </article>
 </div>

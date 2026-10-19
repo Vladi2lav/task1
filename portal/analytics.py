@@ -29,6 +29,7 @@ from typing import Optional
 
 from django.db.models import Count, F, IntegerField, Max, Min, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce, TruncMonth
+from django.utils.translation import gettext as _, gettext_lazy
 
 from exchanges.models import Product, Trade
 
@@ -43,8 +44,8 @@ MAX_SELECTED = 10
 # Сколько самых торгуемых товаров показывать, если ничего не выбрано
 DEFAULT_COMPARE_COUNT = 5
 
-MAX_SELECTED_MESSAGE = (
-    f'Можно выбрать не больше {MAX_SELECTED} товаров для сравнения — снимите отметку с лишних'
+MAX_SELECTED_MESSAGE = gettext_lazy(
+    'Можно выбрать не больше %(max)s товаров для сравнения — снимите отметку с лишних'
 )
 
 
@@ -64,7 +65,7 @@ def _float_or_none(value, digits: int = 2):
 
 def _check_period(filters: TradeFilters):
     if filters.date_from and filters.date_to and filters.date_from > filters.date_to:
-        raise ParamError('Дата начала позже даты окончания')
+        raise ParamError(_('Дата начала позже даты окончания'))
 
 
 def analytics_queryset(params) -> tuple:
@@ -103,13 +104,13 @@ def parse_selected(params) -> list:
         try:
             number = int(value)
         except ValueError:
-            raise ParamError('Параметры product / products: ожидаются целые числа (id товаров)')
+            raise ParamError(_('Параметры product / products: ожидаются целые числа (id товаров)'))
         if number <= 0:
-            raise ParamError('Параметры product / products: ожидаются положительные id товаров')
+            raise ParamError(_('Параметры product / products: ожидаются положительные id товаров'))
         if number not in ids:
             ids.append(number)
     if len(ids) > MAX_SELECTED:
-        raise ParamError(MAX_SELECTED_MESSAGE)
+        raise ParamError(str(MAX_SELECTED_MESSAGE) % {'max': MAX_SELECTED})
     return ids
 
 
@@ -122,7 +123,7 @@ def _parse_product(params) -> tuple:
     try:
         return int(raw_id), code
     except ValueError:
-        raise ParamError('Параметр product_id: ожидается целое число')
+        raise ParamError(_('Параметр product_id: ожидается целое число'))
 
 
 def _product_dict(product: Product) -> dict:

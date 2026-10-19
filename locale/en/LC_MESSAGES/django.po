@@ -1,0 +1,1584 @@
+# Переводы портала «Итоги торгов бирж ETS и Каспий».
+# Обновляется: python scripts/make_messages.py
+msgid ""
+msgstr ""
+"Project-Id-Version: portal\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-18 19:36+0000\n"
+"PO-Revision-Date: 2026-10-18 19:17+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: config/settings.py:317
+msgid "Vercel Inc. (США)"
+msgstr "Vercel Inc. (USA)"
+
+#: config/settings.py:317
+msgid "Render Services, Inc. (США)"
+msgstr "Render Services, Inc. (USA)"
+
+#: portal/analytics.py:47
+#, python-format
+msgid "Можно выбрать не больше %(max)s товаров для сравнения — снимите отметку с лишних"
+msgstr "You can select no more than %(max)s products for comparison — untick the extra ones"
+
+#: portal/analytics.py:68 portal/views.py:490
+msgid "Дата начала позже даты окончания"
+msgstr "The start date is later than the end date"
+
+#: portal/analytics.py:107
+msgid "Параметры product / products: ожидаются целые числа (id товаров)"
+msgstr "Parameters product / products: integers (product IDs) are expected"
+
+#: portal/analytics.py:109
+msgid "Параметры product / products: ожидаются положительные id товаров"
+msgstr "Parameters product / products: positive product IDs are expected"
+
+#: portal/analytics.py:126
+msgid "Параметр product_id: ожидается целое число"
+msgstr "Parameter product_id: an integer is expected"
+
+#: portal/excel_export.py:39 portal/excel_export.py:131 portal/js_messages.py:23 portal/templates/portal/analytics.html:19 portal/templates/portal/news.html:13 portal/templates/portal/status.html:24 portal/templates/portal/status.html:79 portal/templates/portal/trades.html:18
+msgid "Биржа"
+msgstr "Exchange"
+
+#: portal/excel_export.py:40
+msgid "Дата торгов"
+msgstr "Trade date"
+
+#: portal/excel_export.py:41
+msgid "Время"
+msgstr "Time"
+
+#: portal/excel_export.py:42 portal/js_messages.py:24
+msgid "Товар"
+msgstr "Product"
+
+#: portal/excel_export.py:43 portal/js_messages.py:44
+msgid "Код товара"
+msgstr "Product code"
+
+#: portal/excel_export.py:44 portal/js_messages.py:45
+msgid "Код ТН ВЭД"
+msgstr "HS code"
+
+#: portal/excel_export.py:45 portal/js_messages.py:25
+msgid "Продавец"
+msgstr "Seller"
+
+#: portal/excel_export.py:46
+msgid "БИН продавца"
+msgstr "Seller BIN"
+
+#: portal/excel_export.py:47 portal/js_messages.py:26
+msgid "Покупатель"
+msgstr "Buyer"
+
+#: portal/excel_export.py:48
+msgid "БИН покупателя"
+msgstr "Buyer BIN"
+
+#: portal/excel_export.py:49 portal/js_messages.py:27
+msgid "Брокер продавца"
+msgstr "Seller's broker"
+
+#: portal/excel_export.py:50 portal/js_messages.py:28
+msgid "Брокер покупателя"
+msgstr "Buyer's broker"
+
+#: portal/excel_export.py:51 portal/js_messages.py:43
+msgid "Число сделок"
+msgstr "Number of deals"
+
+#: portal/excel_export.py:52 portal/js_messages.py:29
+msgid "Объём"
+msgstr "Volume"
+
+#: portal/excel_export.py:53
+msgid "Ед. изм."
+msgstr "Unit"
+
+#: portal/excel_export.py:54
+msgid "Цена открытия, тг"
+msgstr "Opening price, KZT"
+
+#: portal/excel_export.py:55
+msgid "Цена закрытия, тг"
+msgstr "Closing price, KZT"
+
+#: portal/excel_export.py:56
+msgid "Мин. цена, тг"
+msgstr "Min. price, KZT"
+
+#: portal/excel_export.py:57
+msgid "Макс. цена, тг"
+msgstr "Max. price, KZT"
+
+#: portal/excel_export.py:58
+msgid "Средневзв. цена, тг"
+msgstr "Weighted avg. price, KZT"
+
+#: portal/excel_export.py:59
+msgid "Цена с НДС, тг"
+msgstr "Price incl. VAT, KZT"
+
+#: portal/excel_export.py:60
+msgid "Цена без НДС, тг"
+msgstr "Price excl. VAT, KZT"
+
+#: portal/excel_export.py:61
+msgid "Сумма сделки, тг"
+msgstr "Deal amount, KZT"
+
+#: portal/excel_export.py:62 portal/js_messages.py:52
+msgid "Базис поставки"
+msgstr "Delivery basis"
+
+#: portal/excel_export.py:63 portal/excel_export.py:139
+msgid "Место поставки"
+msgstr "Delivery place"
+
+#: portal/excel_export.py:64 portal/js_messages.py:53
+msgid "Срок поставки"
+msgstr "Delivery term"
+
+#: portal/excel_export.py:65 portal/js_messages.py:54
+msgid "Источник"
+msgstr "Source"
+
+#: portal/excel_export.py:69 portal/templates/500.html:23 portal/templates/portal/base.html:10 portal/templates/portal/base.html:21 portal/templates/portal/base.html:26 portal/templates/portal/trades.html:3
+msgid "Итоги торгов"
+msgstr "Trading results"
+
+#: portal/excel_export.py:70
+msgid "Параметры"
+msgstr "Parameters"
+
+#: portal/excel_export.py:124 portal/js_messages.py:63 portal/templates/portal/analytics.html:21 portal/templates/portal/status.html:26 portal/templates/portal/trades.html:20
+msgid "Обе биржи"
+msgstr "Both exchanges"
+
+#: portal/excel_export.py:130
+msgid "Дата выгрузки"
+msgstr "Export date"
+
+#: portal/excel_export.py:132 portal/templates/portal/analytics.html:27 portal/templates/portal/trades.html:26
+msgid "Период с"
+msgstr "Period from"
+
+#: portal/excel_export.py:133 portal/templates/portal/analytics.html:31 portal/templates/portal/trades.html:30
+msgid "Период по"
+msgstr "Period to"
+
+#: portal/excel_export.py:134 portal/templates/portal/trades.html:34
+msgid "Товар (ключевое слово)"
+msgstr "Product (keyword)"
+
+#: portal/excel_export.py:135
+msgid "Продавец / покупатель"
+msgstr "Seller / buyer"
+
+#: portal/excel_export.py:136 portal/templates/portal/trades.html:44
+msgid "Брокер"
+msgstr "Broker"
+
+#: portal/excel_export.py:137 portal/templates/portal/trades.html:49
+msgid "Сумма от, тг"
+msgstr "Amount from, KZT"
+
+#: portal/excel_export.py:138 portal/templates/portal/trades.html:53
+msgid "Сумма до, тг"
+msgstr "Amount to, KZT"
+
+#: portal/excel_export.py:140 portal/templates/portal/trades.html:77 portal/templates/portal/trades.html:78
+msgid "Сортировка"
+msgstr "Sort by"
+
+#: portal/excel_export.py:141
+msgid "Строк в файле"
+msgstr "Rows in file"
+
+#: portal/excel_export.py:145
+msgid "Внимание"
+msgstr "Warning"
+
+#: portal/excel_export.py:146
+#, python-format
+msgid "Выгрузка ограничена %(limit)s строками — уточните фильтры"
+msgstr "The export is limited to %(limit)s rows — narrow down the filters"
+
+#: portal/i18n.py:25 portal/js_messages.py:17 portal/legal.py:34 portal/templates/portal/analytics.html:23 portal/templates/portal/base.html:46 portal/templates/portal/status.html:28 portal/templates/portal/trades.html:22
+msgid "Каспий"
+msgstr "Caspy"
+
+#: portal/i18n.py:29 portal/js_messages.py:67
+msgid "Выполняется"
+msgstr "Running"
+
+#: portal/i18n.py:30 portal/js_messages.py:64
+msgid "Успешно"
+msgstr "Success"
+
+#: portal/i18n.py:31 portal/js_messages.py:65
+msgid "С ошибками"
+msgstr "With errors"
+
+#: portal/i18n.py:32 portal/js_messages.py:66
+msgid "Ошибка"
+msgstr "Failed"
+
+#: portal/i18n.py:35
+msgid "Вручную"
+msgstr "Manual"
+
+#: portal/i18n.py:35
+msgid "По расписанию"
+msgstr "Scheduled"
+
+#: portal/js_messages.py:18
+msgid "Сессия устарела или нет токена CSRF: обновите страницу и повторите"
+msgstr "The session has expired or the CSRF token is missing: reload the page and try again"
+
+#: portal/js_messages.py:19
+#, python-brace-format
+msgid "Ошибка сервера ({status})"
+msgstr "Server error ({status})"
+
+#: portal/js_messages.py:20
+msgid "Светлая тема"
+msgstr "Light theme"
+
+#: portal/js_messages.py:21 portal/templates/portal/_theme_toggle.html:1
+msgid "Тёмная тема"
+msgstr "Dark theme"
+
+#: portal/js_messages.py:22
+msgid "Дата"
+msgstr "Date"
+
+#: portal/js_messages.py:30
+msgid "Цена ср., тг"
+msgstr "Avg. price, KZT"
+
+#: portal/js_messages.py:31
+msgid "Сумма, тг"
+msgstr "Amount, KZT"
+
+#: portal/js_messages.py:32
+msgid "Место / базис поставки"
+msgstr "Delivery place / basis"
+
+#: portal/js_messages.py:33
+msgid "Сортировать"
+msgstr "Sort"
+
+#: portal/js_messages.py:34
+#, python-brace-format
+msgid "{column}: сначала новые"
+msgstr "{column}: newest first"
+
+#: portal/js_messages.py:35
+#, python-brace-format
+msgid "{column}: по убыванию"
+msgstr "{column}: descending"
+
+#: portal/js_messages.py:36
+#, python-brace-format
+msgid "{column}: сначала старые"
+msgstr "{column}: oldest first"
+
+#: portal/js_messages.py:37
+#, python-brace-format
+msgid "{column}: по возрастанию"
+msgstr "{column}: ascending"
+
+#: portal/js_messages.py:38
+#, python-brace-format
+msgid "БИН {bin}"
+msgstr "BIN {bin}"
+
+#: portal/js_messages.py:39
+#, python-brace-format
+msgid "базис {basis}"
+msgstr "basis {basis}"
+
+#: portal/js_messages.py:40
+msgid "тг"
+msgstr "KZT"
+
+#: portal/js_messages.py:41
+#, python-brace-format
+msgid "{amount} тг"
+msgstr "{amount} KZT"
+
+#: portal/js_messages.py:42
+msgid "Время торгов"
+msgstr "Trade time"
+
+#: portal/js_messages.py:46
+msgid "Цена открытия"
+msgstr "Opening price"
+
+#: portal/js_messages.py:47
+msgid "Цена закрытия"
+msgstr "Closing price"
+
+#: portal/js_messages.py:48
+msgid "Мин. цена"
+msgstr "Min. price"
+
+#: portal/js_messages.py:49
+msgid "Макс. цена"
+msgstr "Max. price"
+
+#: portal/js_messages.py:50
+msgid "Цена с НДС"
+msgstr "Price incl. VAT"
+
+#: portal/js_messages.py:51
+msgid "Цена без НДС"
+msgstr "Price excl. VAT"
+
+#: portal/js_messages.py:55
+msgid "Показать подробности"
+msgstr "Show details"
+
+#: portal/js_messages.py:56 portal/templates/portal/news.html:59 portal/templates/portal/news.html:60
+msgid "‹ Назад"
+msgstr "‹ Previous"
+
+#: portal/js_messages.py:57 portal/templates/portal/news.html:67 portal/templates/portal/news.html:68
+msgid "Вперёд ›"
+msgstr "Next ›"
+
+#: portal/js_messages.py:58
+msgid "Ошибка загрузки"
+msgstr "Loading error"
+
+#: portal/js_messages.py:59
+#, python-brace-format
+msgid "Найдено: {count} {records}"
+msgstr "Found: {count} {records}"
+
+#: portal/js_messages.py:60
+#, python-brace-format
+msgid "показаны {from}–{to}"
+msgstr "showing {from}–{to}"
+
+#: portal/js_messages.py:61
+#, python-brace-format
+msgid "Сумма по выборке: {amount} тг"
+msgstr "Total for the selection: {amount} KZT"
+
+#: portal/js_messages.py:62
+msgid "Не удалось связаться с сервером"
+msgstr "Could not connect to the server"
+
+#: portal/js_messages.py:68
+msgid "Нет запусков"
+msgstr "No runs"
+
+#: portal/js_messages.py:69
+msgid "Последняя торговая запись"
+msgstr "Latest trading record"
+
+#: portal/js_messages.py:70
+msgid "Записей в базе"
+msgstr "Records in database"
+
+#: portal/js_messages.py:71
+msgid "Последний запуск"
+msgstr "Last run"
+
+#: portal/js_messages.py:72
+msgid "Период запуска"
+msgstr "Run period"
+
+#: portal/js_messages.py:73
+#, python-brace-format
+msgid "+{added} добавлено, {skipped} пропущено"
+msgstr "+{added} added, {skipped} skipped"
+
+#: portal/js_messages.py:74
+msgid "Результат"
+msgstr "Result"
+
+#: portal/js_messages.py:75 portal/templates/portal/status.html:81
+msgid "Окончание"
+msgstr "Finished"
+
+#: portal/js_messages.py:76
+msgid "идёт…"
+msgstr "in progress…"
+
+#: portal/js_messages.py:77
+msgid "ещё не запускался"
+msgstr "not run yet"
+
+#: portal/js_messages.py:78
+#, python-brace-format
+msgid "Идёт сбор: {exchanges}, период {from} – {to} (начат {started})"
+msgstr "Collecting: {exchanges}, period {from} – {to} (started {started})"
+
+#: portal/js_messages.py:79
+msgid "Сбор уже выполняется (запущен по расписанию или из командной строки). Дождитесь завершения."
+msgstr "Collection is already running (started by the scheduler or from the command line). Wait for it to finish."
+
+#: portal/js_messages.py:80
+#, python-brace-format
+msgid "Ручной запуск завершился ошибкой ({finished}): {error}"
+msgstr "The manual run failed ({finished}): {error}"
+
+#: portal/js_messages.py:81
+#, python-brace-format
+msgid "Ручной запуск завершён в {finished}. Результат — в таблице ниже."
+msgstr "The manual run finished at {finished}. See the results in the table below."
+
+#: portal/js_messages.py:82
+#, python-brace-format
+msgid "Всего записей в базе: {count}"
+msgstr "Total records in the database: {count}"
+
+#: portal/js_messages.py:83
+#, python-brace-format
+msgid "Не удалось загрузить состояние: {error}"
+msgstr "Could not load the status: {error}"
+
+#: portal/js_messages.py:84
+#, python-brace-format
+msgid "Глубина должна быть от {min} до {max} дней."
+msgstr "The depth must be between {min} and {max} days."
+
+#: portal/js_messages.py:85
+#, python-brace-format
+msgid "Можно выбрать не больше {max} товаров для сравнения. Снимите отметку с одного из выбранных, чтобы добавить другой."
+msgstr "You can select no more than {max} products for comparison. Untick one of the selected products to add another."
+
+#: portal/js_messages.py:86
+#, python-brace-format
+msgid "{n} млрд"
+msgstr "{n} bn"
+
+#: portal/js_messages.py:87
+#, python-brace-format
+msgid "{n} млн"
+msgstr "{n} m"
+
+#: portal/js_messages.py:88
+#, python-brace-format
+msgid "{n} тыс."
+msgstr "{n} k"
+
+#: portal/js_messages.py:89
+#, python-brace-format
+msgid "Товар №{id}"
+msgstr "Product #{id}"
+
+#: portal/js_messages.py:90
+#, python-brace-format
+msgid "код {code}"
+msgstr "code {code}"
+
+#: portal/js_messages.py:91
+#, python-brace-format
+msgid "ТН ВЭД {code}"
+msgstr "HS {code}"
+
+#: portal/js_messages.py:92
+msgid "нет сделок"
+msgstr "no deals"
+
+#: portal/js_messages.py:93
+msgid "Выбраны, но нет сделок в выбранной бирже и периоде"
+msgstr "Selected, but no deals on the selected exchange and period"
+
+#: portal/js_messages.py:94
+msgid "Товары выборки"
+msgstr "Products in the selection"
+
+#: portal/js_messages.py:95
+#, python-brace-format
+msgid "Показаны первые {shown} из {total} — уточните поиск"
+msgstr "Showing the first {shown} of {total} — refine your search"
+
+#: portal/js_messages.py:96
+msgid "Ничего не найдено — попробуйте часть слова или код ТН ВЭД"
+msgstr "Nothing found — try part of a word or an HS code"
+
+#: portal/js_messages.py:97
+msgid "Загрузка списка товаров…"
+msgstr "Loading the product list…"
+
+#: portal/js_messages.py:98
+msgid "В выбранной бирже и периоде нет сделок"
+msgstr "No deals on the selected exchange and period"
+
+#: portal/js_messages.py:99
+#, python-brace-format
+msgid "Найдено: {found} из {total}"
+msgstr "Found: {found} of {total}"
+
+#: portal/js_messages.py:100
+#, python-brace-format
+msgid "{count} {products} в выборке"
+msgstr "{count} {products} in the selection"
+
+#: portal/js_messages.py:101
+#, python-brace-format
+msgid "выбрано {n} из {max}"
+msgstr "{n} of {max} selected"
+
+#: portal/js_messages.py:102 portal/templates/portal/analytics.html:55
+msgid "Выбрать найденные"
+msgstr "Select found"
+
+#: portal/js_messages.py:103
+msgid "Закрыть список товаров"
+msgstr "Close the product list"
+
+#: portal/js_messages.py:104 portal/templates/portal/analytics.html:48
+msgid "Открыть список товаров"
+msgstr "Open the product list"
+
+#: portal/js_messages.py:105
+msgid "Старый фильтр по ключевому слову в названии товара"
+msgstr "Legacy filter by a keyword in the product name"
+
+#: portal/js_messages.py:106
+#, python-brace-format
+msgid "Слово: «{word}»"
+msgstr "Word: “{word}”"
+
+#: portal/js_messages.py:107
+#, python-brace-format
+msgid "Убрать фильтр по слову {word}"
+msgstr "Remove the filter by the word {word}"
+
+#: portal/js_messages.py:108
+#, python-brace-format
+msgid "Выбрано: {n}"
+msgstr "Selected: {n}"
+
+#: portal/js_messages.py:109
+#, python-brace-format
+msgid "(без сделок: {n})"
+msgstr "(no deals: {n})"
+
+#: portal/js_messages.py:110
+msgid "Нет сделок в выбранной бирже и периоде"
+msgstr "No deals on the selected exchange and period"
+
+#: portal/js_messages.py:111
+#, python-brace-format
+msgid "Убрать: {name}"
+msgstr "Remove: {name}"
+
+#: portal/js_messages.py:112
+msgid "Свернуть"
+msgstr "Collapse"
+
+#: portal/js_messages.py:113
+#, python-brace-format
+msgid "Выбрано {n} — максимум"
+msgstr "{n} selected — the maximum"
+
+#: portal/js_messages.py:114
+msgid "Добавить товар…"
+msgstr "Add a product…"
+
+#: portal/js_messages.py:115 portal/templates/portal/analytics.html:43 portal/templates/portal/analytics.html:54
+msgid "Все товары"
+msgstr "All products"
+
+#: portal/js_messages.py:116
+msgid "У всех выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым."
+msgstr "None of the selected products have deals on the selected exchange and period — they are shown in grey."
+
+#: portal/js_messages.py:117
+msgid "У 1 выбранного товара нет сделок в выбранной бирже и периоде — он отмечен серым."
+msgstr "1 selected product has no deals on the selected exchange and period — it is shown in grey."
+
+#: portal/js_messages.py:118
+#, python-brace-format
+msgid "У {n} выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым."
+msgstr "{n} selected products have no deals on the selected exchange and period — they are shown in grey."
+
+#: portal/js_messages.py:119
+msgid "Убрать его"
+msgstr "Remove it"
+
+#: portal/js_messages.py:120
+msgid "Убрать их"
+msgstr "Remove them"
+
+#: portal/js_messages.py:121
+#, python-brace-format
+msgid "Добавлено {added} из {found} найденных: для сравнения можно выбрать не больше {max} товаров (взяты самые торгуемые)."
+msgstr "Added {added} of {found} found: no more than {max} products can be compared (the most traded ones were taken)."
+
+#: portal/js_messages.py:122
+#, python-brace-format
+msgid "Убрано: {name}"
+msgstr "Removed: {name}"
+
+#: portal/js_messages.py:123
+#, python-brace-format
+msgid "Не удалось загрузить список товаров: {error}"
+msgstr "Could not load the product list: {error}"
+
+#: portal/js_messages.py:124
+msgid "нет связи с сервером"
+msgstr "no connection to the server"
+
+#: portal/js_messages.py:125
+msgid "средневзвешенная цена по дням, тг за единицу товара"
+msgstr "weighted average price by day, KZT per unit"
+
+#: portal/js_messages.py:126
+msgid "изменение средневзвешенной цены к первому дню с ценой, %"
+msgstr "change in the weighted average price relative to the first day with a price, %"
+
+#: portal/js_messages.py:127
+msgid "сумма сделок по дням, тг"
+msgstr "deal amount by day, KZT"
+
+#: portal/js_messages.py:128
+#, python-brace-format
+msgid "Показаны {n} {products} — выберите товары для сравнения"
+msgstr "Showing the {n} {products} — select products to compare"
+
+#: portal/js_messages.py:129
+#, python-brace-format
+msgid "Выбрано: {n} {products}"
+msgstr "Selected: {n} {products}"
+
+#: portal/js_messages.py:130
+msgid "Цены разных товаров могут быть в разных единицах (тонна, кубометр, литр) — для сопоставления динамики включите «Изменение, %»."
+msgstr "Prices of different products may be in different units (tonne, cubic metre, litre) — to compare the dynamics, switch to “Change, %”."
+
+#: portal/js_messages.py:131
+msgid "Столбцы товаров за один день сложены."
+msgstr "Bars of different products for the same day are stacked."
+
+#: portal/js_messages.py:132
+msgid "У выбранных товаров нет сумм сделок за выбранный период"
+msgstr "The selected products have no deal amounts for the selected period"
+
+#: portal/js_messages.py:133
+msgid "У этого товара нет цен за выбранный период"
+msgstr "This product has no prices for the selected period"
+
+#: portal/js_messages.py:134
+msgid "У выбранных товаров нет цен за выбранный период"
+msgstr "The selected products have no prices for the selected period"
+
+#: portal/js_messages.py:135
+msgid "Нет данных за выбранный период"
+msgstr "No data for the selected period"
+
+#: portal/js_messages.py:136
+msgid "Щелчок — скрыть или показать на графике"
+msgstr "Click to hide or show on the chart"
+
+#: portal/js_messages.py:137
+msgid "нет данных"
+msgstr "no data"
+
+#: portal/js_messages.py:138
+msgid "Сделок"
+msgstr "Deals"
+
+#: portal/js_messages.py:139
+msgid "Ср. взв. цена"
+msgstr "Wtd. avg. price"
+
+#: portal/js_messages.py:140
+msgid "Первая"
+msgstr "First"
+
+#: portal/js_messages.py:141
+msgid "Последняя"
+msgstr "Last"
+
+#: portal/js_messages.py:142 portal/templates/portal/analytics.html:113
+msgid "Изменение"
+msgstr "Change"
+
+#: portal/js_messages.py:143
+msgid "Посл. сделка"
+msgstr "Last deal"
+
+#: portal/js_messages.py:144
+msgid "нет сделок в выбранной бирже и периоде"
+msgstr "no deals on the selected exchange and period"
+
+#: portal/js_messages.py:145
+msgid "Последняя цена к первой за период"
+msgstr "Last price relative to the first one in the period"
+
+#: portal/js_messages.py:146
+msgid "Нужно хотя бы два дня с ценой"
+msgstr "At least two days with a price are needed"
+
+#: portal/js_messages.py:147
+msgid "Сумма сделок"
+msgstr "Deal amount"
+
+#: portal/js_messages.py:148
+#, python-brace-format
+msgid "Без суммы: {n} {records}"
+msgstr "Without amount: {n} {records}"
+
+#: portal/js_messages.py:149
+msgid "янв|фев|мар|апр|май|июн|июл|авг|сен|окт|ноя|дек"
+msgstr "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
+
+#: portal/js_messages.py:150
+msgid "январь|февраль|март|апрель|май|июнь|июль|август|сентябрь|октябрь|ноябрь|декабрь"
+msgstr "January|February|March|April|May|June|July|August|September|October|November|December"
+
+#: portal/js_messages.py:151
+#, python-brace-format
+msgid "с {from} по {to}"
+msgstr "from {from} to {to}"
+
+#: portal/js_messages.py:152
+#, python-brace-format
+msgid "с {date}"
+msgstr "from {date}"
+
+#: portal/js_messages.py:153
+#, python-brace-format
+msgid "по {date}"
+msgstr "up to {date}"
+
+#: portal/js_messages.py:154
+#, python-brace-format
+msgid "месяц неполный: данные {range}"
+msgstr "incomplete month: data {range}"
+
+#: portal/js_messages.py:155
+#, python-brace-format
+msgid "данные {range}"
+msgstr "data {range}"
+
+#: portal/js_messages.py:156
+#, python-brace-format
+msgid "Бледный столбец — неполный месяц: {months}."
+msgstr "The pale bar is an incomplete month: {months}."
+
+#: portal/js_messages.py:157
+#, python-brace-format
+msgid "Бледные столбцы — неполные месяцы: {months}."
+msgstr "Pale bars are incomplete months: {months}."
+
+#: portal/js_messages.py:158
+msgid "Сумма сделок, тг"
+msgstr "Deal amount, KZT"
+
+#: portal/js_messages.py:159
+#, python-brace-format
+msgid "Код {code}"
+msgstr "Code {code}"
+
+#: portal/js_messages.py:160
+msgid "Нет покупателей с суммой сделок"
+msgstr "No buyers with deal amounts"
+
+#: portal/js_messages.py:161
+msgid "Нет продавцов с суммой сделок"
+msgstr "No sellers with deal amounts"
+
+#: portal/js_messages.py:162
+#, python-brace-format
+msgid "{n} из {total} {records}"
+msgstr "{n} of {total} {records}"
+
+#: portal/js_messages.py:163
+#, python-brace-format
+msgid "У {n} {records} ({share}) нет суммы сделки: они учтены в числе записей и дней, но не входят в суммы и топы."
+msgstr "No deal amount for {n} {records} ({share}): they are counted in the number of records and days but are not included in totals and top lists."
+
+#: portal/js_messages.py:164
+#, python-brace-format
+msgid "Не найдены и убраны из выбора: {ids}"
+msgstr "Not found and removed from the selection: {ids}"
+
+#: portal/js_messages.py:165
+msgid "Нет товаров с суммой сделок"
+msgstr "No products with deal amounts"
+
+#: portal/js_messages.py:166
+#, python-brace-format
+msgid "Не удалось загрузить аналитику: {error}"
+msgstr "Could not load analytics: {error}"
+
+#: portal/js_messages.py:167
+#, python-brace-format
+msgid "В ссылке больше {max} товаров — взяты первые {max}."
+msgstr "The link contains more than {max} products — the first {max} were taken."
+
+#: portal/js_messages.py:168
+#, python-brace-format
+msgid "Библиотека графиков не загружена ({path})."
+msgstr "The chart library is not loaded ({path})."
+
+#: portal/js_messages.py:169
+msgid "запись|записи|записей"
+msgstr "record|records"
+
+#: portal/js_messages.py:170
+msgid "записи|записей|записей"
+msgstr "record|records"
+
+#: portal/js_messages.py:171
+msgid "товар|товара|товаров"
+msgstr "product|products"
+
+#: portal/js_messages.py:172
+msgid "сделка|сделки|сделок"
+msgstr "deal|deals"
+
+#: portal/js_messages.py:173
+msgid "самый торгуемый товар|самых торгуемых товара|самых торгуемых товаров"
+msgstr "most traded product|most traded products"
+
+#: portal/legal.py:15
+msgid "ИМЯ ФАМИЛИЯ"
+msgstr "FULL NAME"
+
+#: portal/legal.py:16
+msgid "ПОЧТА"
+msgstr "EMAIL"
+
+#: portal/legal.py:17
+msgid "14 октября 2026 г."
+msgstr "14 October 2026"
+
+#: portal/legal.py:19
+msgid "[наименование хостинг-провайдера и страна размещения серверов]"
+msgstr "[name of the hosting provider and the country where the servers are located]"
+
+#: portal/legal.py:25
+msgid "АО «Товарная биржа «Евразийская Торговая Система» (ETS)"
+msgstr "Eurasian Trading System Commodity Exchange JSC (ETS)"
+
+#: portal/legal.py:29
+msgid "ежедневные файлы XLSX с итогами торгов, опубликованные в разделе «Итоги торгов»"
+msgstr "daily XLSX files with trading results published in the “Итоги торгов” (Trading results) section"
+
+#: portal/legal.py:33
+msgid "АО «Товарная биржа «Каспий» (Caspian Commodity Exchange)"
+msgstr "Caspy Commodity Exchange JSC (Caspian Commodity Exchange)"
+
+#: portal/legal.py:37
+msgid "данные публичной страницы «Итоги торгов», которые сайт биржи загружает для показа посетителям"
+msgstr "data of the public “Итоги торгов” (Trading results) page that the exchange website loads to show to visitors"
+
+#: portal/legal.py:43
+msgid "веб-фреймворк, ORM, шаблоны"
+msgstr "web framework, ORM, templates"
+
+#: portal/legal.py:45
+msgid "загрузка страниц и файлов бирж"
+msgstr "downloading exchange pages and files"
+
+#: portal/legal.py:47
+msgid "разбор HTML-страниц"
+msgstr "parsing HTML pages"
+
+#: portal/legal.py:49
+msgid "быстрый HTML/XML-парсер"
+msgstr "fast HTML/XML parser"
+
+#: portal/legal.py:51
+msgid "чтение файлов ETS и экспорт в Excel"
+msgstr "reading ETS files and exporting to Excel"
+
+#: portal/legal.py:53
+msgid "ежедневный запуск сбора по расписанию"
+msgstr "daily scheduled data collection"
+
+#: portal/legal.py:55
+msgid "графики на странице «Аналитика» (локальная копия)"
+msgstr "charts on the “Analytics” page (local copy)"
+
+#: portal/legal.py:62
+msgid "WSGI-сервер для развёртывания"
+msgstr "WSGI server for deployment"
+
+#: portal/legal.py:64
+msgid "WSGI-сервер для запуска в Windows"
+msgstr "WSGI server for running on Windows"
+
+#: portal/legal.py:66
+msgid "раздача статических файлов"
+msgstr "serving static files"
+
+#: portal/legal.py:68 portal/legal.py:70 portal/legal.py:72 portal/legal.py:74
+msgid "драйвер PostgreSQL"
+msgstr "PostgreSQL driver"
+
+#: portal/legal.py:76
+msgid "настройка БД через DATABASE_URL"
+msgstr "database configuration via DATABASE_URL"
+
+#: portal/legal.py:79
+msgid "чтение переменных окружения из .env"
+msgstr "reading environment variables from .env"
+
+#: portal/legal.py:82
+msgid "база часовых поясов"
+msgstr "time zone database"
+
+#: portal/legal.py:84
+msgid "автотесты (не входит в работающий сайт)"
+msgstr "automated tests (not part of the running site)"
+
+#: portal/legal.py:86
+msgid "автотесты Django (не входит в работающий сайт)"
+msgstr "Django automated tests (not part of the running site)"
+
+#: portal/queries.py:89
+#, python-format
+msgid "Параметр %(name)s: ожидается дата в формате ГГГГ-ММ-ДД"
+msgstr "Parameter %(name)s: a date in the YYYY-MM-DD format is expected"
+
+#: portal/queries.py:99 portal/queries.py:101
+#, python-format
+msgid "Параметр %(name)s: ожидается число"
+msgstr "Parameter %(name)s: a number is expected"
+
+#: portal/queries.py:111
+msgid "Параметр exchange: допустимы ets, caspy или пусто"
+msgstr "Parameter exchange: allowed values are ets, caspy or empty"
+
+#: portal/queries.py:136
+#, python-format
+msgid "Параметр ordering: недопустимое поле. Допустимы: %(fields)s"
+msgstr "Parameter ordering: invalid field. Allowed: %(fields)s"
+
+#: portal/queries.py:147
+msgid "Параметры page и page_size должны быть целыми числами"
+msgstr "Parameters page and page_size must be integers"
+
+#: portal/templates/404.html:3 portal/templates/404.html:8
+msgid "Страница не найдена"
+msgstr "Page not found"
+
+#: portal/templates/404.html:7 portal/templates/500.html:34
+msgctxt "заголовок страницы ошибки: Ошибка 404"
+msgid "Ошибка"
+msgstr "Error"
+
+#: portal/templates/404.html:9
+msgid "Возможно, адрес набран с ошибкой или страница была перемещена."
+msgstr "The address may have been mistyped, or the page may have moved."
+
+#: portal/templates/404.html:11
+msgid "К итогам торгов"
+msgstr "To trading results"
+
+#: portal/templates/404.html:12 portal/templates/portal/base.html:28
+msgid "Новости"
+msgstr "News"
+
+#: portal/templates/404.html:13 portal/templates/portal/base.html:29 portal/templates/portal/status.html:3 portal/templates/portal/status.html:6
+msgid "Состояние данных"
+msgstr "Data status"
+
+#: portal/templates/500.html:13
+msgid "Ошибка сервера"
+msgstr "Server error"
+
+#: portal/templates/500.html:13 portal/templates/portal/base.html:10
+msgid "ETS и Каспий"
+msgstr "ETS and Caspy"
+
+#: portal/templates/500.html:24 portal/templates/portal/base.html:22
+msgid "биржи ETS и Каспий"
+msgstr "ETS and Caspy exchanges"
+
+#: portal/templates/500.html:35
+msgid "Внутренняя ошибка сервера"
+msgstr "Internal server error"
+
+#: portal/templates/500.html:36
+msgid "Что-то пошло не так. Попробуйте обновить страницу через минуту. Ранее собранные данные не пострадали."
+msgstr "Something went wrong. Try reloading the page in a minute. Previously collected data is not affected."
+
+#: portal/templates/500.html:38
+msgid "На главную"
+msgstr "Home"
+
+#: portal/templates/portal/_language_switch.html:3
+msgid "Язык интерфейса"
+msgstr "Interface language"
+
+#: portal/templates/portal/_source_language_note.html:3
+msgid "Данные публикуются на языке источника: названия товаров, компаний и тексты новостей приводятся так, как их опубликовала биржа."
+msgstr "Data is shown in the language of the source: product and company names and news texts are given exactly as published by the exchange."
+
+#: portal/templates/portal/analytics.html:3 portal/templates/portal/base.html:27
+msgid "Аналитика"
+msgstr "Analytics"
+
+#: portal/templates/portal/analytics.html:6
+msgid "Аналитика торгов"
+msgstr "Trading analytics"
+
+#: portal/templates/portal/analytics.html:9
+msgid "Фильтры аналитики"
+msgstr "Analytics filters"
+
+#: portal/templates/portal/analytics.html:12 portal/templates/portal/trades.html:8 portal/templates/portal/trades.html:11
+msgid "Фильтры"
+msgstr "Filters"
+
+#: portal/templates/portal/analytics.html:14 portal/templates/portal/analytics.html:67 portal/templates/portal/news.html:27 portal/templates/portal/trades.html:13 portal/templates/portal/trades.html:63
+msgid "Сбросить"
+msgstr "Reset"
+
+#: portal/templates/portal/analytics.html:35
+msgid "Товары"
+msgstr "Products"
+
+#: portal/templates/portal/analytics.html:39
+msgid "Выбранные товары"
+msgstr "Selected products"
+
+#: portal/templates/portal/analytics.html:45
+msgid "Сбросить выбор товаров"
+msgstr "Clear product selection"
+
+#: portal/templates/portal/analytics.html:45
+msgid "Сбросить выбор (все товары)"
+msgstr "Clear selection (all products)"
+
+#: portal/templates/portal/analytics.html:61
+msgid "Стрелки вниз и вверх — выбор строки, Enter или пробел — отметить товар, Escape — закрыть список. Можно выбрать до 10 товаров."
+msgstr "Down and up arrows select a row, Enter or Space ticks a product, Escape closes the list. You can select up to 10 products."
+
+#: portal/templates/portal/analytics.html:77 portal/templates/portal/trades.html:109
+msgid "Повторить"
+msgstr "Retry"
+
+#: portal/templates/portal/analytics.html:80
+msgid "Сводка"
+msgstr "Summary"
+
+#: portal/templates/portal/analytics.html:82
+msgid "Записей"
+msgstr "Records"
+
+#: portal/templates/portal/analytics.html:86
+msgid "Торговых дней"
+msgstr "Trading days"
+
+#: portal/templates/portal/analytics.html:91
+msgid "Общая сумма сделок"
+msgstr "Total deal amount"
+
+#: portal/templates/portal/analytics.html:96
+msgid "Записей без суммы"
+msgstr "Records without amount"
+
+#: portal/templates/portal/analytics.html:108
+msgid "Сравнение товаров"
+msgstr "Product comparison"
+
+#: portal/templates/portal/analytics.html:111
+msgid "Что показать на графике"
+msgstr "What to show on the chart"
+
+#: portal/templates/portal/analytics.html:112
+msgid "Цена"
+msgstr "Price"
+
+#: portal/templates/portal/analytics.html:114
+msgid "Сумма по дням"
+msgstr "Amount by day"
+
+#: portal/templates/portal/analytics.html:118
+msgid "Средневзвешенная цена выбранных товаров по дням"
+msgstr "Weighted average price of the selected products by day"
+
+#: portal/templates/portal/analytics.html:121
+msgid "Товары на графике"
+msgstr "Products on the chart"
+
+#: portal/templates/portal/analytics.html:126
+msgid "Сравнение товаров за выбранный период"
+msgstr "Product comparison for the selected period"
+
+#: portal/templates/portal/analytics.html:135
+msgid "Оборот по дням"
+msgstr "Turnover by day"
+
+#: portal/templates/portal/analytics.html:136 portal/templates/portal/analytics.html:147
+msgid "столбцы — сумма сделок, линия — число сделок"
+msgstr "bars — deal amount, line — number of deals"
+
+#: portal/templates/portal/analytics.html:139
+msgid "Оборот по дням: сумма и число сделок"
+msgstr "Turnover by day: amount and number of deals"
+
+#: portal/templates/portal/analytics.html:146
+msgid "Оборот по месяцам"
+msgstr "Turnover by month"
+
+#: portal/templates/portal/analytics.html:150
+msgid "Оборот по месяцам: сумма и число сделок"
+msgstr "Turnover by month: amount and number of deals"
+
+#: portal/templates/portal/analytics.html:158
+msgid "Топ-10 товаров по сумме"
+msgstr "Top 10 products by amount"
+
+#: portal/templates/portal/analytics.html:159
+msgid "сумма сделок, тг"
+msgstr "deal amount, KZT"
+
+#: portal/templates/portal/analytics.html:162
+msgid "Топ-10 товаров по сумме сделок"
+msgstr "Top 10 products by deal amount"
+
+#: portal/templates/portal/analytics.html:169
+msgid "Топ-10 участников по сумме"
+msgstr "Top 10 participants by amount"
+
+#: portal/templates/portal/analytics.html:170
+msgid "Роль участника"
+msgstr "Participant role"
+
+#: portal/templates/portal/analytics.html:171
+msgid "Покупатели"
+msgstr "Buyers"
+
+#: portal/templates/portal/analytics.html:172
+msgid "Продавцы"
+msgstr "Sellers"
+
+#: portal/templates/portal/analytics.html:176
+msgid "Топ-10 участников торгов по сумме сделок"
+msgstr "Top 10 trading participants by deal amount"
+
+#: portal/templates/portal/base.html:9
+msgid "Итоги торгов товарных бирж Казахстана ETS и Каспий: поиск, фильтры, аналитика, экспорт в Excel."
+msgstr "Trading results of the ETS and Caspy commodity exchanges of Kazakhstan: search, filters, analytics, export to Excel."
+
+#: portal/templates/portal/base.html:15
+msgid "Перейти к содержимому"
+msgstr "Skip to content"
+
+#: portal/templates/portal/base.html:25
+msgid "Разделы"
+msgstr "Sections"
+
+#: portal/templates/portal/base.html:45
+msgid "Данные:"
+msgstr "Data:"
+
+#: portal/templates/portal/base.html:47
+msgid "некоммерческий информационный проект"
+msgstr "non-commercial information project"
+
+#: portal/templates/portal/base.html:48
+msgid "Сведения носят справочный характер и не являются офертой или инвестиционной рекомендацией."
+msgstr "The information is for reference only and is not an offer or investment advice."
+
+#: portal/templates/portal/base.html:50 portal/templates/portal/legal/_layout.html:8
+msgid "Правовая информация"
+msgstr "Legal information"
+
+#: portal/templates/portal/base.html:51 portal/templates/portal/legal/_layout.html:9
+msgid "Пользовательское соглашение"
+msgstr "Terms of use"
+
+#: portal/templates/portal/base.html:52 portal/templates/portal/legal/_layout.html:10
+msgid "Политика конфиденциальности"
+msgstr "Privacy policy"
+
+#: portal/templates/portal/base.html:53 portal/templates/portal/legal/_layout.html:11
+msgid "Политика cookie"
+msgstr "Cookie policy"
+
+#: portal/templates/portal/base.html:54 portal/templates/portal/legal/_layout.html:12
+msgid "Источники данных и лицензии"
+msgstr "Data sources and licences"
+
+#: portal/templates/portal/base.html:62
+msgid "Мы используем только необходимые cookie"
+msgstr "We use only necessary cookies"
+
+#: portal/templates/portal/base.html:63
+#, python-format
+msgid "Сайт сохраняет технические cookie, без которых не работают формы, защита от подделки запросов и выбор языка. Аналитических и рекламных cookie нет. Подробнее — в <a href=\"%(cookies_url)s\">политике использования cookie</a> и <a href=\"%(privacy_url)s\">политике конфиденциальности</a>."
+msgstr "The site stores technical cookies without which forms, protection against request forgery and language selection do not work. There are no analytics or advertising cookies. Learn more in the <a href=\"%(cookies_url)s\">cookie policy</a> and the <a href=\"%(privacy_url)s\">privacy policy</a>."
+
+#: portal/templates/portal/base.html:69
+msgid "Подробнее"
+msgstr "Learn more"
+
+#: portal/templates/portal/base.html:70
+msgid "Принять"
+msgstr "Accept"
+
+#: portal/templates/portal/legal/_layout.html:7
+msgid "Правовые документы"
+msgstr "Legal documents"
+
+#: portal/templates/portal/legal/_layout.html:18
+msgid "Перевод для удобства; при расхождении действует русская версия."
+msgstr "This translation is provided for convenience; in case of any discrepancy, the Russian version prevails."
+
+#: portal/templates/portal/legal/_layout.html:22
+msgid "Открыть русскую версию"
+msgstr "Open the Russian version"
+
+#: portal/templates/portal/legal/_layout.html:28
+#, python-format
+msgid "Дата редакции: %(edition_date)s"
+msgstr "Version date: %(edition_date)s"
+
+#: portal/templates/portal/legal/_layout.html:29
+#, python-format
+msgid "Владелец сайта: %(site_owner)s. Контакт: <a href=\"mailto:%(contact_email)s\">%(contact_email)s</a>."
+msgstr "Site owner: %(site_owner)s. Contact: <a href=\"mailto:%(contact_email)s\">%(contact_email)s</a>."
+
+#: portal/templates/portal/news.html:3
+#, python-format
+msgid "Новости бирж, страница %(number)s"
+msgstr "Exchange news, page %(number)s"
+
+#: portal/templates/portal/news.html:3 portal/templates/portal/news.html:7
+msgid "Новости бирж"
+msgstr "Exchange news"
+
+#: portal/templates/portal/news.html:4
+msgid "Лента новостей товарных бирж ETS и Каспий со ссылками на оригинальные публикации."
+msgstr "News feed of the ETS and Caspy commodity exchanges with links to the original publications."
+
+#: portal/templates/portal/news.html:10
+msgid "Фильтр новостей"
+msgstr "News filter"
+
+#: portal/templates/portal/news.html:15
+msgid "Все биржи"
+msgstr "All exchanges"
+
+#: portal/templates/portal/news.html:22
+msgid "Поиск по заголовку"
+msgstr "Search by headline"
+
+#: portal/templates/portal/news.html:23
+msgid "например, торги углём"
+msgstr "e.g. торги углём (coal trading)"
+
+#: portal/templates/portal/news.html:26
+msgid "Найти"
+msgstr "Search"
+
+#: portal/templates/portal/news.html:32
+msgid "Список новостей"
+msgstr "News list"
+
+#: portal/templates/portal/news.html:35
+#, python-format
+msgid "Найдено: %(count)s"
+msgstr "Found: %(count)s"
+
+#: portal/templates/portal/news.html:35
+#, python-format
+msgid "страница %(number)s из %(pages)s"
+msgstr "page %(number)s of %(pages)s"
+
+#: portal/templates/portal/news.html:47
+msgid "откроется в новой вкладке"
+msgstr "opens in a new tab"
+
+#: portal/templates/portal/news.html:57
+msgid "Страницы новостей"
+msgstr "News pages"
+
+#: portal/templates/portal/news.html:74 portal/templates/portal/trades.html:103
+msgid "Ничего не найдено"
+msgstr "Nothing found"
+
+#: portal/templates/portal/news.html:75
+msgid "Измените условия поиска или сбросьте фильтр."
+msgstr "Change the search terms or reset the filter."
+
+#: portal/templates/portal/news.html:76
+msgid "Показать все новости"
+msgstr "Show all news"
+
+#: portal/templates/portal/news.html:80
+msgid "Новостей пока нет — запустите сбор"
+msgstr "No news yet — run the collection"
+
+#: portal/templates/portal/news.html:83
+msgid "Выполните в консоли"
+msgstr "Run in the console:"
+
+#: portal/templates/portal/news.html:83
+msgid "или"
+msgstr "or"
+
+#: portal/templates/portal/news.html:85
+msgid "Новости появятся после первого запуска сбора новостей с сайтов бирж."
+msgstr "News will appear after news is first collected from the exchange websites."
+
+#: portal/templates/portal/status.html:10
+msgid "Загрузка…"
+msgstr "Loading…"
+
+#: portal/templates/portal/status.html:14
+msgid "Ручной запуск сбора"
+msgstr "Manual data collection"
+
+#: portal/templates/portal/status.html:17
+msgid "Демо-версия: сбор данных отключён."
+msgstr "Demo version: data collection is disabled."
+
+#: portal/templates/portal/status.html:18
+msgid "Здесь показаны ранее собранные данные. Чтобы собирать новые итоги торгов, запустите проект локально (команды — ниже)."
+msgstr "Previously collected data is shown here. To collect new trading results, run the project locally (see the commands below)."
+
+#: portal/templates/portal/status.html:21
+msgid "Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически. Повторный запуск недоступен, пока не завершён предыдущий."
+msgstr "Collection runs in the background: you can keep the page open, the status updates automatically. A new run is unavailable until the previous one finishes."
+
+#: portal/templates/portal/status.html:32
+msgid "Глубина, дней"
+msgstr "Depth, days"
+
+#: portal/templates/portal/status.html:37
+msgid "Запустить сбор вручную"
+msgstr "Run collection now"
+
+#: portal/templates/portal/status.html:40
+msgid "Быстрый выбор:"
+msgstr "Quick choice:"
+
+#: portal/templates/portal/status.html:41
+msgid "1 день"
+msgstr "1 day"
+
+#: portal/templates/portal/status.html:42
+msgid "3 дня"
+msgstr "3 days"
+
+#: portal/templates/portal/status.html:43
+msgid "неделя"
+msgstr "week"
+
+#: portal/templates/portal/status.html:44
+msgid "месяц"
+msgstr "month"
+
+#: portal/templates/portal/status.html:45
+#, python-format
+msgid "вся история (%(days)s дн.)"
+msgstr "full history (%(days)s days)"
+
+#: portal/templates/portal/status.html:52
+msgid "Как запустить сбор из консоли"
+msgstr "How to run collection from the console"
+
+#: portal/templates/portal/status.html:53
+msgid "В папке проекта, с активированным виртуальным окружением:"
+msgstr "In the project folder, with the virtual environment activated:"
+
+#: portal/templates/portal/status.html:55
+#, python-format
+msgid "Обе биржи за последние %(days)s дней (по умолчанию)"
+msgstr "Both exchanges for the last %(days)s days (default)"
+
+#: portal/templates/portal/status.html:57
+msgid "Одна биржа за последние N дней"
+msgstr "One exchange for the last N days"
+
+#: portal/templates/portal/status.html:59
+msgid "За произвольный период"
+msgstr "For a custom period"
+
+#: portal/templates/portal/status.html:61
+msgid "Ежедневный сбор по расписанию (процесс работает постоянно)"
+msgstr "Daily scheduled collection (the process keeps running)"
+
+#: portal/templates/portal/status.html:64
+msgid "Сбор новостей"
+msgstr "News collection"
+
+#: portal/templates/portal/status.html:68
+msgid "Повторный запуск безопасен: уже сохранённые записи не дублируются. Расписание и паузы между запросами настраиваются в файле <code>scraper.toml</code>."
+msgstr "Re-running is safe: records already saved are not duplicated. The schedule and pauses between requests are configured in the <code>scraper.toml</code> file."
+
+#: portal/templates/portal/status.html:74
+msgid "Последние запуски парсеров"
+msgstr "Recent parser runs"
+
+#: portal/templates/portal/status.html:80
+msgid "Начало"
+msgstr "Started"
+
+#: portal/templates/portal/status.html:82
+msgid "Запуск"
+msgstr "Trigger"
+
+#: portal/templates/portal/status.html:83
+msgid "Период"
+msgstr "Period"
+
+#: portal/templates/portal/status.html:84
+msgid "Статус"
+msgstr "Status"
+
+#: portal/templates/portal/status.html:85
+msgid "Добавлено"
+msgstr "Added"
+
+#: portal/templates/portal/status.html:86
+msgid "Пропущено"
+msgstr "Skipped"
+
+#: portal/templates/portal/status.html:87
+msgid "Ошибки"
+msgstr "Errors"
+
+#: portal/templates/portal/status.html:93
+msgid "Запусков ещё не было"
+msgstr "No runs yet"
+
+#: portal/templates/portal/status.html:94
+msgid "В демо-версии сбор не запускается."
+msgstr "Collection does not run in the demo version."
+
+#: portal/templates/portal/status.html:94
+msgid "Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию."
+msgstr "Click “Run collection now” or wait for the scheduled run."
+
+#: portal/templates/portal/status.html:98
+msgid "Для работы страницы необходим JavaScript."
+msgstr "This page requires JavaScript."
+
+#: portal/templates/portal/trades.html:6
+msgid "Итоги торгов бирж ETS и Каспий"
+msgstr "Trading results of the ETS and Caspy exchanges"
+
+#: portal/templates/portal/trades.html:35
+msgid "например, пшеница"
+msgstr "e.g. пшеница (wheat)"
+
+#: portal/templates/portal/trades.html:39
+msgid "Продавец или покупатель (название / БИН)"
+msgstr "Seller or buyer (name / BIN)"
+
+#: portal/templates/portal/trades.html:40
+msgid "название или БИН"
+msgstr "name or BIN"
+
+#: portal/templates/portal/trades.html:45
+msgid "название брокера"
+msgstr "broker name"
+
+#: portal/templates/portal/trades.html:54
+msgid "без ограничения"
+msgstr "no limit"
+
+#: portal/templates/portal/trades.html:57
+msgid "Место или базис поставки"
+msgstr "Delivery place or basis"
+
+#: portal/templates/portal/trades.html:58
+msgid "город, станция, базис (FCA, EXW…)"
+msgstr "city, station, basis (FCA, EXW…)"
+
+#: portal/templates/portal/trades.html:59
+msgid "Ищется в месте поставки, базисе поставки, а у записей без места — в названии товара"
+msgstr "Searched in the delivery place and basis; for records without a place, also in the product name"
+
+#: portal/templates/portal/trades.html:69
+msgid "Результаты"
+msgstr "Results"
+
+#: portal/templates/portal/trades.html:81
+msgid "Строк на странице"
+msgstr "Rows per page"
+
+#: portal/templates/portal/trades.html:89
+msgid "Скачать Excel"
+msgstr "Download Excel"
+
+#: portal/templates/portal/trades.html:104
+msgid "Измените условия поиска или сбросьте фильтры."
+msgstr "Change the search terms or reset the filters."
+
+#: portal/templates/portal/trades.html:107
+msgid "Не удалось загрузить данные"
+msgstr "Could not load the data"
+
+#: portal/templates/portal/trades.html:113
+msgid "Страницы"
+msgstr "Pages"
+
+#: portal/templates/portal/trades.html:118
+msgid "Последние новости"
+msgstr "Latest news"
+
+#: portal/templates/portal/trades.html:119
+msgid "Все новости →"
+msgstr "All news →"
+
+#: portal/templates/portal/trades.html:132
+msgid "Новостей пока нет — запустите сбор новостей."
+msgstr "No news yet — run the news collection."
+
+#: portal/views.py:49
+msgid "Демо-версия: сбор данных отключён. Запустите проект локально, чтобы собирать данные с сайтов бирж."
+msgstr "Demo version: data collection is disabled. Run the project locally to collect data from the exchange websites."
+
+#: portal/views.py:345
+#, python-format
+msgid "Параметр field: допустимы %(values)s"
+msgstr "Parameter field: allowed values are %(values)s"
+
+#: portal/views.py:438
+msgid "Тело запроса: некорректный JSON"
+msgstr "Request body: invalid JSON"
+
+#: portal/views.py:440
+msgid "Тело запроса: ожидается JSON-объект"
+msgstr "Request body: a JSON object is expected"
+
+#: portal/views.py:458 portal/views.py:465
+msgid "Биржа: допустимы ets, caspy или all"
+msgstr "Exchange: allowed values are ets, caspy or all"
+
+#: portal/views.py:481
+#, python-format
+msgid "Глубина: от %(min)s до %(max)s дней"
+msgstr "Depth: from %(min)s to %(max)s days"
+
+#: portal/views.py:488
+msgid "Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней"
+msgstr "Period: dates in the YYYY-MM-DD format, depth — a whole number of days"
+
+#: portal/views.py:492
+#, python-format
+msgid "Период не должен превышать %(max)s дней"
+msgstr "The period must not exceed %(max)s days"
+
+#: portal/views.py:513
+msgid "Сервис сбора данных пока не подключён (scrapers.service.collect)"
+msgstr "The data collection service is not connected yet (scrapers.service.collect)"
+
+#: portal/views.py:516 portal/views.py:518
+msgid "Сбор уже выполняется — дождитесь завершения"
+msgstr "Collection is already running — wait for it to finish"

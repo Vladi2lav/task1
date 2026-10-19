@@ -1,100 +1,99 @@
 {% extends 'portal/base.html' %}
-{% block title %}Состояние данных{% endblock %}
+{% load i18n %}
+{% block title %}{% translate 'Состояние данных' %}{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Состояние данных</h1>
+<h1 class="page-title">{% translate 'Состояние данных' %}</h1>
 <p class="muted" id="total-line"></p>
 
 <section class="status-cards" id="exchange-cards" aria-live="polite">
-  <div class="panel card-skeleton">Загрузка…</div>
+  <div class="panel card-skeleton">{% translate 'Загрузка…' %}</div>
 </section>
 
 <section class="panel" aria-labelledby="collect-title">
-  <h2 class="panel-title" id="collect-title">Ручной запуск сбора</h2>
+  <h2 class="panel-title" id="collect-title">{% translate 'Ручной запуск сбора' %}</h2>
   {% if read_only %}
   <div class="note note-info" id="read-only-note">
-    <strong>Демо-версия: сбор данных отключён.</strong>
-    Здесь показаны ранее собранные данные. Чтобы собирать новые итоги торгов, запустите проект локально
-    (команды — ниже).
+    <strong>{% translate 'Демо-версия: сбор данных отключён.' %}</strong>
+    {% translate 'Здесь показаны ранее собранные данные. Чтобы собирать новые итоги торгов, запустите проект локально (команды — ниже).' %}
   </div>
   {% else %}
-  <p class="muted">Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически.
-    Повторный запуск недоступен, пока не завершён предыдущий.</p>
+  <p class="muted">{% translate 'Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически. Повторный запуск недоступен, пока не завершён предыдущий.' %}</p>
   <form id="collect-form" class="collect-form" data-default-days="{{ default_days }}">
     <label class="field">
-      <span class="field-label">Биржа</span>
+      <span class="field-label">{% translate 'Биржа' %}</span>
       <select name="exchange" id="c-exchange">
-        <option value="all">Обе биржи</option>
+        <option value="all">{% translate 'Обе биржи' %}</option>
         <option value="ets">ETS</option>
-        <option value="caspy">Каспий</option>
+        <option value="caspy">{% translate 'Каспий' %}</option>
       </select>
     </label>
     <label class="field">
-      <span class="field-label">Глубина, дней</span>
+      <span class="field-label">{% translate 'Глубина, дней' %}</span>
       <input type="number" name="days" id="c-days" min="{{ days_min }}" max="{{ days_max }}"
              value="{{ default_days }}" step="1" required>
     </label>
     <div class="field field-actions">
-      <button type="submit" class="btn btn-primary" id="btn-collect">Запустить сбор вручную</button>
+      <button type="submit" class="btn btn-primary" id="btn-collect">{% translate 'Запустить сбор вручную' %}</button>
     </div>
     <div class="quick-days">
-      <span class="muted">Быстрый выбор:</span>
-      <button type="button" class="chip" data-days="1">1 день</button>
-      <button type="button" class="chip" data-days="3">3 дня</button>
-      <button type="button" class="chip" data-days="7">неделя</button>
-      <button type="button" class="chip" data-days="30">месяц</button>
-      <button type="button" class="chip" data-days="{{ history_days }}">вся история ({{ history_days }} дн.)</button>
+      <span class="muted">{% translate 'Быстрый выбор:' %}</span>
+      <button type="button" class="chip" data-days="1">{% translate '1 день' %}</button>
+      <button type="button" class="chip" data-days="3">{% translate '3 дня' %}</button>
+      <button type="button" class="chip" data-days="7">{% translate 'неделя' %}</button>
+      <button type="button" class="chip" data-days="30">{% translate 'месяц' %}</button>
+      <button type="button" class="chip" data-days="{{ history_days }}">{% blocktranslate trimmed with days=history_days %}вся история ({{ days }} дн.){% endblocktranslate %}</button>
     </div>
   </form>
   <div class="collect-status" id="collect-status" role="status" aria-live="polite" hidden></div>
   {% endif %}
 
   <details class="cli-help"{% if read_only %} open{% endif %}>
-    <summary>Как запустить сбор из консоли</summary>
-    <p class="muted">В папке проекта, с активированным виртуальным окружением:</p>
+    <summary>{% translate 'Как запустить сбор из консоли' %}</summary>
+    <p class="muted">{% translate 'В папке проекта, с активированным виртуальным окружением:' %}</p>
     <dl class="cli-list">
-      <div><dt>Обе биржи за последние {{ history_days }} дней (по умолчанию)</dt>
+      <div><dt>{% blocktranslate trimmed with days=history_days %}Обе биржи за последние {{ days }} дней (по умолчанию){% endblocktranslate %}</dt>
         <dd><code>python manage.py collect_trades</code></dd></div>
-      <div><dt>Одна биржа за последние N дней</dt>
+      <div><dt>{% translate 'Одна биржа за последние N дней' %}</dt>
         <dd><code>python manage.py collect_trades --exchange ets --days 7</code></dd></div>
-      <div><dt>За произвольный период</dt>
+      <div><dt>{% translate 'За произвольный период' %}</dt>
         <dd><code>python manage.py collect_trades --exchange caspy --since 2026-10-01 --until 2026-10-14</code></dd></div>
-      <div><dt>Ежедневный сбор по расписанию (процесс работает постоянно)</dt>
+      <div><dt>{% translate 'Ежедневный сбор по расписанию (процесс работает постоянно)' %}</dt>
         <dd><code>python manage.py run_scheduler</code></dd></div>
       {% for command in news_commands %}
-      <div><dt>Сбор новостей</dt>
+      <div><dt>{% translate 'Сбор новостей' %}</dt>
         <dd><code>python manage.py {{ command }}</code></dd></div>
       {% endfor %}
     </dl>
-    <p class="muted">Повторный запуск безопасен: уже сохранённые записи не дублируются. Расписание и паузы между
-      запросами настраиваются в файле <code>scraper.toml</code>.</p>
+    <p class="muted">{% blocktranslate trimmed %}Повторный запуск безопасен: уже сохранённые записи не дублируются. Расписание и паузы между
+      запросами настраиваются в файле <code>scraper.toml</code>.{% endblocktranslate %}</p>
   </details>
 </section>
 
 <section class="panel" aria-labelledby="runs-title">
-  <h2 class="panel-title" id="runs-title">Последние запуски парсеров</h2>
+  <h2 class="panel-title" id="runs-title">{% translate 'Последние запуски парсеров' %}</h2>
   <div class="table-wrap runs-wrap">
     <table class="data-table" id="runs-table">
       <thead>
         <tr>
-          <th>Биржа</th>
-          <th>Начало</th>
-          <th>Окончание</th>
-          <th>Запуск</th>
-          <th>Период</th>
-          <th>Статус</th>
-          <th class="num">Добавлено</th>
-          <th class="num">Пропущено</th>
-          <th>Ошибки</th>
+          <th>{% translate 'Биржа' %}</th>
+          <th>{% translate 'Начало' %}</th>
+          <th>{% translate 'Окончание' %}</th>
+          <th>{% translate 'Запуск' %}</th>
+          <th>{% translate 'Период' %}</th>
+          <th>{% translate 'Статус' %}</th>
+          <th class="num">{% translate 'Добавлено' %}</th>
+          <th class="num">{% translate 'Пропущено' %}</th>
+          <th>{% translate 'Ошибки' %}</th>
         </tr>
       </thead>
       <tbody id="runs-body"></tbody>
     </table>
     <div class="empty-state" id="runs-empty" hidden>
-      <div class="empty-title">Запусков ещё не было</div>
-      <div class="empty-text">{% if read_only %}В демо-версии сбор не запускается.{% else %}Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию.{% endif %}</div>
+      <div class="empty-title">{% translate 'Запусков ещё не было' %}</div>
+      <div class="empty-text">{% if read_only %}{% translate 'В демо-версии сбор не запускается.' %}{% else %}{% translate 'Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию.' %}{% endif %}</div>
     </div>
   </div>
 </section>
-<noscript><p class="muted">Для работы страницы необходим JavaScript.</p></noscript>
+<noscript><p class="muted">{% translate 'Для работы страницы необходим JavaScript.' %}</p></noscript>
 {% endblock %}

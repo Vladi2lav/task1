@@ -89,7 +89,7 @@ docker compose down           # остановка (данные остаютс�
 | `PORTAL_READ_ONLY` | `0` (на Vercel — всегда `1`) | только чтение: ручной запуск сбора отключён |
 | `PORTAL_EXPORT_MAX_ROWS` | `50000` | максимум строк в выгрузке Excel |
 | `SITE_OWNER`, `SITE_CONTACT_EMAIL` | `ИМЯ ФАМИЛИЯ`, `ПОЧТА` (заглушки) | владелец сайта и контакт для `/legal/*` |
-| `SITE_HOSTING_PROVIDER` | `[хостинг-провайдер]` (на Vercel — `Vercel Inc. (США)`) | хостинг для политики конфиденциальности |
+| `SITE_HOSTING_PROVIDER` | плейсхолдер на языке страницы (на Vercel — `Vercel Inc. (США)`, на Render — `Render Services, Inc. (США)`) | хостинг для политики конфиденциальности |
 | `LEGAL_EDITION_DATE` | дата из `portal/legal.py` | дата редакции юридических документов |
 | `PROJECT_REPO_URL` | `https://github.com/Vladi2lav/task1` | ссылка на репозиторий |
 | `DJANGO_SUPERUSER_USERNAME`, `_EMAIL`, `_PASSWORD` | — | администратор, создаётся командой `bootstrap` |
@@ -143,10 +143,40 @@ python manage.py runserver      # http://127.0.0.1:8000/
 | `/status/` | состояние данных по биржам, журнал запусков, ручной запуск сбора (кроме режима только для чтения) |
 | `/legal/terms/`, `/legal/privacy/`, `/legal/cookies/`, `/legal/sources/` | соглашение, конфиденциальность, cookie, источники и лицензии |
 | `/admin/` | админка Django |
-
-На всех страницах есть переключатель светлой и тёмной темы (кнопка в шапке). По умолчанию тема следует настройке устройства; выбор запоминается в браузере (`localStorage`, ключ `portal_theme`).
 | `/healthz` | проверка работоспособности (JSON, 200 / 503) |
 | `/api/trades/`, `/api/trades/export.xlsx`, `/api/analytics/`, `/api/analytics/products/`, `/api/news/`, `/api/filters/`, `/api/status/` | JSON API портала и экспорт |
+| `/i18n/setlang/` | выбор языка интерфейса (POST, стандартный `set_language` Django) |
+
+На всех страницах есть переключатель светлой и тёмной темы (кнопка в шапке). По умолчанию тема следует настройке устройства; выбор запоминается в браузере (`localStorage`, ключ `portal_theme`).
+
+### Языки интерфейса
+
+Интерфейс на трёх языках: **русский** (по умолчанию), **казахский** (`kk`, в переключателе — «KZ») и **английский** (`en`).
+
+- Переключатель «RU · KZ · EN» в шапке отправляет POST на `/i18n/setlang/` (с CSRF) и возвращает на ту же страницу с теми же фильтрами. Выбор хранится в cookie `django_language` (год); при первом визите язык берётся из `Accept-Language` браузера (только ru/kk/en, иначе русский). Префиксов в адресах (`/en/...`) нет — ссылки и API одинаковы для всех языков.
+- Переведены шаблоны, меню, подвал, баннер cookie, страницы 404/500, сообщения об ошибках API, заголовки и лист «Параметры» выгрузки Excel, подписи статусов запусков. Числа и даты в браузере форматируются через `Intl` (ru-RU, kk-KZ, en-GB; если браузер не знает kk-KZ — по ru-RU), месяцы на графиках — из словаря языка.
+- **Данные бирж не переводятся** (названия товаров, компаний, тексты новостей) — на kk/en это отмечено на страницах. Названия бирж: ETS, «Каспий» (en — Caspy).
+- Юридические страницы переведены отдельными шаблонами `portal/templates/portal/legal/<язык>/`; юридически значимая редакция — русская (`portal/legal/*.html`), на переводах это указано.
+- Строки app.js переводятся через словарь, который сервер выводит в каждую страницу (`<script id="portal-i18n">`, тег `{% portal_i18n %}`); список строк скрипта — `portal/js_messages.py` (тест сверяет его с app.js).
+
+Как обновить переводы после изменения текстов:
+
+```bash
+pip install -r requirements-dev.txt      # нужен polib
+python scripts/make_messages.py          # собрать строки в locale/kk и locale/en (замена makemessages, gettext не нужен)
+# перевести новые строки (пустые msgstr) в locale/kk/LC_MESSAGES/django.po и locale/en/LC_MESSAGES/django.po
+python scripts/compile_messages.py       # проверить (нет пустых, fuzzy, подстановки совпадают) и собрать .mo
+```
+
+Скомпилированные `.mo` хранятся в репозитории, поэтому для запуска (start.bat, Docker, Vercel, Render) GNU gettext не нужен. Если gettext установлен (Linux), можно пользоваться и стандартными командами: `python manage.py makemessages -l kk -l en --ignore=tests --ignore=staticfiles --ignore=.venv` и `python manage.py compilemessages`. В Docker — в одноразовом контейнере с gettext:
+
+```bash
+docker run --rm -v "$PWD":/app -w /app python:3.12-slim sh -c \
+  "apt-get update -qq && apt-get install -y -qq gettext >/dev/null && pip install -q -r requirements.txt && \
+   python manage.py makemessages -l kk -l en --ignore=tests --ignore=staticfiles && python manage.py compilemessages"
+```
+
+Новый язык: добавить его в `LANGUAGES` (config/settings.py), `INTL_LOCALES` и `LANGUAGE_SHORT` (portal/i18n.py), запустить `python scripts/make_messages.py -l <код>`, перевести и скомпилировать; переводы юридических страниц — в `portal/templates/portal/legal/<код>/`.
 
 ## Тесты
 

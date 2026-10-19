@@ -1,15 +1,16 @@
 {% extends 'portal/base.html' %}
-{% block title %}Страница не найдена{% endblock %}
+{% load i18n %}
+{% block title %}{% translate 'Страница не найдена' %}{% endblock %}
 
 {% block content %}
 <section class="panel error-page" aria-labelledby="error-title">
-  <div class="error-code" aria-hidden="true">404</div>
-  <h1 class="page-title" id="error-title">Страница не найдена</h1>
-  <p class="muted">Возможно, адрес набран с ошибкой или страница была перемещена.</p>
+  <div class="error-code" aria-hidden="true">{% translate "Ошибка" context "заголовок страницы ошибки: Ошибка 404" %} 404</div>
+  <h1 class="page-title" id="error-title">{% translate 'Страница не найдена' %}</h1>
+  <p class="muted">{% translate 'Возможно, адрес набран с ошибкой или страница была перемещена.' %}</p>
   <div class="error-actions">
-    <a class="btn btn-primary" href="{% url 'portal:trades' %}">К итогам торгов</a>
-    <a class="btn" href="{% url 'portal:news' %}">Новости</a>
-    <a class="btn" href="{% url 'portal:status' %}">Состояние данных</a>
+    <a class="btn btn-primary" href="{% url 'portal:trades' %}">{% translate 'К итогам торгов' %}</a>
+    <a class="btn" href="{% url 'portal:news' %}">{% translate 'Новости' %}</a>
+    <a class="btn" href="{% url 'portal:status' %}">{% translate 'Состояние данных' %}</a>
   </div>
 </section>
 {% endblock %}

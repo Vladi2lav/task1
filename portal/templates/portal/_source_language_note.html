@@ -1,0 +1,4 @@
+{% load i18n %}{% get_current_language as CURRENT_LANGUAGE %}{% if CURRENT_LANGUAGE != 'ru' %}
+{# На kk/en: данные бирж (товары, компании, новости) не переводятся — показываются как в источнике #}
+<p class="source-lang-note" lang="{{ CURRENT_LANGUAGE }}">{% translate 'Данные публикуются на языке источника: названия товаров, компаний и тексты новостей приводятся так, как их опубликовала биржа.' %}</p>
+{% endif %}

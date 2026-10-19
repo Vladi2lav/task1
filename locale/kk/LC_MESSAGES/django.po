@@ -1,0 +1,1584 @@
+# Переводы портала «Итоги торгов бирж ETS и Каспий».
+# Обновляется: python scripts/make_messages.py
+msgid ""
+msgstr ""
+"Project-Id-Version: portal\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-18 19:36+0000\n"
+"PO-Revision-Date: 2026-10-18 19:17+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: config/settings.py:317
+msgid "Vercel Inc. (США)"
+msgstr "Vercel Inc. (АҚШ)"
+
+#: config/settings.py:317
+msgid "Render Services, Inc. (США)"
+msgstr "Render Services, Inc. (АҚШ)"
+
+#: portal/analytics.py:47
+#, python-format
+msgid "Можно выбрать не больше %(max)s товаров для сравнения — снимите отметку с лишних"
+msgstr "Салыстыру үшін %(max)s тауардан артық таңдауға болмайды — артығының белгісін алып тастаңыз"
+
+#: portal/analytics.py:68 portal/views.py:490
+msgid "Дата начала позже даты окончания"
+msgstr "Басталу күні аяқталу күнінен кеш"
+
+#: portal/analytics.py:107
+msgid "Параметры product / products: ожидаются целые числа (id товаров)"
+msgstr "product / products параметрлері: бүтін сандар (тауар id) күтіледі"
+
+#: portal/analytics.py:109
+msgid "Параметры product / products: ожидаются положительные id товаров"
+msgstr "product / products параметрлері: оң тауар id күтіледі"
+
+#: portal/analytics.py:126
+msgid "Параметр product_id: ожидается целое число"
+msgstr "product_id параметрі: бүтін сан күтіледі"
+
+#: portal/excel_export.py:39 portal/excel_export.py:131 portal/js_messages.py:23 portal/templates/portal/analytics.html:19 portal/templates/portal/news.html:13 portal/templates/portal/status.html:24 portal/templates/portal/status.html:79 portal/templates/portal/trades.html:18
+msgid "Биржа"
+msgstr "Биржа"
+
+#: portal/excel_export.py:40
+msgid "Дата торгов"
+msgstr "Сауда күні"
+
+#: portal/excel_export.py:41
+msgid "Время"
+msgstr "Уақыты"
+
+#: portal/excel_export.py:42 portal/js_messages.py:24
+msgid "Товар"
+msgstr "Тауар"
+
+#: portal/excel_export.py:43 portal/js_messages.py:44
+msgid "Код товара"
+msgstr "Тауар коды"
+
+#: portal/excel_export.py:44 portal/js_messages.py:45
+msgid "Код ТН ВЭД"
+msgstr "СЭҚ ТН коды"
+
+#: portal/excel_export.py:45 portal/js_messages.py:25
+msgid "Продавец"
+msgstr "Сатушы"
+
+#: portal/excel_export.py:46
+msgid "БИН продавца"
+msgstr "Сатушының БСН"
+
+#: portal/excel_export.py:47 portal/js_messages.py:26
+msgid "Покупатель"
+msgstr "Сатып алушы"
+
+#: portal/excel_export.py:48
+msgid "БИН покупателя"
+msgstr "Сатып алушының БСН"
+
+#: portal/excel_export.py:49 portal/js_messages.py:27
+msgid "Брокер продавца"
+msgstr "Сатушының брокері"
+
+#: portal/excel_export.py:50 portal/js_messages.py:28
+msgid "Брокер покупателя"
+msgstr "Сатып алушының брокері"
+
+#: portal/excel_export.py:51 portal/js_messages.py:43
+msgid "Число сделок"
+msgstr "Мәмілелер саны"
+
+#: portal/excel_export.py:52 portal/js_messages.py:29
+msgid "Объём"
+msgstr "Көлемі"
+
+#: portal/excel_export.py:53
+msgid "Ед. изм."
+msgstr "Өлш. бірл."
+
+#: portal/excel_export.py:54
+msgid "Цена открытия, тг"
+msgstr "Ашылу бағасы, тг"
+
+#: portal/excel_export.py:55
+msgid "Цена закрытия, тг"
+msgstr "Жабылу бағасы, тг"
+
+#: portal/excel_export.py:56
+msgid "Мин. цена, тг"
+msgstr "Ең төмен баға, тг"
+
+#: portal/excel_export.py:57
+msgid "Макс. цена, тг"
+msgstr "Ең жоғары баға, тг"
+
+#: portal/excel_export.py:58
+msgid "Средневзв. цена, тг"
+msgstr "Орташа өлшенген баға, тг"
+
+#: portal/excel_export.py:59
+msgid "Цена с НДС, тг"
+msgstr "ҚҚС-пен баға, тг"
+
+#: portal/excel_export.py:60
+msgid "Цена без НДС, тг"
+msgstr "ҚҚС-сыз баға, тг"
+
+#: portal/excel_export.py:61
+msgid "Сумма сделки, тг"
+msgstr "Мәміле сомасы, тг"
+
+#: portal/excel_export.py:62 portal/js_messages.py:52
+msgid "Базис поставки"
+msgstr "Жеткізу базисі"
+
+#: portal/excel_export.py:63 portal/excel_export.py:139
+msgid "Место поставки"
+msgstr "Жеткізу орны"
+
+#: portal/excel_export.py:64 portal/js_messages.py:53
+msgid "Срок поставки"
+msgstr "Жеткізу мерзімі"
+
+#: portal/excel_export.py:65 portal/js_messages.py:54
+msgid "Источник"
+msgstr "Дереккөз"
+
+#: portal/excel_export.py:69 portal/templates/500.html:23 portal/templates/portal/base.html:10 portal/templates/portal/base.html:21 portal/templates/portal/base.html:26 portal/templates/portal/trades.html:3
+msgid "Итоги торгов"
+msgstr "Сауда-саттық нәтижелері"
+
+#: portal/excel_export.py:70
+msgid "Параметры"
+msgstr "Параметрлер"
+
+#: portal/excel_export.py:124 portal/js_messages.py:63 portal/templates/portal/analytics.html:21 portal/templates/portal/status.html:26 portal/templates/portal/trades.html:20
+msgid "Обе биржи"
+msgstr "Екі биржа да"
+
+#: portal/excel_export.py:130
+msgid "Дата выгрузки"
+msgstr "Жүктеп алу күні"
+
+#: portal/excel_export.py:132 portal/templates/portal/analytics.html:27 portal/templates/portal/trades.html:26
+msgid "Период с"
+msgstr "Кезең басы"
+
+#: portal/excel_export.py:133 portal/templates/portal/analytics.html:31 portal/templates/portal/trades.html:30
+msgid "Период по"
+msgstr "Кезең соңы"
+
+#: portal/excel_export.py:134 portal/templates/portal/trades.html:34
+msgid "Товар (ключевое слово)"
+msgstr "Тауар (кілт сөз)"
+
+#: portal/excel_export.py:135
+msgid "Продавец / покупатель"
+msgstr "Сатушы / сатып алушы"
+
+#: portal/excel_export.py:136 portal/templates/portal/trades.html:44
+msgid "Брокер"
+msgstr "Брокер"
+
+#: portal/excel_export.py:137 portal/templates/portal/trades.html:49
+msgid "Сумма от, тг"
+msgstr "Ең аз сома, тг"
+
+#: portal/excel_export.py:138 portal/templates/portal/trades.html:53
+msgid "Сумма до, тг"
+msgstr "Ең көп сома, тг"
+
+#: portal/excel_export.py:140 portal/templates/portal/trades.html:77 portal/templates/portal/trades.html:78
+msgid "Сортировка"
+msgstr "Сұрыптау"
+
+#: portal/excel_export.py:141
+msgid "Строк в файле"
+msgstr "Файлдағы жолдар"
+
+#: portal/excel_export.py:145
+msgid "Внимание"
+msgstr "Назар аударыңыз"
+
+#: portal/excel_export.py:146
+#, python-format
+msgid "Выгрузка ограничена %(limit)s строками — уточните фильтры"
+msgstr "Жүктеп алу %(limit)s жолмен шектелген — сүзгілерді нақтылаңыз"
+
+#: portal/i18n.py:25 portal/js_messages.py:17 portal/legal.py:34 portal/templates/portal/analytics.html:23 portal/templates/portal/base.html:46 portal/templates/portal/status.html:28 portal/templates/portal/trades.html:22
+msgid "Каспий"
+msgstr "Каспий"
+
+#: portal/i18n.py:29 portal/js_messages.py:67
+msgid "Выполняется"
+msgstr "Орындалуда"
+
+#: portal/i18n.py:30 portal/js_messages.py:64
+msgid "Успешно"
+msgstr "Сәтті"
+
+#: portal/i18n.py:31 portal/js_messages.py:65
+msgid "С ошибками"
+msgstr "Қателермен"
+
+#: portal/i18n.py:32 portal/js_messages.py:66
+msgid "Ошибка"
+msgstr "Қате"
+
+#: portal/i18n.py:35
+msgid "Вручную"
+msgstr "Қолмен"
+
+#: portal/i18n.py:35
+msgid "По расписанию"
+msgstr "Кесте бойынша"
+
+#: portal/js_messages.py:18
+msgid "Сессия устарела или нет токена CSRF: обновите страницу и повторите"
+msgstr "Сессия ескірген немесе CSRF токені жоқ: бетті жаңартып, қайталап көріңіз"
+
+#: portal/js_messages.py:19
+#, python-brace-format
+msgid "Ошибка сервера ({status})"
+msgstr "Сервер қатесі ({status})"
+
+#: portal/js_messages.py:20
+msgid "Светлая тема"
+msgstr "Ашық тақырып"
+
+#: portal/js_messages.py:21 portal/templates/portal/_theme_toggle.html:1
+msgid "Тёмная тема"
+msgstr "Қараңғы тақырып"
+
+#: portal/js_messages.py:22
+msgid "Дата"
+msgstr "Күні"
+
+#: portal/js_messages.py:30
+msgid "Цена ср., тг"
+msgstr "Орт. баға, тг"
+
+#: portal/js_messages.py:31
+msgid "Сумма, тг"
+msgstr "Сомасы, тг"
+
+#: portal/js_messages.py:32
+msgid "Место / базис поставки"
+msgstr "Жеткізу орны / базисі"
+
+#: portal/js_messages.py:33
+msgid "Сортировать"
+msgstr "Сұрыптау"
+
+#: portal/js_messages.py:34
+#, python-brace-format
+msgid "{column}: сначала новые"
+msgstr "{column}: алдымен жаңалары"
+
+#: portal/js_messages.py:35
+#, python-brace-format
+msgid "{column}: по убыванию"
+msgstr "{column}: кему бойынша"
+
+#: portal/js_messages.py:36
+#, python-brace-format
+msgid "{column}: сначала старые"
+msgstr "{column}: алдымен ескілері"
+
+#: portal/js_messages.py:37
+#, python-brace-format
+msgid "{column}: по возрастанию"
+msgstr "{column}: өсу бойынша"
+
+#: portal/js_messages.py:38
+#, python-brace-format
+msgid "БИН {bin}"
+msgstr "БСН {bin}"
+
+#: portal/js_messages.py:39
+#, python-brace-format
+msgid "базис {basis}"
+msgstr "базис {basis}"
+
+#: portal/js_messages.py:40
+msgid "тг"
+msgstr "тг"
+
+#: portal/js_messages.py:41
+#, python-brace-format
+msgid "{amount} тг"
+msgstr "{amount} тг"
+
+#: portal/js_messages.py:42
+msgid "Время торгов"
+msgstr "Сауда уақыты"
+
+#: portal/js_messages.py:46
+msgid "Цена открытия"
+msgstr "Ашылу бағасы"
+
+#: portal/js_messages.py:47
+msgid "Цена закрытия"
+msgstr "Жабылу бағасы"
+
+#: portal/js_messages.py:48
+msgid "Мин. цена"
+msgstr "Ең төмен баға"
+
+#: portal/js_messages.py:49
+msgid "Макс. цена"
+msgstr "Ең жоғары баға"
+
+#: portal/js_messages.py:50
+msgid "Цена с НДС"
+msgstr "ҚҚС-пен баға"
+
+#: portal/js_messages.py:51
+msgid "Цена без НДС"
+msgstr "ҚҚС-сыз баға"
+
+#: portal/js_messages.py:55
+msgid "Показать подробности"
+msgstr "Толығырақ көрсету"
+
+#: portal/js_messages.py:56 portal/templates/portal/news.html:59 portal/templates/portal/news.html:60
+msgid "‹ Назад"
+msgstr "‹ Артқа"
+
+#: portal/js_messages.py:57 portal/templates/portal/news.html:67 portal/templates/portal/news.html:68
+msgid "Вперёд ›"
+msgstr "Алға ›"
+
+#: portal/js_messages.py:58
+msgid "Ошибка загрузки"
+msgstr "Жүктеу қатесі"
+
+#: portal/js_messages.py:59
+#, python-brace-format
+msgid "Найдено: {count} {records}"
+msgstr "Табылды: {count} {records}"
+
+#: portal/js_messages.py:60
+#, python-brace-format
+msgid "показаны {from}–{to}"
+msgstr "{from}–{to} көрсетілген"
+
+#: portal/js_messages.py:61
+#, python-brace-format
+msgid "Сумма по выборке: {amount} тг"
+msgstr "Іріктеме бойынша сома: {amount} тг"
+
+#: portal/js_messages.py:62
+msgid "Не удалось связаться с сервером"
+msgstr "Сервермен байланысу мүмкін болмады"
+
+#: portal/js_messages.py:68
+msgid "Нет запусков"
+msgstr "Іске қосулар жоқ"
+
+#: portal/js_messages.py:69
+msgid "Последняя торговая запись"
+msgstr "Соңғы сауда жазбасы"
+
+#: portal/js_messages.py:70
+msgid "Записей в базе"
+msgstr "Базадағы жазбалар"
+
+#: portal/js_messages.py:71
+msgid "Последний запуск"
+msgstr "Соңғы іске қосу"
+
+#: portal/js_messages.py:72
+msgid "Период запуска"
+msgstr "Іске қосу кезеңі"
+
+#: portal/js_messages.py:73
+#, python-brace-format
+msgid "+{added} добавлено, {skipped} пропущено"
+msgstr "+{added} қосылды, {skipped} өткізілді"
+
+#: portal/js_messages.py:74
+msgid "Результат"
+msgstr "Нәтиже"
+
+#: portal/js_messages.py:75 portal/templates/portal/status.html:81
+msgid "Окончание"
+msgstr "Аяқталуы"
+
+#: portal/js_messages.py:76
+msgid "идёт…"
+msgstr "жүріп жатыр…"
+
+#: portal/js_messages.py:77
+msgid "ещё не запускался"
+msgstr "әлі іске қосылмаған"
+
+#: portal/js_messages.py:78
+#, python-brace-format
+msgid "Идёт сбор: {exchanges}, период {from} – {to} (начат {started})"
+msgstr "Жинау жүріп жатыр: {exchanges}, кезең {from} – {to} (басталды: {started})"
+
+#: portal/js_messages.py:79
+msgid "Сбор уже выполняется (запущен по расписанию или из командной строки). Дождитесь завершения."
+msgstr "Жинау қазір орындалып жатыр (кесте бойынша немесе командалық жолдан іске қосылған). Аяқталуын күтіңіз."
+
+#: portal/js_messages.py:80
+#, python-brace-format
+msgid "Ручной запуск завершился ошибкой ({finished}): {error}"
+msgstr "Қолмен іске қосу қатемен аяқталды ({finished}): {error}"
+
+#: portal/js_messages.py:81
+#, python-brace-format
+msgid "Ручной запуск завершён в {finished}. Результат — в таблице ниже."
+msgstr "Қолмен іске қосу аяқталды: {finished}. Нәтижесі — төмендегі кестеде."
+
+#: portal/js_messages.py:82
+#, python-brace-format
+msgid "Всего записей в базе: {count}"
+msgstr "Базадағы жазбалардың жалпы саны: {count}"
+
+#: portal/js_messages.py:83
+#, python-brace-format
+msgid "Не удалось загрузить состояние: {error}"
+msgstr "Жағдайды жүктеу мүмкін болмады: {error}"
+
+#: portal/js_messages.py:84
+#, python-brace-format
+msgid "Глубина должна быть от {min} до {max} дней."
+msgstr "Тереңдік {min} күннен {max} күнге дейін болуы керек."
+
+#: portal/js_messages.py:85
+#, python-brace-format
+msgid "Можно выбрать не больше {max} товаров для сравнения. Снимите отметку с одного из выбранных, чтобы добавить другой."
+msgstr "Салыстыру үшін {max} тауардан артық таңдауға болмайды. Басқасын қосу үшін таңдалғандардың бірінің белгісін алып тастаңыз."
+
+#: portal/js_messages.py:86
+#, python-brace-format
+msgid "{n} млрд"
+msgstr "{n} млрд"
+
+#: portal/js_messages.py:87
+#, python-brace-format
+msgid "{n} млн"
+msgstr "{n} млн"
+
+#: portal/js_messages.py:88
+#, python-brace-format
+msgid "{n} тыс."
+msgstr "{n} мың"
+
+#: portal/js_messages.py:89
+#, python-brace-format
+msgid "Товар №{id}"
+msgstr "№{id} тауар"
+
+#: portal/js_messages.py:90
+#, python-brace-format
+msgid "код {code}"
+msgstr "коды {code}"
+
+#: portal/js_messages.py:91
+#, python-brace-format
+msgid "ТН ВЭД {code}"
+msgstr "СЭҚ ТН {code}"
+
+#: portal/js_messages.py:92
+msgid "нет сделок"
+msgstr "мәміле жоқ"
+
+#: portal/js_messages.py:93
+msgid "Выбраны, но нет сделок в выбранной бирже и периоде"
+msgstr "Таңдалған, бірақ таңдалған биржа мен кезеңде мәміле жоқ"
+
+#: portal/js_messages.py:94
+msgid "Товары выборки"
+msgstr "Іріктеме тауарлары"
+
+#: portal/js_messages.py:95
+#, python-brace-format
+msgid "Показаны первые {shown} из {total} — уточните поиск"
+msgstr "{total} ішінен алғашқы {shown} көрсетілген — іздеуді нақтылаңыз"
+
+#: portal/js_messages.py:96
+msgid "Ничего не найдено — попробуйте часть слова или код ТН ВЭД"
+msgstr "Ештеңе табылмады — сөздің бір бөлігін немесе СЭҚ ТН кодын енгізіп көріңіз"
+
+#: portal/js_messages.py:97
+msgid "Загрузка списка товаров…"
+msgstr "Тауарлар тізімі жүктелуде…"
+
+#: portal/js_messages.py:98
+msgid "В выбранной бирже и периоде нет сделок"
+msgstr "Таңдалған биржа мен кезеңде мәміле жоқ"
+
+#: portal/js_messages.py:99
+#, python-brace-format
+msgid "Найдено: {found} из {total}"
+msgstr "Табылды: {total} ішінен {found}"
+
+#: portal/js_messages.py:100
+#, python-brace-format
+msgid "{count} {products} в выборке"
+msgstr "іріктемеде {count} {products}"
+
+#: portal/js_messages.py:101
+#, python-brace-format
+msgid "выбрано {n} из {max}"
+msgstr "{max} ішінен {n} таңдалды"
+
+#: portal/js_messages.py:102 portal/templates/portal/analytics.html:55
+msgid "Выбрать найденные"
+msgstr "Табылғандарды таңдау"
+
+#: portal/js_messages.py:103
+msgid "Закрыть список товаров"
+msgstr "Тауарлар тізімін жабу"
+
+#: portal/js_messages.py:104 portal/templates/portal/analytics.html:48
+msgid "Открыть список товаров"
+msgstr "Тауарлар тізімін ашу"
+
+#: portal/js_messages.py:105
+msgid "Старый фильтр по ключевому слову в названии товара"
+msgstr "Тауар атауындағы кілт сөз бойынша ескі сүзгі"
+
+#: portal/js_messages.py:106
+#, python-brace-format
+msgid "Слово: «{word}»"
+msgstr "Сөз: «{word}»"
+
+#: portal/js_messages.py:107
+#, python-brace-format
+msgid "Убрать фильтр по слову {word}"
+msgstr "{word} сөзі бойынша сүзгіні алып тастау"
+
+#: portal/js_messages.py:108
+#, python-brace-format
+msgid "Выбрано: {n}"
+msgstr "Таңдалды: {n}"
+
+#: portal/js_messages.py:109
+#, python-brace-format
+msgid "(без сделок: {n})"
+msgstr "(мәмілесіз: {n})"
+
+#: portal/js_messages.py:110
+msgid "Нет сделок в выбранной бирже и периоде"
+msgstr "Таңдалған биржа мен кезеңде мәміле жоқ"
+
+#: portal/js_messages.py:111
+#, python-brace-format
+msgid "Убрать: {name}"
+msgstr "Алып тастау: {name}"
+
+#: portal/js_messages.py:112
+msgid "Свернуть"
+msgstr "Жию"
+
+#: portal/js_messages.py:113
+#, python-brace-format
+msgid "Выбрано {n} — максимум"
+msgstr "{n} таңдалды — ең көбі"
+
+#: portal/js_messages.py:114
+msgid "Добавить товар…"
+msgstr "Тауар қосу…"
+
+#: portal/js_messages.py:115 portal/templates/portal/analytics.html:43 portal/templates/portal/analytics.html:54
+msgid "Все товары"
+msgstr "Барлық тауарлар"
+
+#: portal/js_messages.py:116
+msgid "У всех выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым."
+msgstr "Таңдалған тауарлардың ешқайсысында таңдалған биржа мен кезеңде мәміле жоқ — олар сұр түспен белгіленген."
+
+#: portal/js_messages.py:117
+msgid "У 1 выбранного товара нет сделок в выбранной бирже и периоде — он отмечен серым."
+msgstr "Таңдалған 1 тауарда таңдалған биржа мен кезеңде мәміле жоқ — ол сұр түспен белгіленген."
+
+#: portal/js_messages.py:118
+#, python-brace-format
+msgid "У {n} выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым."
+msgstr "Таңдалған {n} тауарда таңдалған биржа мен кезеңде мәміле жоқ — олар сұр түспен белгіленген."
+
+#: portal/js_messages.py:119
+msgid "Убрать его"
+msgstr "Оны алып тастау"
+
+#: portal/js_messages.py:120
+msgid "Убрать их"
+msgstr "Оларды алып тастау"
+
+#: portal/js_messages.py:121
+#, python-brace-format
+msgid "Добавлено {added} из {found} найденных: для сравнения можно выбрать не больше {max} товаров (взяты самые торгуемые)."
+msgstr "Табылған {found} тауардың {added} тауары қосылды: салыстыру үшін {max} тауардан артық таңдауға болмайды (ең көп саудаланатындары алынды)."
+
+#: portal/js_messages.py:122
+#, python-brace-format
+msgid "Убрано: {name}"
+msgstr "Алып тасталды: {name}"
+
+#: portal/js_messages.py:123
+#, python-brace-format
+msgid "Не удалось загрузить список товаров: {error}"
+msgstr "Тауарлар тізімін жүктеу мүмкін болмады: {error}"
+
+#: portal/js_messages.py:124
+msgid "нет связи с сервером"
+msgstr "сервермен байланыс жоқ"
+
+#: portal/js_messages.py:125
+msgid "средневзвешенная цена по дням, тг за единицу товара"
+msgstr "күндер бойынша орташа өлшенген баға, тауар бірлігі үшін тг"
+
+#: portal/js_messages.py:126
+msgid "изменение средневзвешенной цены к первому дню с ценой, %"
+msgstr "орташа өлшенген бағаның бағасы бар алғашқы күнге қатысты өзгерісі, %"
+
+#: portal/js_messages.py:127
+msgid "сумма сделок по дням, тг"
+msgstr "күндер бойынша мәмілелер сомасы, тг"
+
+#: portal/js_messages.py:128
+#, python-brace-format
+msgid "Показаны {n} {products} — выберите товары для сравнения"
+msgstr "{n} {products} көрсетілген — салыстыру үшін тауарларды таңдаңыз"
+
+#: portal/js_messages.py:129
+#, python-brace-format
+msgid "Выбрано: {n} {products}"
+msgstr "Таңдалды: {n} {products}"
+
+#: portal/js_messages.py:130
+msgid "Цены разных товаров могут быть в разных единицах (тонна, кубометр, литр) — для сопоставления динамики включите «Изменение, %»."
+msgstr "Әр тауардың бағасы әртүрлі өлшем бірлігінде болуы мүмкін (тонна, текше метр, литр) — серпінді салыстыру үшін «Өзгеріс, %» режимін қосыңыз."
+
+#: portal/js_messages.py:131
+msgid "Столбцы товаров за один день сложены."
+msgstr "Бір күнгі тауарлардың бағандары бірінің үстіне бірі қойылған."
+
+#: portal/js_messages.py:132
+msgid "У выбранных товаров нет сумм сделок за выбранный период"
+msgstr "Таңдалған тауарлардың таңдалған кезеңде мәміле сомалары жоқ"
+
+#: portal/js_messages.py:133
+msgid "У этого товара нет цен за выбранный период"
+msgstr "Бұл тауардың таңдалған кезеңде бағалары жоқ"
+
+#: portal/js_messages.py:134
+msgid "У выбранных товаров нет цен за выбранный период"
+msgstr "Таңдалған тауарлардың таңдалған кезеңде бағалары жоқ"
+
+#: portal/js_messages.py:135
+msgid "Нет данных за выбранный период"
+msgstr "Таңдалған кезеңде деректер жоқ"
+
+#: portal/js_messages.py:136
+msgid "Щелчок — скрыть или показать на графике"
+msgstr "Басу — графикте жасыру немесе көрсету"
+
+#: portal/js_messages.py:137
+msgid "нет данных"
+msgstr "деректер жоқ"
+
+#: portal/js_messages.py:138
+msgid "Сделок"
+msgstr "Мәмілелер"
+
+#: portal/js_messages.py:139
+msgid "Ср. взв. цена"
+msgstr "Орт. өлш. баға"
+
+#: portal/js_messages.py:140
+msgid "Первая"
+msgstr "Алғашқы"
+
+#: portal/js_messages.py:141
+msgid "Последняя"
+msgstr "Соңғы"
+
+#: portal/js_messages.py:142 portal/templates/portal/analytics.html:113
+msgid "Изменение"
+msgstr "Өзгеріс"
+
+#: portal/js_messages.py:143
+msgid "Посл. сделка"
+msgstr "Соңғы мәміле"
+
+#: portal/js_messages.py:144
+msgid "нет сделок в выбранной бирже и периоде"
+msgstr "таңдалған биржа мен кезеңде мәміле жоқ"
+
+#: portal/js_messages.py:145
+msgid "Последняя цена к первой за период"
+msgstr "Кезеңдегі соңғы бағаның алғашқы бағаға қатынасы"
+
+#: portal/js_messages.py:146
+msgid "Нужно хотя бы два дня с ценой"
+msgstr "Бағасы бар кемінде екі күн қажет"
+
+#: portal/js_messages.py:147
+msgid "Сумма сделок"
+msgstr "Мәмілелер сомасы"
+
+#: portal/js_messages.py:148
+#, python-brace-format
+msgid "Без суммы: {n} {records}"
+msgstr "Сомасыз: {n} {records}"
+
+#: portal/js_messages.py:149
+msgid "янв|фев|мар|апр|май|июн|июл|авг|сен|окт|ноя|дек"
+msgstr "қаң|ақп|нау|сәу|мам|мау|шіл|там|қыр|қаз|қар|жел"
+
+#: portal/js_messages.py:150
+msgid "январь|февраль|март|апрель|май|июнь|июль|август|сентябрь|октябрь|ноябрь|декабрь"
+msgstr "қаңтар|ақпан|наурыз|сәуір|мамыр|маусым|шілде|тамыз|қыркүйек|қазан|қараша|желтоқсан"
+
+#: portal/js_messages.py:151
+#, python-brace-format
+msgid "с {from} по {to}"
+msgstr "{from} бастап {to} дейін"
+
+#: portal/js_messages.py:152
+#, python-brace-format
+msgid "с {date}"
+msgstr "{date} бастап"
+
+#: portal/js_messages.py:153
+#, python-brace-format
+msgid "по {date}"
+msgstr "{date} дейін"
+
+#: portal/js_messages.py:154
+#, python-brace-format
+msgid "месяц неполный: данные {range}"
+msgstr "ай толық емес: деректер {range}"
+
+#: portal/js_messages.py:155
+#, python-brace-format
+msgid "данные {range}"
+msgstr "деректер {range}"
+
+#: portal/js_messages.py:156
+#, python-brace-format
+msgid "Бледный столбец — неполный месяц: {months}."
+msgstr "Бозғылт баған — толық емес ай: {months}."
+
+#: portal/js_messages.py:157
+#, python-brace-format
+msgid "Бледные столбцы — неполные месяцы: {months}."
+msgstr "Бозғылт бағандар — толық емес айлар: {months}."
+
+#: portal/js_messages.py:158
+msgid "Сумма сделок, тг"
+msgstr "Мәмілелер сомасы, тг"
+
+#: portal/js_messages.py:159
+#, python-brace-format
+msgid "Код {code}"
+msgstr "Коды {code}"
+
+#: portal/js_messages.py:160
+msgid "Нет покупателей с суммой сделок"
+msgstr "Мәміле сомасы бар сатып алушылар жоқ"
+
+#: portal/js_messages.py:161
+msgid "Нет продавцов с суммой сделок"
+msgstr "Мәміле сомасы бар сатушылар жоқ"
+
+#: portal/js_messages.py:162
+#, python-brace-format
+msgid "{n} из {total} {records}"
+msgstr "{total} {records} ішінен {n}"
+
+#: portal/js_messages.py:163
+#, python-brace-format
+msgid "У {n} {records} ({share}) нет суммы сделки: они учтены в числе записей и дней, но не входят в суммы и топы."
+msgstr "Мәміле сомасы көрсетілмеген: {n} {records} ({share}). Олар жазбалар мен күндер санында ескерілген, бірақ сомалар мен топтарға кірмейді."
+
+#: portal/js_messages.py:164
+#, python-brace-format
+msgid "Не найдены и убраны из выбора: {ids}"
+msgstr "Табылмады және таңдаудан алынып тасталды: {ids}"
+
+#: portal/js_messages.py:165
+msgid "Нет товаров с суммой сделок"
+msgstr "Мәміле сомасы бар тауарлар жоқ"
+
+#: portal/js_messages.py:166
+#, python-brace-format
+msgid "Не удалось загрузить аналитику: {error}"
+msgstr "Талдауды жүктеу мүмкін болмады: {error}"
+
+#: portal/js_messages.py:167
+#, python-brace-format
+msgid "В ссылке больше {max} товаров — взяты первые {max}."
+msgstr "Сілтемеде {max} тауардан көп — алғашқы {max} тауар алынды."
+
+#: portal/js_messages.py:168
+#, python-brace-format
+msgid "Библиотека графиков не загружена ({path})."
+msgstr "Графиктер кітапханасы жүктелмеді ({path})."
+
+#: portal/js_messages.py:169
+msgid "запись|записи|записей"
+msgstr "жазба"
+
+#: portal/js_messages.py:170
+msgid "записи|записей|записей"
+msgstr "жазба"
+
+#: portal/js_messages.py:171
+msgid "товар|товара|товаров"
+msgstr "тауар"
+
+#: portal/js_messages.py:172
+msgid "сделка|сделки|сделок"
+msgstr "мәміле"
+
+#: portal/js_messages.py:173
+msgid "самый торгуемый товар|самых торгуемых товара|самых торгуемых товаров"
+msgstr "тауар (ең көп саудаланатын)"
+
+#: portal/legal.py:15
+msgid "ИМЯ ФАМИЛИЯ"
+msgstr "АТЫ-ЖӨНІ"
+
+#: portal/legal.py:16
+msgid "ПОЧТА"
+msgstr "ПОШТА"
+
+#: portal/legal.py:17
+msgid "14 октября 2026 г."
+msgstr "2026 жылғы 14 қазан"
+
+#: portal/legal.py:19
+msgid "[наименование хостинг-провайдера и страна размещения серверов]"
+msgstr "[хостинг-провайдердің атауы және серверлер орналасқан ел]"
+
+#: portal/legal.py:25
+msgid "АО «Товарная биржа «Евразийская Торговая Система» (ETS)"
+msgstr "«Еуразиялық Сауда Жүйесі» тауар биржасы» АҚ (ETS)"
+
+#: portal/legal.py:29
+msgid "ежедневные файлы XLSX с итогами торгов, опубликованные в разделе «Итоги торгов»"
+msgstr "сауда-саттық нәтижелері бар күнделікті XLSX файлдары («Итоги торгов» бөлімінде жарияланады)"
+
+#: portal/legal.py:33
+msgid "АО «Товарная биржа «Каспий» (Caspian Commodity Exchange)"
+msgstr "«Каспий» тауар биржасы» АҚ (Caspian Commodity Exchange)"
+
+#: portal/legal.py:37
+msgid "данные публичной страницы «Итоги торгов», которые сайт биржи загружает для показа посетителям"
+msgstr "биржа сайты келушілерге көрсету үшін жүктейтін «Итоги торгов» (Сауда-саттық нәтижелері) жария бетінің деректері"
+
+#: portal/legal.py:43
+msgid "веб-фреймворк, ORM, шаблоны"
+msgstr "веб-фреймворк, ORM, үлгілер"
+
+#: portal/legal.py:45
+msgid "загрузка страниц и файлов бирж"
+msgstr "биржалардың беттері мен файлдарын жүктеу"
+
+#: portal/legal.py:47
+msgid "разбор HTML-страниц"
+msgstr "HTML беттерді талдау"
+
+#: portal/legal.py:49
+msgid "быстрый HTML/XML-парсер"
+msgstr "жылдам HTML/XML талдағышы"
+
+#: portal/legal.py:51
+msgid "чтение файлов ETS и экспорт в Excel"
+msgstr "ETS файлдарын оқу және Excel-ге экспорттау"
+
+#: portal/legal.py:53
+msgid "ежедневный запуск сбора по расписанию"
+msgstr "жинауды кесте бойынша күн сайын іске қосу"
+
+#: portal/legal.py:55
+msgid "графики на странице «Аналитика» (локальная копия)"
+msgstr "«Талдау» бетіндегі графиктер (жергілікті көшірме)"
+
+#: portal/legal.py:62
+msgid "WSGI-сервер для развёртывания"
+msgstr "орналастыруға арналған WSGI сервері"
+
+#: portal/legal.py:64
+msgid "WSGI-сервер для запуска в Windows"
+msgstr "Windows жүйесінде іске қосуға арналған WSGI сервері"
+
+#: portal/legal.py:66
+msgid "раздача статических файлов"
+msgstr "статикалық файлдарды тарату"
+
+#: portal/legal.py:68 portal/legal.py:70 portal/legal.py:72 portal/legal.py:74
+msgid "драйвер PostgreSQL"
+msgstr "PostgreSQL драйвері"
+
+#: portal/legal.py:76
+msgid "настройка БД через DATABASE_URL"
+msgstr "дерекқорды DATABASE_URL арқылы баптау"
+
+#: portal/legal.py:79
+msgid "чтение переменных окружения из .env"
+msgstr ".env файлынан орта айнымалыларын оқу"
+
+#: portal/legal.py:82
+msgid "база часовых поясов"
+msgstr "уақыт белдеулерінің дерекқоры"
+
+#: portal/legal.py:84
+msgid "автотесты (не входит в работающий сайт)"
+msgstr "автотесттер (жұмыс істеп тұрған сайтқа кірмейді)"
+
+#: portal/legal.py:86
+msgid "автотесты Django (не входит в работающий сайт)"
+msgstr "Django автотесттері (жұмыс істеп тұрған сайтқа кірмейді)"
+
+#: portal/queries.py:89
+#, python-format
+msgid "Параметр %(name)s: ожидается дата в формате ГГГГ-ММ-ДД"
+msgstr "%(name)s параметрі: ЖЖЖЖ-АА-КК пішіміндегі күн күтіледі"
+
+#: portal/queries.py:99 portal/queries.py:101
+#, python-format
+msgid "Параметр %(name)s: ожидается число"
+msgstr "%(name)s параметрі: сан күтіледі"
+
+#: portal/queries.py:111
+msgid "Параметр exchange: допустимы ets, caspy или пусто"
+msgstr "exchange параметрі: ets, caspy немесе бос мән рұқсат етіледі"
+
+#: portal/queries.py:136
+#, python-format
+msgid "Параметр ordering: недопустимое поле. Допустимы: %(fields)s"
+msgstr "ordering параметрі: жарамсыз өріс. Рұқсат етілгендері: %(fields)s"
+
+#: portal/queries.py:147
+msgid "Параметры page и page_size должны быть целыми числами"
+msgstr "page және page_size параметрлері бүтін сандар болуы керек"
+
+#: portal/templates/404.html:3 portal/templates/404.html:8
+msgid "Страница не найдена"
+msgstr "Бет табылмады"
+
+#: portal/templates/404.html:7 portal/templates/500.html:34
+msgctxt "заголовок страницы ошибки: Ошибка 404"
+msgid "Ошибка"
+msgstr "Қате"
+
+#: portal/templates/404.html:9
+msgid "Возможно, адрес набран с ошибкой или страница была перемещена."
+msgstr "Мекенжай қате терілген немесе бет басқа жерге ауыстырылған болуы мүмкін."
+
+#: portal/templates/404.html:11
+msgid "К итогам торгов"
+msgstr "Сауда-саттық нәтижелеріне"
+
+#: portal/templates/404.html:12 portal/templates/portal/base.html:28
+msgid "Новости"
+msgstr "Жаңалықтар"
+
+#: portal/templates/404.html:13 portal/templates/portal/base.html:29 portal/templates/portal/status.html:3 portal/templates/portal/status.html:6
+msgid "Состояние данных"
+msgstr "Деректер жағдайы"
+
+#: portal/templates/500.html:13
+msgid "Ошибка сервера"
+msgstr "Сервер қатесі"
+
+#: portal/templates/500.html:13 portal/templates/portal/base.html:10
+msgid "ETS и Каспий"
+msgstr "ETS және Каспий"
+
+#: portal/templates/500.html:24 portal/templates/portal/base.html:22
+msgid "биржи ETS и Каспий"
+msgstr "ETS және Каспий биржалары"
+
+#: portal/templates/500.html:35
+msgid "Внутренняя ошибка сервера"
+msgstr "Сервердің ішкі қатесі"
+
+#: portal/templates/500.html:36
+msgid "Что-то пошло не так. Попробуйте обновить страницу через минуту. Ранее собранные данные не пострадали."
+msgstr "Бірдеңе дұрыс болмады. Бір минуттан кейін бетті жаңартып көріңіз. Бұрын жиналған деректер зақымданған жоқ."
+
+#: portal/templates/500.html:38
+msgid "На главную"
+msgstr "Басты бетке"
+
+#: portal/templates/portal/_language_switch.html:3
+msgid "Язык интерфейса"
+msgstr "Интерфейс тілі"
+
+#: portal/templates/portal/_source_language_note.html:3
+msgid "Данные публикуются на языке источника: названия товаров, компаний и тексты новостей приводятся так, как их опубликовала биржа."
+msgstr "Деректер дереккөз тілінде жарияланады: тауарлар мен компаниялардың атаулары және жаңалықтар мәтіндері биржа жариялаған күйінде беріледі."
+
+#: portal/templates/portal/analytics.html:3 portal/templates/portal/base.html:27
+msgid "Аналитика"
+msgstr "Талдау"
+
+#: portal/templates/portal/analytics.html:6
+msgid "Аналитика торгов"
+msgstr "Сауда-саттықты талдау"
+
+#: portal/templates/portal/analytics.html:9
+msgid "Фильтры аналитики"
+msgstr "Талдау сүзгілері"
+
+#: portal/templates/portal/analytics.html:12 portal/templates/portal/trades.html:8 portal/templates/portal/trades.html:11
+msgid "Фильтры"
+msgstr "Сүзгілер"
+
+#: portal/templates/portal/analytics.html:14 portal/templates/portal/analytics.html:67 portal/templates/portal/news.html:27 portal/templates/portal/trades.html:13 portal/templates/portal/trades.html:63
+msgid "Сбросить"
+msgstr "Тазарту"
+
+#: portal/templates/portal/analytics.html:35
+msgid "Товары"
+msgstr "Тауарлар"
+
+#: portal/templates/portal/analytics.html:39
+msgid "Выбранные товары"
+msgstr "Таңдалған тауарлар"
+
+#: portal/templates/portal/analytics.html:45
+msgid "Сбросить выбор товаров"
+msgstr "Тауарлар таңдауын тазарту"
+
+#: portal/templates/portal/analytics.html:45
+msgid "Сбросить выбор (все товары)"
+msgstr "Таңдауды тазарту (барлық тауарлар)"
+
+#: portal/templates/portal/analytics.html:61
+msgid "Стрелки вниз и вверх — выбор строки, Enter или пробел — отметить товар, Escape — закрыть список. Можно выбрать до 10 товаров."
+msgstr "Төмен және жоғары көрсеткілері — жолды таңдау, Enter немесе бос орын — тауарды белгілеу, Escape — тізімді жабу. 10 тауарға дейін таңдауға болады."
+
+#: portal/templates/portal/analytics.html:77 portal/templates/portal/trades.html:109
+msgid "Повторить"
+msgstr "Қайталау"
+
+#: portal/templates/portal/analytics.html:80
+msgid "Сводка"
+msgstr "Жиынтық"
+
+#: portal/templates/portal/analytics.html:82
+msgid "Записей"
+msgstr "Жазбалар"
+
+#: portal/templates/portal/analytics.html:86
+msgid "Торговых дней"
+msgstr "Сауда күндері"
+
+#: portal/templates/portal/analytics.html:91
+msgid "Общая сумма сделок"
+msgstr "Мәмілелердің жалпы сомасы"
+
+#: portal/templates/portal/analytics.html:96
+msgid "Записей без суммы"
+msgstr "Сомасыз жазбалар"
+
+#: portal/templates/portal/analytics.html:108
+msgid "Сравнение товаров"
+msgstr "Тауарларды салыстыру"
+
+#: portal/templates/portal/analytics.html:111
+msgid "Что показать на графике"
+msgstr "Графикте не көрсету керек"
+
+#: portal/templates/portal/analytics.html:112
+msgid "Цена"
+msgstr "Баға"
+
+#: portal/templates/portal/analytics.html:114
+msgid "Сумма по дням"
+msgstr "Күндер бойынша сома"
+
+#: portal/templates/portal/analytics.html:118
+msgid "Средневзвешенная цена выбранных товаров по дням"
+msgstr "Таңдалған тауарлардың күндер бойынша орташа өлшенген бағасы"
+
+#: portal/templates/portal/analytics.html:121
+msgid "Товары на графике"
+msgstr "Графиктегі тауарлар"
+
+#: portal/templates/portal/analytics.html:126
+msgid "Сравнение товаров за выбранный период"
+msgstr "Таңдалған кезеңдегі тауарларды салыстыру"
+
+#: portal/templates/portal/analytics.html:135
+msgid "Оборот по дням"
+msgstr "Күндер бойынша айналым"
+
+#: portal/templates/portal/analytics.html:136 portal/templates/portal/analytics.html:147
+msgid "столбцы — сумма сделок, линия — число сделок"
+msgstr "бағандар — мәмілелер сомасы, сызық — мәмілелер саны"
+
+#: portal/templates/portal/analytics.html:139
+msgid "Оборот по дням: сумма и число сделок"
+msgstr "Күндер бойынша айналым: мәмілелер сомасы мен саны"
+
+#: portal/templates/portal/analytics.html:146
+msgid "Оборот по месяцам"
+msgstr "Айлар бойынша айналым"
+
+#: portal/templates/portal/analytics.html:150
+msgid "Оборот по месяцам: сумма и число сделок"
+msgstr "Айлар бойынша айналым: мәмілелер сомасы мен саны"
+
+#: portal/templates/portal/analytics.html:158
+msgid "Топ-10 товаров по сумме"
+msgstr "Сома бойынша үздік 10 тауар"
+
+#: portal/templates/portal/analytics.html:159
+msgid "сумма сделок, тг"
+msgstr "мәмілелер сомасы, тг"
+
+#: portal/templates/portal/analytics.html:162
+msgid "Топ-10 товаров по сумме сделок"
+msgstr "Мәмілелер сомасы бойынша үздік 10 тауар"
+
+#: portal/templates/portal/analytics.html:169
+msgid "Топ-10 участников по сумме"
+msgstr "Сома бойынша үздік 10 қатысушы"
+
+#: portal/templates/portal/analytics.html:170
+msgid "Роль участника"
+msgstr "Қатысушының рөлі"
+
+#: portal/templates/portal/analytics.html:171
+msgid "Покупатели"
+msgstr "Сатып алушылар"
+
+#: portal/templates/portal/analytics.html:172
+msgid "Продавцы"
+msgstr "Сатушылар"
+
+#: portal/templates/portal/analytics.html:176
+msgid "Топ-10 участников торгов по сумме сделок"
+msgstr "Мәмілелер сомасы бойынша сауда-саттыққа қатысушылардың үздік ондығы"
+
+#: portal/templates/portal/base.html:9
+msgid "Итоги торгов товарных бирж Казахстана ETS и Каспий: поиск, фильтры, аналитика, экспорт в Excel."
+msgstr "Қазақстанның ETS және Каспий тауар биржаларының сауда-саттық нәтижелері: іздеу, сүзгілер, талдау, Excel-ге экспорттау."
+
+#: portal/templates/portal/base.html:15
+msgid "Перейти к содержимому"
+msgstr "Мазмұнға өту"
+
+#: portal/templates/portal/base.html:25
+msgid "Разделы"
+msgstr "Бөлімдер"
+
+#: portal/templates/portal/base.html:45
+msgid "Данные:"
+msgstr "Деректер:"
+
+#: portal/templates/portal/base.html:47
+msgid "некоммерческий информационный проект"
+msgstr "коммерциялық емес ақпараттық жоба"
+
+#: portal/templates/portal/base.html:48
+msgid "Сведения носят справочный характер и не являются офертой или инвестиционной рекомендацией."
+msgstr "Мәліметтер анықтамалық сипатта және оферта немесе инвестициялық ұсыным болып табылмайды."
+
+#: portal/templates/portal/base.html:50 portal/templates/portal/legal/_layout.html:8
+msgid "Правовая информация"
+msgstr "Құқықтық ақпарат"
+
+#: portal/templates/portal/base.html:51 portal/templates/portal/legal/_layout.html:9
+msgid "Пользовательское соглашение"
+msgstr "Пайдаланушы келісімі"
+
+#: portal/templates/portal/base.html:52 portal/templates/portal/legal/_layout.html:10
+msgid "Политика конфиденциальности"
+msgstr "Құпиялылық саясаты"
+
+#: portal/templates/portal/base.html:53 portal/templates/portal/legal/_layout.html:11
+msgid "Политика cookie"
+msgstr "Cookie саясаты"
+
+#: portal/templates/portal/base.html:54 portal/templates/portal/legal/_layout.html:12
+msgid "Источники данных и лицензии"
+msgstr "Деректер көздері және лицензиялар"
+
+#: portal/templates/portal/base.html:62
+msgid "Мы используем только необходимые cookie"
+msgstr "Біз тек қажетті cookie файлдарын қолданамыз"
+
+#: portal/templates/portal/base.html:63
+#, python-format
+msgid "Сайт сохраняет технические cookie, без которых не работают формы, защита от подделки запросов и выбор языка. Аналитических и рекламных cookie нет. Подробнее — в <a href=\"%(cookies_url)s\">политике использования cookie</a> и <a href=\"%(privacy_url)s\">политике конфиденциальности</a>."
+msgstr "Сайт техникалық cookie файлдарын сақтайды: оларсыз формалар, сұрауларды қолдан жасаудан қорғау және тілді таңдау жұмыс істемейді. Аналитикалық және жарнамалық cookie жоқ. Толығырақ — <a href=\"%(cookies_url)s\">cookie пайдалану саясатында</a> және <a href=\"%(privacy_url)s\">құпиялылық саясатында</a>."
+
+#: portal/templates/portal/base.html:69
+msgid "Подробнее"
+msgstr "Толығырақ"
+
+#: portal/templates/portal/base.html:70
+msgid "Принять"
+msgstr "Қабылдау"
+
+#: portal/templates/portal/legal/_layout.html:7
+msgid "Правовые документы"
+msgstr "Құқықтық құжаттар"
+
+#: portal/templates/portal/legal/_layout.html:18
+msgid "Перевод для удобства; при расхождении действует русская версия."
+msgstr "Аударма ыңғайлылық үшін берілген; сәйкессіздік болған жағдайда орыс тіліндегі нұсқасы қолданылады."
+
+#: portal/templates/portal/legal/_layout.html:22
+msgid "Открыть русскую версию"
+msgstr "Орыс тіліндегі нұсқасын ашу"
+
+#: portal/templates/portal/legal/_layout.html:28
+#, python-format
+msgid "Дата редакции: %(edition_date)s"
+msgstr "Редакция күні: %(edition_date)s"
+
+#: portal/templates/portal/legal/_layout.html:29
+#, python-format
+msgid "Владелец сайта: %(site_owner)s. Контакт: <a href=\"mailto:%(contact_email)s\">%(contact_email)s</a>."
+msgstr "Сайт иесі: %(site_owner)s. Байланыс: <a href=\"mailto:%(contact_email)s\">%(contact_email)s</a>."
+
+#: portal/templates/portal/news.html:3
+#, python-format
+msgid "Новости бирж, страница %(number)s"
+msgstr "Биржа жаңалықтары, %(number)s-бет"
+
+#: portal/templates/portal/news.html:3 portal/templates/portal/news.html:7
+msgid "Новости бирж"
+msgstr "Биржа жаңалықтары"
+
+#: portal/templates/portal/news.html:4
+msgid "Лента новостей товарных бирж ETS и Каспий со ссылками на оригинальные публикации."
+msgstr "ETS және Каспий тауар биржаларының түпнұсқа жарияланымдарға сілтемелері бар жаңалықтар таспасы."
+
+#: portal/templates/portal/news.html:10
+msgid "Фильтр новостей"
+msgstr "Жаңалықтар сүзгісі"
+
+#: portal/templates/portal/news.html:15
+msgid "Все биржи"
+msgstr "Барлық биржалар"
+
+#: portal/templates/portal/news.html:22
+msgid "Поиск по заголовку"
+msgstr "Тақырып бойынша іздеу"
+
+#: portal/templates/portal/news.html:23
+msgid "например, торги углём"
+msgstr "мысалы, торги углём"
+
+#: portal/templates/portal/news.html:26
+msgid "Найти"
+msgstr "Іздеу"
+
+#: portal/templates/portal/news.html:32
+msgid "Список новостей"
+msgstr "Жаңалықтар тізімі"
+
+#: portal/templates/portal/news.html:35
+#, python-format
+msgid "Найдено: %(count)s"
+msgstr "Табылды: %(count)s"
+
+#: portal/templates/portal/news.html:35
+#, python-format
+msgid "страница %(number)s из %(pages)s"
+msgstr "%(pages)s беттің %(number)s-беті"
+
+#: portal/templates/portal/news.html:47
+msgid "откроется в новой вкладке"
+msgstr "жаңа қойындыда ашылады"
+
+#: portal/templates/portal/news.html:57
+msgid "Страницы новостей"
+msgstr "Жаңалықтар беттері"
+
+#: portal/templates/portal/news.html:74 portal/templates/portal/trades.html:103
+msgid "Ничего не найдено"
+msgstr "Ештеңе табылмады"
+
+#: portal/templates/portal/news.html:75
+msgid "Измените условия поиска или сбросьте фильтр."
+msgstr "Іздеу шарттарын өзгертіңіз немесе сүзгіні тазартыңыз."
+
+#: portal/templates/portal/news.html:76
+msgid "Показать все новости"
+msgstr "Барлық жаңалықтарды көрсету"
+
+#: portal/templates/portal/news.html:80
+msgid "Новостей пока нет — запустите сбор"
+msgstr "Әзірге жаңалықтар жоқ — жинауды іске қосыңыз"
+
+#: portal/templates/portal/news.html:83
+msgid "Выполните в консоли"
+msgstr "Консольде орындаңыз:"
+
+#: portal/templates/portal/news.html:83
+msgid "или"
+msgstr "немесе"
+
+#: portal/templates/portal/news.html:85
+msgid "Новости появятся после первого запуска сбора новостей с сайтов бирж."
+msgstr "Жаңалықтар биржа сайттарынан жаңалықтар алғаш жиналғаннан кейін пайда болады."
+
+#: portal/templates/portal/status.html:10
+msgid "Загрузка…"
+msgstr "Жүктелуде…"
+
+#: portal/templates/portal/status.html:14
+msgid "Ручной запуск сбора"
+msgstr "Жинауды қолмен іске қосу"
+
+#: portal/templates/portal/status.html:17
+msgid "Демо-версия: сбор данных отключён."
+msgstr "Демо-нұсқа: деректерді жинау өшірілген."
+
+#: portal/templates/portal/status.html:18
+msgid "Здесь показаны ранее собранные данные. Чтобы собирать новые итоги торгов, запустите проект локально (команды — ниже)."
+msgstr "Мұнда бұрын жиналған деректер көрсетілген. Жаңа сауда-саттық нәтижелерін жинау үшін жобаны жергілікті түрде іске қосыңыз (командалар — төменде)."
+
+#: portal/templates/portal/status.html:21
+msgid "Сбор идёт в фоне: страницу можно не закрывать, статус обновляется автоматически. Повторный запуск недоступен, пока не завершён предыдущий."
+msgstr "Жинау фондық режимде жүреді: бетті жаппауға болады, күйі автоматты түрде жаңартылады. Алдыңғы іске қосу аяқталмайынша, қайта іске қосу мүмкін емес."
+
+#: portal/templates/portal/status.html:32
+msgid "Глубина, дней"
+msgstr "Тереңдік, күн"
+
+#: portal/templates/portal/status.html:37
+msgid "Запустить сбор вручную"
+msgstr "Жинауды қолмен іске қосу"
+
+#: portal/templates/portal/status.html:40
+msgid "Быстрый выбор:"
+msgstr "Жылдам таңдау:"
+
+#: portal/templates/portal/status.html:41
+msgid "1 день"
+msgstr "1 күн"
+
+#: portal/templates/portal/status.html:42
+msgid "3 дня"
+msgstr "3 күн"
+
+#: portal/templates/portal/status.html:43
+msgid "неделя"
+msgstr "апта"
+
+#: portal/templates/portal/status.html:44
+msgid "месяц"
+msgstr "ай"
+
+#: portal/templates/portal/status.html:45
+#, python-format
+msgid "вся история (%(days)s дн.)"
+msgstr "бүкіл тарих (%(days)s күн)"
+
+#: portal/templates/portal/status.html:52
+msgid "Как запустить сбор из консоли"
+msgstr "Жинауды консольден қалай іске қосуға болады"
+
+#: portal/templates/portal/status.html:53
+msgid "В папке проекта, с активированным виртуальным окружением:"
+msgstr "Жоба қалтасында, виртуалды орта белсендірілген күйде:"
+
+#: portal/templates/portal/status.html:55
+#, python-format
+msgid "Обе биржи за последние %(days)s дней (по умолчанию)"
+msgstr "Екі биржа да, соңғы %(days)s күн (әдепкі бойынша)"
+
+#: portal/templates/portal/status.html:57
+msgid "Одна биржа за последние N дней"
+msgstr "Бір биржа, соңғы N күн"
+
+#: portal/templates/portal/status.html:59
+msgid "За произвольный период"
+msgstr "Ерікті кезең үшін"
+
+#: portal/templates/portal/status.html:61
+msgid "Ежедневный сбор по расписанию (процесс работает постоянно)"
+msgstr "Кесте бойынша күнделікті жинау (процесс үздіксіз жұмыс істейді)"
+
+#: portal/templates/portal/status.html:64
+msgid "Сбор новостей"
+msgstr "Жаңалықтарды жинау"
+
+#: portal/templates/portal/status.html:68
+msgid "Повторный запуск безопасен: уже сохранённые записи не дублируются. Расписание и паузы между запросами настраиваются в файле <code>scraper.toml</code>."
+msgstr "Қайта іске қосу қауіпсіз: бұрын сақталған жазбалар қайталанбайды. Кесте мен сұраулар арасындағы үзілістер <code>scraper.toml</code> файлында бапталады."
+
+#: portal/templates/portal/status.html:74
+msgid "Последние запуски парсеров"
+msgstr "Парсерлердің соңғы іске қосылулары"
+
+#: portal/templates/portal/status.html:80
+msgid "Начало"
+msgstr "Басталуы"
+
+#: portal/templates/portal/status.html:82
+msgid "Запуск"
+msgstr "Іске қосу"
+
+#: portal/templates/portal/status.html:83
+msgid "Период"
+msgstr "Кезең"
+
+#: portal/templates/portal/status.html:84
+msgid "Статус"
+msgstr "Күйі"
+
+#: portal/templates/portal/status.html:85
+msgid "Добавлено"
+msgstr "Қосылды"
+
+#: portal/templates/portal/status.html:86
+msgid "Пропущено"
+msgstr "Өткізілді"
+
+#: portal/templates/portal/status.html:87
+msgid "Ошибки"
+msgstr "Қателер"
+
+#: portal/templates/portal/status.html:93
+msgid "Запусков ещё не было"
+msgstr "Әлі іске қосулар болған жоқ"
+
+#: portal/templates/portal/status.html:94
+msgid "В демо-версии сбор не запускается."
+msgstr "Демо-нұсқада жинау іске қосылмайды."
+
+#: portal/templates/portal/status.html:94
+msgid "Нажмите «Запустить сбор вручную» или дождитесь запуска по расписанию."
+msgstr "«Жинауды қолмен іске қосу» батырмасын басыңыз немесе кесте бойынша іске қосылуын күтіңіз."
+
+#: portal/templates/portal/status.html:98
+msgid "Для работы страницы необходим JavaScript."
+msgstr "Бет жұмыс істеуі үшін JavaScript қажет."
+
+#: portal/templates/portal/trades.html:6
+msgid "Итоги торгов бирж ETS и Каспий"
+msgstr "ETS және Каспий биржаларының сауда-саттық нәтижелері"
+
+#: portal/templates/portal/trades.html:35
+msgid "например, пшеница"
+msgstr "мысалы, пшеница"
+
+#: portal/templates/portal/trades.html:39
+msgid "Продавец или покупатель (название / БИН)"
+msgstr "Сатушы немесе сатып алушы (атауы / БСН)"
+
+#: portal/templates/portal/trades.html:40
+msgid "название или БИН"
+msgstr "атауы немесе БСН"
+
+#: portal/templates/portal/trades.html:45
+msgid "название брокера"
+msgstr "брокердің атауы"
+
+#: portal/templates/portal/trades.html:54
+msgid "без ограничения"
+msgstr "шектеусіз"
+
+#: portal/templates/portal/trades.html:57
+msgid "Место или базис поставки"
+msgstr "Жеткізу орны немесе базисі"
+
+#: portal/templates/portal/trades.html:58
+msgid "город, станция, базис (FCA, EXW…)"
+msgstr "қала, станция, базис (FCA, EXW…)"
+
+#: portal/templates/portal/trades.html:59
+msgid "Ищется в месте поставки, базисе поставки, а у записей без места — в названии товара"
+msgstr "Жеткізу орнынан, жеткізу базисінен, ал орны көрсетілмеген жазбаларда тауар атауынан ізделеді"
+
+#: portal/templates/portal/trades.html:69
+msgid "Результаты"
+msgstr "Нәтижелер"
+
+#: portal/templates/portal/trades.html:81
+msgid "Строк на странице"
+msgstr "Беттегі жолдар"
+
+#: portal/templates/portal/trades.html:89
+msgid "Скачать Excel"
+msgstr "Excel жүктеп алу"
+
+#: portal/templates/portal/trades.html:104
+msgid "Измените условия поиска или сбросьте фильтры."
+msgstr "Іздеу шарттарын өзгертіңіз немесе сүзгілерді тазартыңыз."
+
+#: portal/templates/portal/trades.html:107
+msgid "Не удалось загрузить данные"
+msgstr "Деректерді жүктеу мүмкін болмады"
+
+#: portal/templates/portal/trades.html:113
+msgid "Страницы"
+msgstr "Беттер"
+
+#: portal/templates/portal/trades.html:118
+msgid "Последние новости"
+msgstr "Соңғы жаңалықтар"
+
+#: portal/templates/portal/trades.html:119
+msgid "Все новости →"
+msgstr "Барлық жаңалықтар →"
+
+#: portal/templates/portal/trades.html:132
+msgid "Новостей пока нет — запустите сбор новостей."
+msgstr "Әзірге жаңалықтар жоқ — жаңалықтарды жинауды іске қосыңыз."
+
+#: portal/views.py:49
+msgid "Демо-версия: сбор данных отключён. Запустите проект локально, чтобы собирать данные с сайтов бирж."
+msgstr "Демо-нұсқа: деректерді жинау өшірілген. Биржа сайттарынан деректер жинау үшін жобаны жергілікті түрде іске қосыңыз."
+
+#: portal/views.py:345
+#, python-format
+msgid "Параметр field: допустимы %(values)s"
+msgstr "field параметрі: рұқсат етілген мәндер — %(values)s"
+
+#: portal/views.py:438
+msgid "Тело запроса: некорректный JSON"
+msgstr "Сұрау денесі: жарамсыз JSON"
+
+#: portal/views.py:440
+msgid "Тело запроса: ожидается JSON-объект"
+msgstr "Сұрау денесі: JSON нысаны күтіледі"
+
+#: portal/views.py:458 portal/views.py:465
+msgid "Биржа: допустимы ets, caspy или all"
+msgstr "Биржа: ets, caspy немесе all рұқсат етіледі"
+
+#: portal/views.py:481
+#, python-format
+msgid "Глубина: от %(min)s до %(max)s дней"
+msgstr "Тереңдік: %(min)s күннен %(max)s күнге дейін"
+
+#: portal/views.py:488
+msgid "Период: даты в формате ГГГГ-ММ-ДД, глубина — целое число дней"
+msgstr "Кезең: күндер ЖЖЖЖ-АА-КК пішімінде, тереңдік — күндердің бүтін саны"
+
+#: portal/views.py:492
+#, python-format
+msgid "Период не должен превышать %(max)s дней"
+msgstr "Кезең %(max)s күннен аспауы керек"
+
+#: portal/views.py:513
+msgid "Сервис сбора данных пока не подключён (scrapers.service.collect)"
+msgstr "Деректерді жинау қызметі әлі қосылмаған (scrapers.service.collect)"
+
+#: portal/views.py:516 portal/views.py:518
+msgid "Сбор уже выполняется — дождитесь завершения"
+msgstr "Жинау қазір орындалып жатыр — аяқталуын күтіңіз"

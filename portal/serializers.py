@@ -3,6 +3,8 @@ from django.utils import timezone
 
 from exchanges.models import News, ParseRun, Trade
 
+from . import i18n
+
 
 def to_float(value):
     """Decimal -> float (для JSON); None остаётся None."""
@@ -19,7 +21,7 @@ def trade_to_dict(t: Trade) -> dict:
     return {
         'id': t.id,
         'exchange': t.exchange.code,
-        'exchange_name': t.exchange.name,
+        'exchange_name': i18n.exchange_label(t.exchange.code, t.exchange.name),
         'trade_date': t.trade_date.isoformat(),
         'trade_time': t.trade_time.strftime('%H:%M:%S') if t.trade_time else None,
         'product': t.product.name,
@@ -64,13 +66,12 @@ def run_to_dict(run: ParseRun) -> dict:
     return {
         'id': run.id,
         'exchange': run.exchange.code,
-        'exchange_name': run.exchange.name,
+        'exchange_name': i18n.exchange_label(run.exchange.code, run.exchange.name),
         'status': run.status,
-        'status_display': run.get_status_display(),
+        # подписи — на языке интерфейса (в модели choices русские)
+        'status_display': i18n.run_status_label(run.status, run.get_status_display()),
         'trigger': run.trigger,
-        'trigger_display': {'manual': 'Вручную', 'schedule': 'По расписанию'}.get(
-            run.trigger, run.trigger
-        ),
+        'trigger_display': i18n.trigger_label(run.trigger),
         'started_at': timezone.localtime(run.started_at).isoformat() if run.started_at else None,
         'started_at_display': format_datetime(run.started_at),
         'finished_at': timezone.localtime(run.finished_at).isoformat() if run.finished_at else None,
@@ -88,7 +89,7 @@ def news_to_dict(item: News) -> dict:
     """Представление новости биржи (нужен select_related('exchange'))."""
     return {
         'id': item.id,
-        'exchange': item.exchange.name,
+        'exchange': i18n.exchange_label(item.exchange.code, item.exchange.name),
         'exchange_code': item.exchange.code,
         'title': item.title,
         'published_at': item.published_at.isoformat() if item.published_at else None,

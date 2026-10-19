@@ -1,34 +1,37 @@
-{% load static %}<!doctype html>
-<html lang="ru">
+{% load static i18n portal_extras %}{% get_current_language as LANGUAGE_CODE %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   {% include 'portal/_theme_init.html' %}
   <meta name="csrf-token" content="{{ csrf_token }}">
-  <meta name="description" content="{% block description %}Итоги торгов товарных бирж Казахстана ETS и Каспий: поиск, фильтры, аналитика, экспорт в Excel.{% endblock %}">
-  <title>{% block title %}Итоги торгов{% endblock %} — ETS и Каспий</title>
+  <meta name="description" content="{% block description %}{% translate 'Итоги торгов товарных бирж Казахстана ETS и Каспий: поиск, фильтры, аналитика, экспорт в Excel.' %}{% endblock %}">
+  <title>{% block title %}{% translate 'Итоги торгов' %}{% endblock %} — {% translate 'ETS и Каспий' %}</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e5a61'/%3E%3Cpath d='M9 8h14M9 12.5h14M16 12.5V25' stroke='white' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="{% static 'portal/style.css' %}">
 </head>
 <body data-page="{{ page }}">
-  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <a class="skip-link" href="#main">{% translate 'Перейти к содержимому' %}</a>
   <header class="site-header">
     <div class="container header-row">
       <a class="brand" href="{% url 'portal:trades' %}">
         <span class="brand-mark" aria-hidden="true">₸</span>
         <span class="brand-text">
-          <span class="brand-title">Итоги торгов</span>
-          <span class="brand-sub">биржи ETS и Каспий</span>
+          <span class="brand-title">{% translate 'Итоги торгов' %}</span>
+          <span class="brand-sub">{% translate 'биржи ETS и Каспий' %}</span>
         </span>
       </a>
-      <nav class="main-nav" aria-label="Разделы">
-        <a href="{% url 'portal:trades' %}" {% if page == 'trades' %}aria-current="page" {% endif %}class="{% if page == 'trades' %}active{% endif %}">Итоги торгов</a>
-        <a href="{% url 'portal:analytics' %}" {% if page == 'analytics' %}aria-current="page" {% endif %}class="{% if page == 'analytics' %}active{% endif %}">Аналитика</a>
-        <a href="{% url 'portal:news' %}" {% if page == 'news' %}aria-current="page" {% endif %}class="{% if page == 'news' %}active{% endif %}">Новости</a>
-        <a href="{% url 'portal:status' %}" {% if page == 'status' %}aria-current="page" {% endif %}class="{% if page == 'status' %}active{% endif %}">Состояние данных</a>
+      <nav class="main-nav" aria-label="{% translate 'Разделы' %}">
+        <a href="{% url 'portal:trades' %}" {% if page == 'trades' %}aria-current="page" {% endif %}class="{% if page == 'trades' %}active{% endif %}">{% translate 'Итоги торгов' %}</a>
+        <a href="{% url 'portal:analytics' %}" {% if page == 'analytics' %}aria-current="page" {% endif %}class="{% if page == 'analytics' %}active{% endif %}">{% translate 'Аналитика' %}</a>
+        <a href="{% url 'portal:news' %}" {% if page == 'news' %}aria-current="page" {% endif %}class="{% if page == 'news' %}active{% endif %}">{% translate 'Новости' %}</a>
+        <a href="{% url 'portal:status' %}" {% if page == 'status' %}aria-current="page" {% endif %}class="{% if page == 'status' %}active{% endif %}">{% translate 'Состояние данных' %}</a>
       </nav>
-      {% include 'portal/_theme_toggle.html' %}
+      <div class="header-tools">
+        {% include 'portal/_language_switch.html' %}
+        {% include 'portal/_theme_toggle.html' %}
+      </div>
     </div>
   </header>
 
@@ -39,16 +42,16 @@
   <footer class="site-footer">
     <div class="container footer-row">
       <div class="footer-info">
-        <div>Данные: <a href="https://ets.kz/" target="_blank" rel="noopener noreferrer">ETS</a>,
-          <a href="https://ccx.kz/" target="_blank" rel="noopener noreferrer">Каспий</a>
-          · некоммерческий информационный проект · {% now "Y" %}</div>
-        <div class="footer-note">Сведения носят справочный характер и не являются офертой или инвестиционной рекомендацией.</div>
+        <div>{% translate 'Данные:' %} <a href="https://ets.kz/" target="_blank" rel="noopener noreferrer">ETS</a>,
+          <a href="https://ccx.kz/" target="_blank" rel="noopener noreferrer">{% translate 'Каспий' %}</a>
+          · {% translate 'некоммерческий информационный проект' %} · {% now "Y" %}</div>
+        <div class="footer-note">{% translate 'Сведения носят справочный характер и не являются офертой или инвестиционной рекомендацией.' %}</div>
       </div>
-      <nav class="footer-nav" aria-label="Правовая информация">
-        <a href="{% url 'portal:legal_terms' %}" {% if page == 'legal-terms' %}aria-current="page"{% endif %}>Пользовательское соглашение</a>
-        <a href="{% url 'portal:legal_privacy' %}" {% if page == 'legal-privacy' %}aria-current="page"{% endif %}>Политика конфиденциальности</a>
-        <a href="{% url 'portal:legal_cookies' %}" {% if page == 'legal-cookies' %}aria-current="page"{% endif %}>Политика cookie</a>
-        <a href="{% url 'portal:legal_sources' %}" {% if page == 'legal-sources' %}aria-current="page"{% endif %}>Источники данных и лицензии</a>
+      <nav class="footer-nav" aria-label="{% translate 'Правовая информация' %}">
+        <a href="{% url 'portal:legal_terms' %}" {% if page == 'legal-terms' %}aria-current="page"{% endif %}>{% translate 'Пользовательское соглашение' %}</a>
+        <a href="{% url 'portal:legal_privacy' %}" {% if page == 'legal-privacy' %}aria-current="page"{% endif %}>{% translate 'Политика конфиденциальности' %}</a>
+        <a href="{% url 'portal:legal_cookies' %}" {% if page == 'legal-cookies' %}aria-current="page"{% endif %}>{% translate 'Политика cookie' %}</a>
+        <a href="{% url 'portal:legal_sources' %}" {% if page == 'legal-sources' %}aria-current="page"{% endif %}>{% translate 'Источники данных и лицензии' %}</a>
       </nav>
     </div>
   </footer>
@@ -56,19 +59,20 @@
   <section class="cookie-banner" id="cookie-banner" role="region" aria-labelledby="cookie-banner-title" hidden>
     <div class="container cookie-banner-row">
       <div class="cookie-banner-text">
-        <h2 class="cookie-banner-title" id="cookie-banner-title">Мы используем только необходимые cookie</h2>
-        <p>Сайт сохраняет технические cookie, без которых не работают формы и защита от подделки запросов.
+        <h2 class="cookie-banner-title" id="cookie-banner-title">{% translate 'Мы используем только необходимые cookie' %}</h2>
+        <p>{% url 'portal:legal_cookies' as cookies_url %}{% url 'portal:legal_privacy' as privacy_url %}{% blocktranslate trimmed %}Сайт сохраняет технические cookie, без которых не работают формы, защита от подделки запросов и выбор языка.
           Аналитических и рекламных cookie нет. Подробнее — в
-          <a href="{% url 'portal:legal_cookies' %}">политике использования cookie</a> и
-          <a href="{% url 'portal:legal_privacy' %}">политике конфиденциальности</a>.</p>
+          <a href="{{ cookies_url }}">политике использования cookie</a> и
+          <a href="{{ privacy_url }}">политике конфиденциальности</a>.{% endblocktranslate %}</p>
       </div>
       <div class="cookie-banner-actions">
-        <a class="btn" href="{% url 'portal:legal_cookies' %}">Подробнее</a>
-        <button type="button" class="btn btn-primary" id="cookie-accept">Принять</button>
+        <a class="btn" href="{% url 'portal:legal_cookies' %}">{% translate 'Подробнее' %}</a>
+        <button type="button" class="btn btn-primary" id="cookie-accept">{% translate 'Принять' %}</button>
       </div>
     </div>
   </section>
 
+  {% portal_i18n %}
   {% block scripts %}{% endblock %}
   <script src="{% static 'portal/app.js' %}"></script>
 </body>

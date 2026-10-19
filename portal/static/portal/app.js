@@ -35,29 +35,106 @@
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
-  const nfInt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
-  const nfMoney = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const nfQty = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  /* ===================================================== язык интерфейса */
 
-  /** 'ГГГГ-ММ-ДД' -> 'дд.мм.гггг' (без Date, чтобы не зависеть от часового пояса). */
+  /* Словарь переводов текущего языка выводит сервер в base.html (<script id="portal-i18n"
+   * type="application/json">, тег {% portal_i18n %}): {lang, locale, messages}.
+   * Ключ — русский текст строки (как msgid в gettext), значение — перевод.
+   * Нет словаря или строки в нём — показывается русский текст. Список строк — portal/js_messages.py. */
+  const I18N = (function () {
+    try {
+      const node = document.getElementById('portal-i18n');
+      const data = node ? JSON.parse(node.textContent) : null;
+      return data && typeof data === 'object' ? data : {};
+    } catch (e) {
+      return {};
+    }
+  })();
+  const LANG = I18N.lang || document.documentElement.getAttribute('lang') || 'ru';
+  const MESSAGES = I18N.messages || {};
+
+  /** Локаль для Intl: kk-KZ поддерживают не все браузеры — тогда запасная ru-RU (те же форматы).
+   * supportedLocalesOf недостаточно: встроенные браузеры с урезанными данными ICU «поддерживают»
+   * kk-KZ, но форматируют по корневой локали (2026-10-17, 6,149). Поэтому проверяем результат. */
+  const LOCALE = (function () {
+    const SAMPLE_DATE = { 'kk-KZ': '17.10.2026', 'ru-RU': '17.10.2026', 'en-GB': '17/10/2026' };
+    const candidates = [I18N.locale, 'ru-RU'].filter(Boolean);
+    for (const candidate of candidates) {
+      try {
+        if (!Intl.NumberFormat.supportedLocalesOf([candidate]).length) continue;
+        const expected = SAMPLE_DATE[candidate];
+        const date = new Intl.DateTimeFormat(candidate, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+          .format(new Date(Date.UTC(2026, 9, 17)));
+        const number = new Intl.NumberFormat(candidate, { maximumFractionDigits: 1 }).format(1234.5);
+        const decimalComma = candidate !== 'en-GB';
+        if (expected && date !== expected) continue;
+        if (decimalComma ? !/,5$/.test(number) : !/\.5$/.test(number)) continue;
+        return candidate;
+      } catch (e) { /* некорректный тег локали */ }
+    }
+    return 'ru-RU';
+  })();
+
+  /** Перевод строки интерфейса: _(русский текст, { имя: значение }) — {имя} в тексте заменяется значением. */
+  function _(text, params) {
+    let value = Object.prototype.hasOwnProperty.call(MESSAGES, text) && MESSAGES[text] ? MESSAGES[text] : text;
+    if (params) {
+      value = value.replace(/\{(\w+)\}/g, (match, key) => (
+        Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match));
+    }
+    return value;
+  }
+
+  const nfInt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+  const nfMoney = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const nfQty = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  // даты из API — календарные дни без часового пояса: форматируем как полночь UTC
+  const dfDate = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+  const dfDayMonth = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  const dfDayMonthYear = new Intl.DateTimeFormat(LOCALE, { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' });
+
+  function isoDay(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
+  }
+
+  /** 'ГГГГ-ММ-ДД' -> дата по правилам языка: 17.10.2026 (ru, kk), 17/10/2026 (en). */
   function formatDate(iso) {
     if (!iso) return '';
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-    return m ? m[3] + '.' + m[2] + '.' + m[1] : iso;
+    const day = isoDay(iso);
+    return day ? dfDate.format(day) : iso;
+  }
+
+  /** ISO-время сервера (уже в местном поясе) -> «дата чч:мм» без пересчёта поясов. */
+  function formatDateTime(iso) {
+    if (!iso) return '';
+    const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/.exec(iso);
+    return m ? formatDate(m[1]) + ' ' + m[2] : formatDate(iso);
   }
 
   function isNumber(value) {
     return typeof value === 'number' && isFinite(value);
   }
 
-  /** Склонение: plural(5, ['запись', 'записи', 'записей']). */
+  /** Форма слова при числе: plural(5, 'запись|записи|записей').
+   * Формы — через «|» в переводе: в русском три, в английском две, в казахском одна. */
   function plural(n, forms) {
-    const a = Math.abs(n) % 100;
-    const b = a % 10;
-    if (a > 10 && a < 20) return forms[2];
-    if (b > 1 && b < 5) return forms[1];
-    if (b === 1) return forms[0];
-    return forms[2];
+    const list = _(forms).split('|');
+    if (list.length === 1) return list[0];
+    if (list.length >= 3) {
+      const a = Math.abs(n) % 100;
+      const b = a % 10;
+      if (a > 10 && a < 20) return list[2];
+      if (b > 1 && b < 5) return list[1];
+      if (b === 1) return list[0];
+      return list[2];
+    }
+    return Math.abs(n) === 1 ? list[0] : list[1];
+  }
+
+  /** Название биржи по коду (из API приходит уже переведённое; это — запасной вариант). */
+  function exchangeName(code) {
+    return code === 'caspy' ? _('Каспий') : 'ETS';
   }
 
   function dash() {
@@ -73,8 +150,8 @@
       const data = await response.json();
       if (data && data.error) return data.error;
     } catch (e) { /* тело не JSON */ }
-    if (response.status === 403) return 'Сессия устарела или нет токена CSRF: обновите страницу и повторите';
-    return 'Ошибка сервера (' + response.status + ')';
+    if (response.status === 403) return _('Сессия устарела или нет токена CSRF: обновите страницу и повторите');
+    return _('Ошибка сервера ({status})', { status: response.status });
   }
 
   function debounce(fn, delay) {
@@ -158,7 +235,7 @@
 
     function updateButton() {
       if (!button) return;
-      const label = currentTheme() === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+      const label = currentTheme() === 'dark' ? _('Светлая тема') : _('Тёмная тема');
       button.setAttribute('aria-label', label);
       button.title = label;
     }
@@ -192,6 +269,20 @@
     });
   }
 
+  /* ===================================================== переключатель языка */
+
+  /* Форма в шапке отправляет POST на стандартный /i18n/setlang/ (с CSRF). Фильтры страниц
+   * хранятся в адресной строке и меняются без перезагрузки (history.replaceState), поэтому
+   * перед отправкой в поле next подставляется текущий адрес — со всеми фильтрами. */
+  function initLanguageSwitch() {
+    document.querySelectorAll('form.lang-switch').forEach((form) => {
+      form.addEventListener('submit', () => {
+        const next = form.querySelector('input[name="next"]');
+        if (next) next.value = window.location.pathname + window.location.search;
+      });
+    });
+  }
+
   /* ===================================================== страница «Итоги торгов» */
 
   function initTrades() {
@@ -203,18 +294,20 @@
 
     // key — поле сортировки в API; firstDir — направление при первом клике
     const COLUMNS = [
-      { key: 'trade_date', label: 'Дата', firstDir: '-' },
-      { key: 'exchange', label: 'Биржа', firstDir: '' },
-      { key: 'product', label: 'Товар', firstDir: '' },
-      { key: 'seller', label: 'Продавец', firstDir: '' },
-      { key: 'buyer', label: 'Покупатель', firstDir: '' },
-      { key: 'seller_broker', label: 'Брокер продавца', firstDir: '' },
-      { key: 'buyer_broker', label: 'Брокер покупателя', firstDir: '' },
-      { key: 'quantity', label: 'Объём', num: true, firstDir: '-' },
-      { key: 'price_avg', label: 'Цена ср., тг', num: true, firstDir: '-' },
-      { key: 'amount', label: 'Сумма, тг', num: true, firstDir: '-' },
-      { key: 'delivery_place', label: 'Место / базис поставки', firstDir: '' },
+      { key: 'trade_date', label: _('Дата'), firstDir: '-' },
+      { key: 'exchange', label: _('Биржа'), firstDir: '' },
+      { key: 'product', label: _('Товар'), firstDir: '' },
+      { key: 'seller', label: _('Продавец'), firstDir: '' },
+      { key: 'buyer', label: _('Покупатель'), firstDir: '' },
+      { key: 'seller_broker', label: _('Брокер продавца'), firstDir: '' },
+      { key: 'buyer_broker', label: _('Брокер покупателя'), firstDir: '' },
+      { key: 'quantity', label: _('Объём'), num: true, firstDir: '-' },
+      { key: 'price_avg', label: _('Цена ср., тг'), num: true, firstDir: '-' },
+      { key: 'amount', label: _('Сумма, тг'), num: true, firstDir: '-' },
+      { key: 'delivery_place', label: _('Место / базис поставки'), firstDir: '' },
     ];
+    const LABELS = {};
+    COLUMNS.forEach((col) => { LABELS[col.key] = col.label; });
     const SORT_KEYS = COLUMNS.map((c) => c.key);
 
     const inputs = {};
@@ -313,7 +406,7 @@
       COLUMNS.forEach((col) => {
         const active = col.key === currentKey;
         const arrow = el('span', { class: 'th-arrow', 'aria-hidden': 'true', text: active ? (desc ? '▼' : '▲') : '↕' });
-        const button = el('button', { type: 'button', class: 'th-sort', title: 'Сортировать' }, [col.label, arrow]);
+        const button = el('button', { type: 'button', class: 'th-sort', title: _('Сортировать') }, [col.label, arrow]);
         button.addEventListener('click', () => onSort(col));
         const th = el('th', { scope: 'col', class: col.num ? 'num' : '' }, [button]);
         th.setAttribute('aria-sort', active ? (desc ? 'descending' : 'ascending') : 'none');
@@ -329,10 +422,10 @@
         const order = col.firstDir === '-' ? ['-', ''] : ['', '-'];
         order.forEach((dir) => {
           const isDate = col.key === 'trade_date';
-          const suffix = dir === '-'
-            ? (isDate ? ': сначала новые' : ': по убыванию')
-            : (isDate ? ': сначала старые' : ': по возрастанию');
-          sortSelect.appendChild(el('option', { value: dir + col.key, text: col.label + suffix }));
+          const text = dir === '-'
+            ? (isDate ? _('{column}: сначала новые', { column: col.label }) : _('{column}: по убыванию', { column: col.label }))
+            : (isDate ? _('{column}: сначала старые', { column: col.label }) : _('{column}: по возрастанию', { column: col.label }));
+          sortSelect.appendChild(el('option', { value: dir + col.key, text }));
         });
       });
       sortSelect.addEventListener('change', () => {
@@ -368,7 +461,7 @@
       const td = el('td', { class: 'cell-party ' + className, 'data-label': label });
       if (!name) { td.appendChild(dash()); return td; }
       td.appendChild(el('div', { class: 'cell-main', text: name }));
-      if (bin) td.appendChild(el('div', { class: 'cell-sub', text: 'БИН ' + bin }));
+      if (bin) td.appendChild(el('div', { class: 'cell-sub', text: _('БИН {bin}', { bin }) }));
       return td;
     }
 
@@ -377,7 +470,7 @@
       const td = el('td', { class: 'cell-place', 'data-label': label });
       if (!place && !basis) { td.appendChild(dash()); return td; }
       td.appendChild(el('div', { class: 'cell-main', text: place || basis }));
-      if (place && basis) td.appendChild(el('div', { class: 'cell-sub', text: 'базис ' + basis }));
+      if (place && basis) td.appendChild(el('div', { class: 'cell-sub', text: _('базис {basis}', { basis }) }));
       return td;
     }
 
@@ -389,6 +482,13 @@
       } else {
         td.appendChild(dash());
       }
+      return td;
+    }
+
+    /** Подпись валюты после суммы в карточке на телефоне (CSS: content: attr(data-currency)). */
+    function currencyCell(td) {
+      const main = td.querySelector('.cell-main');
+      if (main) main.dataset.currency = _('тг');
       return td;
     }
 
@@ -407,24 +507,24 @@
       return document.createTextNode(url);
     }
 
-    function money(value) { return isNumber(value) ? nfMoney.format(value) + ' тг' : '—'; }
+    function money(value) { return isNumber(value) ? _('{amount} тг', { amount: nfMoney.format(value) }) : '—'; }
 
     function buildDetails(row) {
       const items = [
-        detailItem('Время торгов', row.trade_time ? row.trade_time.slice(0, 5) : ''),
-        detailItem('Число сделок', isNumber(row.deals_count) ? nfInt.format(row.deals_count) : ''),
-        detailItem('Код товара', row.product_code),
-        detailItem('Код ТН ВЭД', row.tnved),
-        detailItem('Цена открытия', money(row.price_open)),
-        detailItem('Цена закрытия', money(row.price_close)),
-        detailItem('Мин. цена', money(row.price_min)),
-        detailItem('Макс. цена', money(row.price_max)),
-        detailItem('Цена с НДС', money(row.price_with_vat)),
-        detailItem('Цена без НДС', money(row.price_without_vat)),
-        detailItem('Базис поставки', row.delivery_basis),
-        detailItem('Срок поставки', row.delivery_term),
+        detailItem(_('Время торгов'), row.trade_time ? row.trade_time.slice(0, 5) : ''),
+        detailItem(_('Число сделок'), isNumber(row.deals_count) ? nfInt.format(row.deals_count) : ''),
+        detailItem(_('Код товара'), row.product_code),
+        detailItem(_('Код ТН ВЭД'), row.tnved),
+        detailItem(_('Цена открытия'), money(row.price_open)),
+        detailItem(_('Цена закрытия'), money(row.price_close)),
+        detailItem(_('Мин. цена'), money(row.price_min)),
+        detailItem(_('Макс. цена'), money(row.price_max)),
+        detailItem(_('Цена с НДС'), money(row.price_with_vat)),
+        detailItem(_('Цена без НДС'), money(row.price_without_vat)),
+        detailItem(_('Базис поставки'), row.delivery_basis),
+        detailItem(_('Срок поставки'), row.delivery_term),
       ];
-      if (row.source_url) items.push(detailItem('Источник', safeLink(row.source_url)));
+      if (row.source_url) items.push(detailItem(_('Источник'), safeLink(row.source_url)));
       const td = el('td', { colspan: String(COLUMNS.length) }, [
         el('div', { class: 'details-inner' }, [el('dl', { class: 'details-grid' }, items)]),
       ]);
@@ -445,18 +545,18 @@
     }
 
     function renderRow(row) {
-      const tr = el('tr', { class: 'trade-row', tabindex: '0', 'aria-expanded': 'false', title: 'Показать подробности' }, [
+      const tr = el('tr', { class: 'trade-row', tabindex: '0', 'aria-expanded': 'false', title: _('Показать подробности') }, [
         el('td', { class: 'cell-date', text: formatDate(row.trade_date) }),
         el('td', { class: 'cell-exchange' }, [exchangeBadge(row.exchange, row.exchange_name)]),
         textCell(row.product, 'cell-product'),
-        partyCell(row.seller, row.seller_bin, 'cell-seller', 'Продавец'),
-        partyCell(row.buyer, row.buyer_bin, 'cell-buyer', 'Покупатель'),
-        textCell(row.seller_broker, 'cell-broker cell-sbroker', 'Брокер продавца'),
-        textCell(row.buyer_broker, 'cell-broker cell-bbroker', 'Брокер покупателя'),
-        numCell(row.quantity, nfQty, 'cell-qty', row.unit, 'Объём'),
-        numCell(row.price_avg, nfMoney, 'cell-price', null, 'Цена ср., тг'),
-        numCell(row.amount, nfMoney, 'amount'),
-        placeCell(row.delivery_place, row.delivery_basis, 'Место / базис поставки'),
+        partyCell(row.seller, row.seller_bin, 'cell-seller', LABELS.seller),
+        partyCell(row.buyer, row.buyer_bin, 'cell-buyer', LABELS.buyer),
+        textCell(row.seller_broker, 'cell-broker cell-sbroker', LABELS.seller_broker),
+        textCell(row.buyer_broker, 'cell-broker cell-bbroker', LABELS.buyer_broker),
+        numCell(row.quantity, nfQty, 'cell-qty', row.unit, LABELS.quantity),
+        numCell(row.price_avg, nfMoney, 'cell-price', null, LABELS.price_avg),
+        currencyCell(numCell(row.amount, nfMoney, 'amount')),
+        placeCell(row.delivery_place, row.delivery_basis, LABELS.delivery_place),
       ]);
       tr.addEventListener('click', (event) => {
         if (event.target.closest('a')) return;
@@ -500,7 +600,7 @@
     function renderPagination(page, pages) {
       clear(pagination);
       if (pages <= 1) return;
-      pagination.appendChild(pageButton('‹ Назад', page - 1, { disabled: page <= 1 }));
+      pagination.appendChild(pageButton(_('‹ Назад'), page - 1, { disabled: page <= 1 }));
       const visible = new Set([1, pages]);
       for (let p = page - 2; p <= page + 2; p++) if (p >= 1 && p <= pages) visible.add(p);
       let previous = 0;
@@ -509,7 +609,7 @@
         pagination.appendChild(pageButton(nfInt.format(p), p, { current: p === page }));
         previous = p;
       });
-      pagination.appendChild(pageButton('Вперёд ›', page + 1, { disabled: page >= pages }));
+      pagination.appendChild(pageButton(_('Вперёд ›'), page + 1, { disabled: page >= pages }));
     }
 
     /* ---- загрузка данных ---- */
@@ -525,7 +625,7 @@
       emptyState.hidden = true;
       errorState.hidden = false;
       errorText.textContent = message;
-      foundCount.textContent = 'Ошибка загрузки';
+      foundCount.textContent = _('Ошибка загрузки');
       foundSum.textContent = '';
       clear(pagination);
     }
@@ -537,7 +637,7 @@
         table.hidden = true;
         emptyState.hidden = false;
         clear(body);
-        foundCount.textContent = 'Найдено: 0 записей';
+        foundCount.textContent = _('Найдено: {count} {records}', { count: nfInt.format(0), records: plural(0, 'запись|записи|записей') });
         foundSum.textContent = '';
         clear(pagination);
         return;
@@ -547,10 +647,10 @@
       renderRows(data.results);
       const from = (data.page - 1) * data.page_size + 1;
       const to = from + data.results.length - 1;
-      foundCount.textContent = 'Найдено: ' + nfInt.format(count) + ' ' +
-        plural(count, ['запись', 'записи', 'записей']) +
-        ' · показаны ' + nfInt.format(from) + '–' + nfInt.format(to);
-      foundSum.textContent = isNumber(data.amount_sum) ? 'Сумма по выборке: ' + nfMoney.format(data.amount_sum) + ' тг' : '';
+      foundCount.textContent = _('Найдено: {count} {records}', { count: nfInt.format(count), records: plural(count, 'запись|записи|записей') }) +
+        ' · ' + _('показаны {from}–{to}', { from: nfInt.format(from), to: nfInt.format(to) });
+      foundSum.textContent = isNumber(data.amount_sum)
+        ? _('Сумма по выборке: {amount} тг', { amount: nfMoney.format(data.amount_sum) }) : '';
       renderPagination(data.page, data.pages);
     }
 
@@ -575,7 +675,7 @@
         setLoading(false);
       } catch (error) {
         if (error.name === 'AbortError' || seq !== requestSeq) return;
-        showError(error.message || 'Не удалось связаться с сервером');
+        showError(error.message || _('Не удалось связаться с сервером'));
         setLoading(false);
       }
     }
@@ -617,7 +717,7 @@
           const select = inputs.exchange;
           const current = select.value;
           clear(select);
-          select.appendChild(el('option', { value: '', text: 'Обе биржи' }));
+          select.appendChild(el('option', { value: '', text: _('Обе биржи') }));
           data.exchanges.forEach((e) => select.appendChild(el('option', { value: e.code, text: e.name })));
           select.value = [...select.options].some((o) => o.value === current) ? current : '';
         }
@@ -699,10 +799,10 @@
     let pollTimer = null;
     let lastMessage = null; // сообщение пользователю после нажатия кнопки (ответ сервера)
 
-    const STATUS_LABELS = { success: 'Успешно', partial: 'С ошибками', failed: 'Ошибка', running: 'Выполняется' };
+    const STATUS_LABELS = { success: _('Успешно'), partial: _('С ошибками'), failed: _('Ошибка'), running: _('Выполняется') };
 
     function statusBadge(status, label) {
-      if (!status) return el('span', { class: 'badge badge-none', text: 'Нет запусков' });
+      if (!status) return el('span', { class: 'badge badge-none', text: _('Нет запусков') });
       return el('span', { class: 'badge badge-' + status, text: label || STATUS_LABELS[status] || status });
     }
 
@@ -721,20 +821,21 @@
     function renderCard(exchange) {
       const run = exchange.last_run;
       const stats = [
-        stat('Последняя торговая запись', exchange.last_trade_date ? formatDate(exchange.last_trade_date) : '—', true),
-        stat('Записей в базе', nfInt.format(exchange.trades_count), true),
+        stat(_('Последняя торговая запись'), exchange.last_trade_date ? formatDate(exchange.last_trade_date) : '—', true),
+        stat(_('Записей в базе'), nfInt.format(exchange.trades_count), true),
       ];
       if (run) {
-        stats.push(stat('Последний запуск', run.started_at_display + ' (' + run.trigger_display.toLowerCase() + ')'));
-        stats.push(stat('Период запуска', periodText(run)));
+        stats.push(stat(_('Последний запуск'), formatDateTime(run.started_at) + ' (' + run.trigger_display.toLowerCase() + ')'));
+        stats.push(stat(_('Период запуска'), periodText(run)));
         const result = el('span', {}, [
-          '+' + nfInt.format(run.rows_added) + ' добавлено, ',
-          nfInt.format(run.rows_skipped) + ' пропущено',
+          _('+{added} добавлено, {skipped} пропущено', {
+            added: nfInt.format(run.rows_added), skipped: nfInt.format(run.rows_skipped),
+          }),
         ]);
-        stats.push(stat('Результат', result));
-        stats.push(stat('Окончание', run.finished_at_display || (run.status === 'running' ? 'идёт…' : '—')));
+        stats.push(stat(_('Результат'), result));
+        stats.push(stat(_('Окончание'), formatDateTime(run.finished_at) || (run.status === 'running' ? _('идёт…') : '—')));
       } else {
-        stats.push(stat('Последний запуск', 'ещё не запускался'));
+        stats.push(stat(_('Последний запуск'), _('ещё не запускался')));
       }
       const children = [
         el('div', { class: 'card-head' }, [
@@ -753,8 +854,8 @@
       runs.forEach((run) => {
         runsBody.appendChild(el('tr', {}, [
           el('td', {}, [exchangeBadge(run.exchange, run.exchange_name)]),
-          el('td', { text: run.started_at_display, class: 'cell-date' }),
-          el('td', { text: run.finished_at_display || '—', class: 'cell-date' }),
+          el('td', { text: formatDateTime(run.started_at), class: 'cell-date' }),
+          el('td', { text: formatDateTime(run.finished_at) || '—', class: 'cell-date' }),
           el('td', { text: run.trigger_display }),
           el('td', { text: periodText(run), class: 'cell-date' }),
           el('td', {}, [statusBadge(run.status, run.status_display)]),
@@ -777,23 +878,29 @@
       const busy = collect.running || collect.running_elsewhere;
       collectButton.disabled = busy;
       if (collect.running) {
-        const names = (collect.exchanges || []).map((c) => (c === 'caspy' ? 'Каспий' : c.toUpperCase())).join(', ');
+        const names = (collect.exchanges || []).map((c) => (c === 'caspy' ? exchangeName(c) : c.toUpperCase())).join(', ');
         setCollectBox('running', [
           el('span', { class: 'spinner' }),
-          'Идёт сбор: ' + names + ', период ' + formatDate(collect.date_from) + ' – ' + formatDate(collect.date_to) +
-            ' (начат ' + (collect.started_at_display || '') + ')',
+          _('Идёт сбор: {exchanges}, период {from} – {to} (начат {started})', {
+            exchanges: names, from: formatDate(collect.date_from), to: formatDate(collect.date_to),
+            started: formatDateTime(collect.started_at),
+          }),
         ]);
       } else if (collect.running_elsewhere) {
         setCollectBox('running', [
           el('span', { class: 'spinner' }),
-          'Сбор уже выполняется (запущен по расписанию или из командной строки). Дождитесь завершения.',
+          _('Сбор уже выполняется (запущен по расписанию или из командной строки). Дождитесь завершения.'),
         ]);
       } else if (lastMessage) {
         setCollectBox(lastMessage.kind, [lastMessage.text]);
       } else if (collect.finished_at && collect.error) {
-        setCollectBox('fail', ['Ручной запуск завершился ошибкой (' + collect.finished_at_display + '): ' + collect.error]);
+        setCollectBox('fail', [_('Ручной запуск завершился ошибкой ({finished}): {error}', {
+          finished: formatDateTime(collect.finished_at), error: collect.error,
+        })]);
       } else if (collect.finished_at) {
-        setCollectBox('ok', ['Ручной запуск завершён в ' + collect.finished_at_display + '. Результат — в таблице ниже.']);
+        setCollectBox('ok', [_('Ручной запуск завершён в {finished}. Результат — в таблице ниже.', {
+          finished: formatDateTime(collect.finished_at),
+        })]);
       } else {
         collectBox.hidden = true;
       }
@@ -808,7 +915,7 @@
         const data = await response.json();
         clear(cardsBox);
         data.exchanges.forEach((exchange) => cardsBox.appendChild(renderCard(exchange)));
-        totalLine.textContent = 'Всего записей в базе: ' + nfInt.format(data.total_trades);
+        totalLine.textContent = _('Всего записей в базе: {count}', { count: nfInt.format(data.total_trades) });
         renderRuns(data.runs);
         renderCollect(data.collect);
         const anyRunning = data.collect.running || data.collect.running_elsewhere ||
@@ -816,7 +923,7 @@
         if (anyRunning) delay = POLL_FAST;
       } catch (error) {
         clear(cardsBox);
-        cardsBox.appendChild(el('div', { class: 'panel card-error', text: 'Не удалось загрузить состояние: ' + error.message }));
+        cardsBox.appendChild(el('div', { class: 'panel card-error', text: _('Не удалось загрузить состояние: {error}', { error: error.message }) }));
       }
       pollTimer = setTimeout(refresh, delay);
     }
@@ -828,7 +935,7 @@
         const min = parseInt(daysInput.min, 10);
         const max = parseInt(daysInput.max, 10);
         if (!(days >= min && days <= max)) {
-          lastMessage = { kind: 'fail', text: 'Глубина должна быть от ' + min + ' до ' + max + ' дней.' };
+          lastMessage = { kind: 'fail', text: _('Глубина должна быть от {min} до {max} дней.', { min, max }) };
           setCollectBox('fail', [lastMessage.text]);
           return;
         }
@@ -844,7 +951,7 @@
             lastMessage = { kind: 'fail', text: await readError(response) };
           }
         } catch (error) {
-          lastMessage = { kind: 'fail', text: 'Не удалось связаться с сервером' };
+          lastMessage = { kind: 'fail', text: _('Не удалось связаться с сервером') };
         }
         await refresh();
       });
@@ -864,8 +971,7 @@
     const PERIOD_KEYS = ['exchange', 'date_from', 'date_to'];
     const MAX_SELECTED = 10;
     const LIST_RENDER_LIMIT = 400;
-    const LIMIT_MESSAGE = 'Можно выбрать не больше ' + MAX_SELECTED + ' товаров для сравнения. ' +
-      'Снимите отметку с одного из выбранных, чтобы добавить другой.';
+    const LIMIT_MESSAGE = _('Можно выбрать не больше {max} товаров для сравнения. Снимите отметку с одного из выбранных, чтобы добавить другой.', { max: MAX_SELECTED });
     /* Цвета графиков берутся из CSS-переменных (--chart-*, --series-*) текущей темы
      * и перечитываются при её смене; здесь — запасные значения светлой темы. */
     const COLOR_VARS = {
@@ -941,26 +1047,28 @@
     let abortController = null;
     let productsController = null;
 
-    const nfOne = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
-    const nfTwo = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
-    const nfPct = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    const nfOne = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 });
+    const nfTwo = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 });
+    const nfPct = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
     /* ---- форматирование ---- */
 
     /** Короткая запись денег для осей: 1,2 млрд, 35 млн, 400 тыс. */
     function compactMoney(value) {
       const abs = Math.abs(value);
-      if (abs >= 1e9) return nfTwo.format(value / 1e9) + ' млрд';
-      if (abs >= 1e6) return nfTwo.format(value / 1e6) + ' млн';
-      if (abs >= 1e3) return nfOne.format(value / 1e3) + ' тыс.';
+      if (abs >= 1e9) return _('{n} млрд', { n: nfTwo.format(value / 1e9) });
+      if (abs >= 1e6) return _('{n} млн', { n: nfTwo.format(value / 1e6) });
+      if (abs >= 1e3) return _('{n} тыс.', { n: nfOne.format(value / 1e3) });
       return nfInt.format(value);
     }
 
-    function fullMoney(value) { return nfMoney.format(value) + ' тг'; }
+    function fullMoney(value) { return _('{amount} тг', { amount: nfMoney.format(value) }); }
 
-    function shortDate(iso) {
-      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
-      return m ? m[3] + '.' + m[2] : iso;
+    /** 'ГГГГ-ММ-ДД' -> день и месяц по правилам языка (17.10 / 17/10); withYear — с годом (17.10.26). */
+    function shortDate(iso, withYear) {
+      const day = isoDay(iso);
+      if (!day) return iso;
+      return (withYear ? dfDayMonthYear : dfDayMonth).format(day);
     }
 
     /** Подпись для оси: длинное название обрезается, полное — в подсказке. */
@@ -971,7 +1079,7 @@
 
     function percent(share) {
       const value = share * 100;
-      return (value > 0 && value < 0.1 ? '<0,1' : nfOne.format(value)) + '%';
+      return (value > 0 && value < 0.1 ? '<' + nfOne.format(0.1) : nfOne.format(value)) + '%';
     }
 
     /** Изменение в процентах со знаком: +12,3 % / −4,5 % (минус — типографский). */
@@ -983,10 +1091,10 @@
       return '0 %';
     }
 
-    const RECORDS = ['запись', 'записи', 'записей'];
-    const RECORDS_GEN = ['записи', 'записей', 'записей'];
-    const PRODUCTS = ['товар', 'товара', 'товаров'];
-    const DEALS = ['сделка', 'сделки', 'сделок'];
+    const RECORDS = 'запись|записи|записей';
+    const RECORDS_GEN = 'записи|записей|записей';
+    const PRODUCTS = 'товар|товара|товаров';
+    const DEALS = 'сделка|сделки|сделок';
 
     /** Строка для поиска: нижний регистр, ё = е. */
     function normalize(text) {
@@ -995,7 +1103,7 @@
 
     function productName(id) {
       const p = state.known.get(id);
-      return p ? p.name : 'Товар №' + id;
+      return p ? p.name : _('Товар №{id}', { id });
     }
 
     function rememberProducts(list) {
@@ -1151,10 +1259,10 @@
 
     function optionMeta(p) {
       const meta = el('span', { class: 'combo-meta' });
-      (p.exchange_codes || []).forEach((code) => meta.appendChild(exchangeBadge(code, code === 'caspy' ? 'Каспий' : 'ETS')));
+      (p.exchange_codes || []).forEach((code) => meta.appendChild(exchangeBadge(code, exchangeName(code))));
       const codes = [];
-      if (p.code) codes.push('код ' + p.code);
-      if (p.tnved) codes.push('ТН ВЭД ' + p.tnved);
+      if (p.code) codes.push(_('код {code}', { code: p.code }));
+      if (p.tnved) codes.push(_('ТН ВЭД {code}', { code: p.tnved }));
       if (codes.length) meta.appendChild(el('span', { class: 'combo-codes', text: codes.join(' · ') }));
       return meta;
     }
@@ -1162,7 +1270,7 @@
     function renderOption(p, index, missing) {
       const selected = state.selected.includes(p.id);
       const deals = missing
-        ? el('span', { class: 'combo-deals is-missing', text: 'нет сделок' })
+        ? el('span', { class: 'combo-deals is-missing', text: _('нет сделок') })
         : el('span', { class: 'combo-deals', text: nfInt.format(p.deals) + ' ' + plural(p.deals, DEALS) });
       return el('li', {
         id: 'a-opt-' + p.id,
@@ -1192,13 +1300,13 @@
       picker.found = state.products.filter((p) => matches(p, words));
 
       if (missing.length) {
-        picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: 'Выбраны, но нет сделок в выбранной бирже и периоде' }));
+        picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: _('Выбраны, но нет сделок в выбранной бирже и периоде') }));
         missing.forEach((p) => {
           picker.list.appendChild(renderOption(p, picker.options.length, true));
           picker.options.push(p);
         });
         if (picker.found.length) {
-          picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: 'Товары выборки' }));
+          picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-group', text: _('Товары выборки') }));
         }
       }
       picker.found.slice(0, LIST_RENDER_LIMIT).forEach((p) => {
@@ -1208,14 +1316,16 @@
       if (picker.found.length > LIST_RENDER_LIMIT) {
         picker.list.appendChild(el('li', {
           role: 'presentation', class: 'combo-empty',
-          text: 'Показаны первые ' + LIST_RENDER_LIMIT + ' из ' + nfInt.format(picker.found.length) + ' — уточните поиск',
+          text: _('Показаны первые {shown} из {total} — уточните поиск', {
+            shown: nfInt.format(LIST_RENDER_LIMIT), total: nfInt.format(picker.found.length),
+          }),
         }));
       }
       if (!picker.options.length) {
-        let text = 'Ничего не найдено — попробуйте часть слова или код ТН ВЭД';
+        let text = _('Ничего не найдено — попробуйте часть слова или код ТН ВЭД');
         if (state.productsError) text = state.productsError;
-        else if (!state.productsLoaded) text = 'Загрузка списка товаров…';
-        else if (!words.length) text = 'В выбранной бирже и периоде нет сделок';
+        else if (!state.productsLoaded) text = _('Загрузка списка товаров…');
+        else if (!words.length) text = _('В выбранной бирже и периоде нет сделок');
         picker.list.appendChild(el('li', { role: 'presentation', class: 'combo-empty', text }));
       }
       picker.active = Math.min(picker.active, picker.options.length - 1);
@@ -1230,17 +1340,17 @@
       let text = '';
       if (state.productsLoaded) {
         text = words.length
-          ? 'Найдено: ' + nfInt.format(picker.found.length) + ' из ' + nfInt.format(total)
-          : nfInt.format(total) + ' ' + plural(total, PRODUCTS) + ' в выборке';
+          ? _('Найдено: {found} из {total}', { found: nfInt.format(picker.found.length), total: nfInt.format(total) })
+          : _('{count} {products} в выборке', { count: nfInt.format(total), products: plural(total, PRODUCTS) });
       }
-      if (n) text += (text ? ' · ' : '') + 'выбрано ' + n + ' из ' + MAX_SELECTED;
+      if (n) text += (text ? ' · ' : '') + _('выбрано {n} из {max}', { n, max: MAX_SELECTED });
       picker.count.textContent = text;
       picker.allBtn.setAttribute('aria-pressed', n === 0 && !state.legacyQ ? 'true' : 'false');
       picker.allBtn.classList.toggle('is-active', n === 0 && !state.legacyQ);
       const addable = picker.found.filter((p) => !state.selected.includes(p.id)).length;
       picker.foundBtn.hidden = !words.length;
       picker.foundBtn.disabled = addable === 0;
-      picker.foundBtn.textContent = 'Выбрать найденные' + (addable ? ' (' + nfInt.format(addable) + ')' : '');
+      picker.foundBtn.textContent = _('Выбрать найденные') + (addable ? ' (' + nfInt.format(addable) + ')' : '');
     }
 
     /** Отметки в уже нарисованном списке (без перерисовки — не сбивает прокрутку). */
@@ -1281,7 +1391,7 @@
       picker.popup.hidden = false;
       picker.root.classList.add('is-open');
       picker.input.setAttribute('aria-expanded', 'true');
-      picker.arrowBtn.setAttribute('aria-label', 'Закрыть список товаров');
+      picker.arrowBtn.setAttribute('aria-label', _('Закрыть список товаров'));
       picker.active = -1;
       renderList();
       picker.list.scrollTop = 0;
@@ -1294,7 +1404,7 @@
       picker.root.classList.remove('is-open');
       picker.input.setAttribute('aria-expanded', 'false');
       picker.input.removeAttribute('aria-activedescendant');
-      picker.arrowBtn.setAttribute('aria-label', 'Открыть список товаров');
+      picker.arrowBtn.setAttribute('aria-label', _('Открыть список товаров'));
       picker.input.value = '';
       picker.active = -1;
       picker.keyboardNav = false;
@@ -1313,9 +1423,9 @@
       const collapseAt = narrowScreen.matches ? 2 : 3;
       const collapsed = ids.length > collapseAt && !picker.chipsExpanded;
       if (state.legacyQ) {
-        picker.chips.appendChild(el('span', { class: 'combo-chip combo-chip-word', role: 'listitem', title: 'Старый фильтр по ключевому слову в названии товара' }, [
-          el('span', { class: 'combo-chip-text', text: 'Слово: «' + state.legacyQ + '»' }),
-          el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': 'Убрать фильтр по слову ' + state.legacyQ, data: { remove: 'q' } }, ['×']),
+        picker.chips.appendChild(el('span', { class: 'combo-chip combo-chip-word', role: 'listitem', title: _('Старый фильтр по ключевому слову в названии товара') }, [
+          el('span', { class: 'combo-chip-text', text: _('Слово: «{word}»', { word: state.legacyQ }) }),
+          el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': _('Убрать фильтр по слову {word}', { word: state.legacyQ }), data: { remove: 'q' } }, ['×']),
         ]));
       }
       if (collapsed) {
@@ -1324,7 +1434,7 @@
           type: 'button', class: 'combo-chip combo-chip-toggle', 'aria-expanded': 'false', data: { toggle: '1' },
           title: ids.map(productName).join('\n'),
         }, [
-          'Выбрано: ' + ids.length + (missing ? ' (без сделок: ' + missing + ')' : ''),
+          _('Выбрано: {n}', { n: ids.length }) + (missing ? ' ' + _('(без сделок: {n})', { n: missing }) : ''),
           el('span', { class: 'combo-chip-chevron', 'aria-hidden': 'true' }),
         ]));
       } else {
@@ -1333,22 +1443,24 @@
           const name = productName(id);
           picker.chips.appendChild(el('span', {
             class: 'combo-chip' + (missing ? ' is-missing' : ''), role: 'listitem',
-            title: name + (missing ? '\nНет сделок в выбранной бирже и периоде' : ''),
+            title: name + (missing ? '\n' + _('Нет сделок в выбранной бирже и периоде') : ''),
           }, [
             swatch(styleForSlot(state.slots.get(id) || 0)),
             el('span', { class: 'combo-chip-text', text: name }),
-            el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': 'Убрать: ' + name, data: { remove: String(id) } }, ['×']),
+            el('button', { type: 'button', class: 'combo-chip-remove', 'aria-label': _('Убрать: {name}', { name }), data: { remove: String(id) } }, ['×']),
           ]));
         });
         if (ids.length > collapseAt) {
           picker.chips.appendChild(el('button', {
             type: 'button', class: 'combo-chip combo-chip-toggle', 'aria-expanded': 'true', data: { toggle: '1' },
-          }, ['Свернуть', el('span', { class: 'combo-chip-chevron is-up', 'aria-hidden': 'true' })]));
+          }, [_('Свернуть'), el('span', { class: 'combo-chip-chevron is-up', 'aria-hidden': 'true' })]));
         }
       }
       picker.chips.hidden = !picker.chips.firstChild;
       const any = ids.length > 0 || !!state.legacyQ;
-      picker.input.placeholder = any ? (ids.length >= MAX_SELECTED ? 'Выбрано ' + MAX_SELECTED + ' — максимум' : 'Добавить товар…') : 'Все товары';
+      picker.input.placeholder = any
+        ? (ids.length >= MAX_SELECTED ? _('Выбрано {n} — максимум', { n: MAX_SELECTED }) : _('Добавить товар…'))
+        : _('Все товары');
       picker.clearBtn.hidden = !any;
       renderMissingNote();
     }
@@ -1359,11 +1471,12 @@
       picker.note.hidden = !missing.length;
       if (!missing.length) return;
       const n = missing.length;
-      picker.note.appendChild(el('span', {
-        text: (n === state.selected.length && n > 1 ? 'У всех выбранных товаров' : (n === 1 ? 'У 1 выбранного товара' : 'У ' + n + ' выбранных товаров')) +
-          ' нет сделок в выбранной бирже и периоде — они отмечены серым.',
-      }));
-      picker.note.appendChild(el('button', { type: 'button', class: 'link-btn', data: { dropMissing: '1' } }, [n === 1 ? 'Убрать его' : 'Убрать их']));
+      let text;
+      if (n === state.selected.length && n > 1) text = _('У всех выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым.');
+      else if (n === 1) text = _('У 1 выбранного товара нет сделок в выбранной бирже и периоде — он отмечен серым.');
+      else text = _('У {n} выбранных товаров нет сделок в выбранной бирже и периоде — они отмечены серым.', { n });
+      picker.note.appendChild(el('span', { text }));
+      picker.note.appendChild(el('button', { type: 'button', class: 'link-btn', data: { dropMissing: '1' } }, [n === 1 ? _('Убрать его') : _('Убрать их')]));
     }
 
     const loadDebounced = debounce(load, 300);
@@ -1425,8 +1538,9 @@
       }
       toAdd.slice(0, room).forEach((p) => state.selected.push(p.id));
       if (toAdd.length > room) {
-        showPickerMessage('Добавлено ' + room + ' из ' + toAdd.length + ' найденных: для сравнения можно выбрать не больше ' +
-          MAX_SELECTED + ' товаров (взяты самые торгуемые).');
+        showPickerMessage(_('Добавлено {added} из {found} найденных: для сравнения можно выбрать не больше {max} товаров (взяты самые торгуемые).', {
+          added: room, found: toAdd.length, max: MAX_SELECTED,
+        }));
       } else {
         showPickerMessage('');
       }
@@ -1469,7 +1583,7 @@
         if (state.selected.length) {
           event.preventDefault();
           const last = state.selected[state.selected.length - 1];
-          notify('Убрано: ' + truncate(productName(last), 80));
+          notify(_('Убрано: {name}', { name: truncate(productName(last), 80) }));
           removeProduct(last);
         } else if (state.legacyQ) {
           event.preventDefault();
@@ -1554,7 +1668,7 @@
         if (error.name === 'AbortError') return;
         state.products = [];
         state.inList = new Set();
-        state.productsError = 'Не удалось загрузить список товаров: ' + (error.message || 'нет связи с сервером');
+        state.productsError = _('Не удалось загрузить список товаров: {error}', { error: error.message || _('нет связи с сервером') });
       }
       renderChips();
       if (picker.open) renderList();
@@ -1609,9 +1723,9 @@
     }
 
     const METRIC_TEXT = {
-      price: 'средневзвешенная цена по дням, тг за единицу товара',
-      change: 'изменение средневзвешенной цены к первому дню с ценой, %',
-      amount: 'сумма сделок по дням, тг',
+      price: _('средневзвешенная цена по дням, тг за единицу товара'),
+      change: _('изменение средневзвешенной цены к первому дню с ценой, %'),
+      amount: _('сумма сделок по дням, тг'),
     };
 
     function seriesValues(s, labels) {
@@ -1638,16 +1752,19 @@
       const hint = document.getElementById('price-hint');
       if (top) {
         sub.textContent = series.length
-          ? 'Показаны ' + series.length + ' ' + plural(series.length, ['самый торгуемый товар', 'самых торгуемых товара', 'самых торгуемых товаров']) +
-            ' — выберите товары для сравнения'
-          : 'Нет сделок в выбранной бирже и периоде';
+          ? _('Показаны {n} {products} — выберите товары для сравнения', {
+            n: series.length,
+            products: plural(series.length, 'самый торгуемый товар|самых торгуемых товара|самых торгуемых товаров'),
+          })
+          : _('Нет сделок в выбранной бирже и периоде');
       } else {
-        sub.textContent = 'Выбрано: ' + series.length + ' ' + plural(series.length, PRODUCTS) + ' · ' + METRIC_TEXT[state.metric];
+        sub.textContent = _('Выбрано: {n} {products}', { n: series.length, products: plural(series.length, PRODUCTS) }) +
+          ' · ' + METRIC_TEXT[state.metric];
       }
       if (top && series.length) sub.textContent += ' · ' + METRIC_TEXT[state.metric];
       hint.textContent = state.metric === 'price' && series.length > 1
-        ? 'Цены разных товаров могут быть в разных единицах (тонна, кубометр, литр) — для сопоставления динамики включите «Изменение, %».'
-        : (state.metric === 'amount' && series.length > 1 ? 'Столбцы товаров за один день сложены.' : '');
+        ? _('Цены разных товаров могут быть в разных единицах (тонна, кубометр, литр) — для сопоставления динамики включите «Изменение, %».')
+        : (state.metric === 'amount' && series.length > 1 ? _('Столбцы товаров за один день сложены.') : '');
       hint.hidden = !hint.textContent;
 
       const labelSet = new Set();
@@ -1677,10 +1794,10 @@
 
       const hasValues = datasets.some((d) => d.data.some((v) => v !== null));
       if (!series.length || !hasValues) {
-        let message = 'Нет данных для графика';
-        if (!series.length) message = 'Нет сделок в выбранной бирже и периоде';
-        else if (state.metric === 'amount') message = 'У выбранных товаров нет сумм сделок за выбранный период';
-        else message = series.length === 1 ? 'У этого товара нет цен за выбранный период' : 'У выбранных товаров нет цен за выбранный период';
+        let message;
+        if (!series.length) message = _('Нет сделок в выбранной бирже и периоде');
+        else if (state.metric === 'amount') message = _('У выбранных товаров нет сумм сделок за выбранный период');
+        else message = series.length === 1 ? _('У этого товара нет цен за выбранный период') : _('У выбранных товаров нет цен за выбранный период');
         setEmpty('price', message);
         if (charts.price) { charts.price.destroy(); delete charts.price; }
         return;
@@ -1693,7 +1810,7 @@
       };
       const chart = ensureChart('price', {
         type: isBar ? 'bar' : 'line',
-        data: { labels: labels.map(manyYears ? (d) => shortDate(d) + '.' + d.slice(2, 4) : shortDate), datasets },
+        data: { labels: labels.map((d) => shortDate(d, manyYears)), datasets },
         options: Object.assign(baseOptions(), {
           scales: {
             x: {
@@ -1729,12 +1846,12 @@
         legend.appendChild(el('li', {}, [
           el('button', {
             type: 'button', class: 'legend-item' + (visible ? '' : ' is-off'), 'aria-pressed': visible ? 'true' : 'false',
-            title: s.name + (noData ? '\nНет данных за выбранный период' : '') + '\nЩелчок — скрыть или показать на графике',
+            title: s.name + (noData ? '\n' + _('Нет данных за выбранный период') : '') + '\n' + _('Щелчок — скрыть или показать на графике'),
             data: { id: String(s.id) },
           }, [
             swatch(seriesStyle(s.id, i)),
             el('span', { class: 'legend-text', text: names[i] }),
-            noData ? el('span', { class: 'legend-note', text: 'нет данных' }) : null,
+            noData ? el('span', { class: 'legend-note', text: _('нет данных') }) : null,
           ]),
         ]));
       });
@@ -1759,18 +1876,18 @@
     /* ---- таблица сравнения ---- */
 
     const COMPARE_COLUMNS = [
-      { key: 'name', label: 'Товар', text: true },
-      { key: 'exchange', label: 'Биржа', text: true },
-      { key: 'deals', label: 'Сделок' },
-      { key: 'volume', label: 'Объём', optional: true },
-      { key: 'amount', label: 'Сумма, тг' },
-      { key: 'avg_price', label: 'Ср. взв. цена' },
-      { key: 'min_price', label: 'Мин. цена' },
-      { key: 'max_price', label: 'Макс. цена' },
-      { key: 'first_price', label: 'Первая' },
-      { key: 'last_price', label: 'Последняя' },
-      { key: 'change_pct', label: 'Изменение' },
-      { key: 'last_date', label: 'Посл. сделка', text: true },
+      { key: 'name', label: _('Товар'), text: true },
+      { key: 'exchange', label: _('Биржа'), text: true },
+      { key: 'deals', label: _('Сделок') },
+      { key: 'volume', label: _('Объём'), optional: true },
+      { key: 'amount', label: _('Сумма, тг') },
+      { key: 'avg_price', label: _('Ср. взв. цена') },
+      { key: 'min_price', label: _('Мин. цена') },
+      { key: 'max_price', label: _('Макс. цена') },
+      { key: 'first_price', label: _('Первая') },
+      { key: 'last_price', label: _('Последняя') },
+      { key: 'change_pct', label: _('Изменение') },
+      { key: 'last_date', label: _('Посл. сделка'), text: true },
     ];
 
     function sortValue(row, key) {
@@ -1828,8 +1945,8 @@
       sortedRows(rows).forEach((r) => {
         const style = seriesStyle(r.id, order.has(r.id) ? order.get(r.id) : 0);
         const codes = [];
-        if (r.code) codes.push('код ' + r.code);
-        if (r.tnved) codes.push('ТН ВЭД ' + r.tnved);
+        if (r.code) codes.push(_('код {code}', { code: r.code }));
+        if (r.tnved) codes.push(_('ТН ВЭД {code}', { code: r.tnved }));
         const empty = !r.records;
         const cells = [
           el('td', { class: 'cell-compare-product' }, [
@@ -1837,10 +1954,10 @@
               swatch(style),
               el('span', { class: 'cell-main', title: r.name, text: r.name }),
             ]),
-            el('div', { class: 'cell-sub', text: empty ? 'нет сделок в выбранной бирже и периоде' : codes.join(' · ') }),
+            el('div', { class: 'cell-sub', text: empty ? _('нет сделок в выбранной бирже и периоде') : codes.join(' · ') }),
           ]),
           el('td', {}, (r.exchange_codes || []).length
-            ? r.exchange_codes.map((code) => exchangeBadge(code, code === 'caspy' ? 'Каспий' : 'ETS'))
+            ? r.exchange_codes.map((code) => exchangeBadge(code, exchangeName(code)))
             : [dash()]),
           numCell(r.deals, (v) => nfInt.format(v)),
         ];
@@ -1856,7 +1973,7 @@
         const change = r.change_pct;
         cells.push(el('td', {
           class: 'num',
-          title: isNumber(change) ? 'Последняя цена к первой за период' : 'Нужно хотя бы два дня с ценой',
+          title: isNumber(change) ? _('Последняя цена к первой за период') : _('Нужно хотя бы два дня с ценой'),
         }, [
           isNumber(change)
             ? el('span', { class: 'change ' + (change > 0 ? 'change-up' : (change < 0 ? 'change-down' : '')), text: signedPercent(change) })
@@ -1881,15 +1998,15 @@
 
     function renderTurnover(days) {
       if (!days.length) {
-        setEmpty('turnover', 'Нет данных за выбранный период');
+        setEmpty('turnover', _('Нет данных за выбранный период'));
         resetChart('turnover');
         return;
       }
       setEmpty('turnover', '');
       const chart = ensureChart('turnover', {
         data: { labels: [], datasets: [
-          { type: 'bar', label: 'Сумма сделок', data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3, order: 2 },
-          { type: 'line', label: 'Число сделок', data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
+          { type: 'bar', label: _('Сумма сделок'), data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3, order: 2 },
+          { type: 'line', label: _('Число сделок'), data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
             borderWidth: 2, tension: 0.2, pointRadius: 2.5, order: 1 },
         ] },
         options: Object.assign(baseOptions(), {
@@ -1912,7 +2029,7 @@
                 afterBody: (items) => {
                   const d = items[0].chart.$days[items[0].dataIndex];
                   return d.records_without_amount
-                    ? 'Без суммы: ' + d.records_without_amount + ' ' + plural(d.records_without_amount, RECORDS)
+                    ? _('Без суммы: {n} {records}', { n: nfInt.format(d.records_without_amount), records: plural(d.records_without_amount, RECORDS) })
                     : '';
                 },
               },
@@ -1928,9 +2045,10 @@
       chart.update();
     }
 
-    const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    const MONTHS_FULL = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август',
-      'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+    // названия месяцев — из словаря языка (12 названий через «|»), а не из Intl:
+    // так подписи одинаковы во всех браузерах, в том числе без данных локали kk
+    const MONTHS_SHORT = _('янв|фев|мар|апр|май|июн|июл|авг|сен|окт|ноя|дек').split('|');
+    const MONTHS_FULL = _('январь|февраль|март|апрель|май|июнь|июль|август|сентябрь|октябрь|ноябрь|декабрь').split('|');
 
     /** 'ГГГГ-ММ' -> 'окт 2026' (или 'октябрь 2026'). */
     function monthLabel(value, full) {
@@ -1940,18 +2058,26 @@
       return (names[Number(m[2]) - 1] || m[2]) + ' ' + m[1];
     }
 
+    /** Какие дни неполного месяца попали в период: «с 14.07» / «по 17.10» / «с 14.07 по 17.10»; полный месяц — ''. */
+    function partialRange(month) {
+      const from = shortDate(month.period_from);
+      const to = shortDate(month.period_to);
+      if (month.partial_start && month.partial_end) return _('с {from} по {to}', { from, to });
+      if (month.partial_start) return _('с {date}', { date: from });
+      if (month.partial_end) return _('по {date}', { date: to });
+      return '';
+    }
+
     /** «месяц неполный: данные с 14.07» / «… по 17.10» / «… с 14.07 по 17.10»; полный месяц — ''. */
     function partialText(month) {
-      const parts = [];
-      if (month.partial_start) parts.push('с ' + shortDate(month.period_from));
-      if (month.partial_end) parts.push('по ' + shortDate(month.period_to));
-      return parts.length ? 'месяц неполный: данные ' + parts.join(' ') : '';
+      const range = partialRange(month);
+      return range ? _('месяц неполный: данные {range}', { range }) : '';
     }
 
     function renderMonths(months) {
       const hint = document.getElementById('months-hint');
       if (!months.length) {
-        setEmpty('months', 'Нет данных за выбранный период');
+        setEmpty('months', _('Нет данных за выбранный период'));
         resetChart('months');
         hint.hidden = true;
         return;
@@ -1959,9 +2085,9 @@
       setEmpty('months', '');
       const chart = ensureChart('months', {
         data: { labels: [], datasets: [
-          { type: 'bar', label: 'Сумма сделок', data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3,
+          { type: 'bar', label: _('Сумма сделок'), data: [], yAxisID: 'y', backgroundColor: COLORS.accentBar, borderRadius: 3,
             maxBarThickness: 56, order: 2 },
-          { type: 'line', label: 'Число сделок', data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
+          { type: 'line', label: _('Число сделок'), data: [], yAxisID: 'y1', borderColor: COLORS.caspy, backgroundColor: COLORS.caspy,
             borderWidth: 2, tension: 0.2, pointRadius: 3, order: 1 },
         ] },
         options: Object.assign(baseOptions(), {
@@ -1987,7 +2113,7 @@
                   const partial = partialText(m);
                   if (partial) lines.push(partial.charAt(0).toUpperCase() + partial.slice(1));
                   if (m.records_without_amount) {
-                    lines.push('Без суммы: ' + m.records_without_amount + ' ' + plural(m.records_without_amount, RECORDS));
+                    lines.push(_('Без суммы: {n} {records}', { n: nfInt.format(m.records_without_amount), records: plural(m.records_without_amount, RECORDS) }));
                   }
                   return lines;
                 },
@@ -2005,9 +2131,11 @@
       chart.update();
 
       const partial = months.filter((m) => partialText(m));
+      const partialList = partial.map((m) => monthLabel(m.month) + ' — ' + _('данные {range}', { range: partialRange(m) })).join('; ');
       hint.textContent = partial.length
-        ? (partial.length === 1 ? 'Бледный столбец — неполный месяц: ' : 'Бледные столбцы — неполные месяцы: ') +
-          partial.map((m) => monthLabel(m.month) + ' — ' + partialText(m).replace('месяц неполный: ', '')).join('; ') + '.'
+        ? (partial.length === 1
+          ? _('Бледный столбец — неполный месяц: {months}.', { months: partialList })
+          : _('Бледные столбцы — неполные месяцы: {months}.', { months: partialList }))
         : '';
       hint.hidden = !hint.textContent;
     }
@@ -2022,7 +2150,7 @@
       setEmpty(name, '');
       const chart = ensureChart(name, {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Сумма сделок, тг', data: [], borderRadius: 3, backgroundColor: color }] },
+        data: { labels: [], datasets: [{ label: _('Сумма сделок, тг'), data: [], borderRadius: 3, backgroundColor: color }] },
         options: Object.assign(baseOptions(), {
           indexAxis: 'y',
           interaction: { mode: 'nearest', axis: 'y', intersect: false },
@@ -2051,8 +2179,8 @@
                 afterLabel: (item) => {
                   const it = item.chart.$items[item.dataIndex];
                   const lines = [it.records + ' ' + plural(it.records, RECORDS)];
-                  if (it.bin) lines.push('БИН ' + it.bin);
-                  if (it.code) lines.push('Код ' + it.code);
+                  if (it.bin) lines.push(_('БИН {bin}', { bin: it.bin }));
+                  if (it.code) lines.push(_('Код {code}', { code: it.code }));
                   return lines;
                 },
               },
@@ -2074,7 +2202,7 @@
         'parties',
         buyers ? state.data.top_buyers : state.data.top_sellers,
         buyers ? COLORS.accentBar : COLORS.caspyBar,
-        buyers ? 'Нет покупателей с суммой сделок' : 'Нет продавцов с суммой сделок'
+        buyers ? _('Нет покупателей с суммой сделок') : _('Нет продавцов с суммой сделок')
       );
     }
 
@@ -2086,18 +2214,22 @@
       document.getElementById('s-days').textContent = nfInt.format(summary.trading_days);
       document.getElementById('s-days-sub').textContent =
         days.length ? formatDate(days[0].date) + ' – ' + formatDate(days[days.length - 1].date) : '';
-      document.getElementById('s-amount').textContent = has ? compactMoney(summary.total_amount) + ' тг' : '—';
+      document.getElementById('s-amount').textContent = has ? _('{amount} тг', { amount: compactMoney(summary.total_amount) }) : '—';
       document.getElementById('s-amount-sub').textContent = has ? fullMoney(summary.total_amount) : '';
       document.getElementById('s-noamount').textContent = has ? percent(summary.share_without_amount) : '—';
       document.getElementById('s-noamount-sub').textContent = has
-        ? nfInt.format(summary.records_without_amount) + ' из ' + nfInt.format(summary.records) + ' ' +
-          plural(summary.records, RECORDS_GEN)
+        ? _('{n} из {total} {records}', {
+          n: nfInt.format(summary.records_without_amount), total: nfInt.format(summary.records),
+          records: plural(summary.records, RECORDS_GEN),
+        })
         : '';
       if (has && summary.records_without_amount > 0) {
         noteBox.hidden = false;
-        noteBox.textContent = 'У ' + nfInt.format(summary.records_without_amount) + ' ' +
-          plural(summary.records_without_amount, RECORDS_GEN) + ' (' + percent(summary.share_without_amount) +
-          ') нет суммы сделки: они учтены в числе записей и дней, но не входят в суммы и топы.';
+        noteBox.textContent = _('У {n} {records} ({share}) нет суммы сделки: они учтены в числе записей и дней, но не входят в суммы и топы.', {
+          n: nfInt.format(summary.records_without_amount),
+          records: plural(summary.records_without_amount, RECORDS_GEN),
+          share: percent(summary.share_without_amount),
+        });
       } else {
         noteBox.hidden = true;
       }
@@ -2111,7 +2243,7 @@
         state.selected = state.selected.filter((id) => !data.unknown_ids.includes(id));
         assignSlots();
         syncUrl();
-        notify('Не найдены и убраны из выбора: ' + data.unknown_ids.map((id) => '№' + id).join(', '));
+        notify(_('Не найдены и убраны из выбора: {ids}', { ids: data.unknown_ids.map((id) => '№' + id).join(', ') }));
       }
       renderChips();
       if (picker.open) renderList();
@@ -2124,7 +2256,7 @@
     function renderCharts(data) {
       renderTurnover(data.turnover_by_day);
       renderMonths(data.turnover_by_month || []);
-      renderTop('products', data.top_products, COLORS.accentBar, 'Нет товаров с суммой сделок');
+      renderTop('products', data.top_products, COLORS.accentBar, _('Нет товаров с суммой сделок'));
       renderParties();
     }
 
@@ -2170,7 +2302,7 @@
         setLoading(false);
       } catch (error) {
         if (error.name === 'AbortError' || seq !== requestSeq) return;
-        errorText.textContent = 'Не удалось загрузить аналитику: ' + (error.message || 'нет связи с сервером');
+        errorText.textContent = _('Не удалось загрузить аналитику: {error}', { error: error.message || _('нет связи с сервером') });
         errorBox.hidden = false;
         setLoading(false);
       }
@@ -2230,10 +2362,10 @@
     assignSlots();
     renderChips();
     syncUrl();
-    if (truncated) notify('В ссылке больше ' + MAX_SELECTED + ' товаров — взяты первые ' + MAX_SELECTED + '.');
+    if (truncated) notify(_('В ссылке больше {max} товаров — взяты первые {max}.', { max: MAX_SELECTED }));
     loadProducts();
     if (typeof Chart === 'undefined') {
-      errorText.textContent = 'Библиотека графиков не загружена (static/portal/vendor/chart.umd.min.js).';
+      errorText.textContent = _('Библиотека графиков не загружена ({path}).', { path: 'static/portal/vendor/chart.umd.min.js' });
       errorBox.hidden = false;
       return;
     }
@@ -2320,6 +2452,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.body.dataset.page;
     initThemeToggle();
+    initLanguageSwitch();
     initCollapsibleFilters();
     if (page === 'trades') initTrades();
     else if (page === 'status') initStatus();

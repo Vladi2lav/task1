@@ -1,0 +1,121 @@
+{% extends 'portal/legal/_layout.html' %}
+{# English translation for convenience; the Russian version (portal/legal/terms.html) prevails. #}
+{% block title %}Terms of use{% endblock %}
+{% block description %}Terms of use of the “ETS and Caspy Exchange Trading Results” portal.{% endblock %}
+
+{% block legal_body %}
+<h1 class="page-title">Terms of use</h1>
+
+<h2>1. General provisions</h2>
+<p>1.1. These Terms of Use (the “Terms”) set out the conditions for using the website “ETS and Caspy
+  Exchange Trading Results” (the “Portal”).</p>
+<p>1.2. Site owner: {{ site_owner }} (the “Owner”). Contact email:
+  <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+<p>1.3. The Portal is an independent non-commercial information project: it brings together in one place
+  publicly available trading results published by the exchanges themselves. The Portal does not provide paid
+  services, does not display advertising and does not generate income.</p>
+<p>1.4. By starting to use the Portal (opening its pages, searching, exporting data), the user confirms that
+  they have read these Terms and accept them. If the user does not agree with the Terms, they must stop using
+  the Portal.</p>
+
+<h2>2. Subject of the Terms</h2>
+<p>2.1. The Owner provides the user with free access to the Portal’s features: viewing information on
+  exchange trading results, searching, filtering and sorting records, viewing analytics, exporting a selection
+  to an Excel file, and viewing the exchanges’ news feed.</p>
+<p>2.2. The Portal is provided “as is”. The set of features may change without prior notice.</p>
+
+<h2>3. Data sources</h2>
+<p>3.1. The Portal displays information that commodity exchanges have made publicly available on their
+  official websites:</p>
+<ul>
+  {% for source in data_sources %}
+  <li>{{ source.name }} — <a href="{{ source.page }}" target="_blank" rel="noopener noreferrer">{{ source.page }}</a>;</li>
+  {% endfor %}
+</ul>
+<p>3.2. The information is collected automatically from public pages, stored in the Portal’s database and
+  brought to a single format. The collection procedure is described on the
+  <a href="{% url 'portal:legal_sources' %}">“Data sources and licences”</a> page.</p>
+<p>3.3. The Portal is not an official resource of the exchanges, is not affiliated with them and does not act
+  on their behalf. Only the information published by the exchanges themselves is official.</p>
+
+<h2>4. No warranties</h2>
+<p>4.1. The Owner does not guarantee the accuracy, completeness, timeliness or continuous availability of the
+  information on the Portal.</p>
+<p>4.2. The information may contain errors and discrepancies with the original source, including as a result
+  of automated processing errors, changes in the structure of the exchanges’ websites, update delays or
+  incomplete data published by the exchanges (for example, some fields are not published or are not published
+  for the entire period).</p>
+<p>4.3. Before making any decisions, the user must independently verify the information against the official
+  sources — the websites of the respective exchanges.</p>
+
+<h2>5. Informational nature of the information</h2>
+<p>5.1. All information on the Portal is provided for information and reference purposes only.</p>
+<p>5.2. The information is not a public offer, an offer to conclude a contract for the purchase and sale of
+  goods, advertising, or individual investment advice, a consultation or a call to make any transactions.</p>
+<p>5.3. Analytical indicators (weighted average price, turnover, participant rankings) are calculated
+  automatically from the records in the database and may differ from the indicators published by the
+  exchanges.</p>
+
+<h2>6. Limitation of liability</h2>
+<p>6.1. To the extent permitted by the legislation of the Republic of Kazakhstan, the Owner is not liable for
+  direct or indirect losses, lost profits or other harm arising in connection with the use of or inability to
+  use the Portal, or with decisions made on the basis of the information on it.</p>
+<p>6.2. The Owner is not responsible for interruptions in the operation of the Portal caused by maintenance,
+  equipment failures, actions of the hosting provider or other third parties, or unavailability of the
+  exchanges’ websites.</p>
+<p>6.3. The Owner is not responsible for the content of third-party websites linked from the Portal.</p>
+<p>6.4. The provisions of this section do not limit liability that cannot be limited under the legislation of
+  the Republic of Kazakhstan.</p>
+
+<h2>7. Rules for using and exporting data</h2>
+<p>7.1. The user may view information, search and export selections for personal, research, analytical and
+  other lawful purposes.</p>
+<p>7.2. When using or distributing exported information, the user undertakes to cite the original source (the
+  respective exchange), not to distort the information and not to present it as an official publication of the
+  exchange.</p>
+<p>7.3. The user is prohibited from:</p>
+<ul>
+  <li>placing an excessive load on the Portal, including by mass automated requests and attempts to bypass the
+    limit on the number of exported rows;</li>
+  <li>attempting unauthorised access to the Portal, its administrative section, server or database, or
+    disrupting their operation;</li>
+  <li>using information about trading participants for unlawful processing of personal data, sending
+    advertising without the recipients’ consent or other purposes contrary to the legislation of the Republic
+    of Kazakhstan;</li>
+  <li>using the Portal in any other way that violates the rights of third parties or the law.</li>
+</ul>
+<p>7.4. Export to Excel is limited in the number of rows; if the limit is exceeded, the file contains the
+  beginning of the selection and a corresponding warning.</p>
+
+<h2>8. Intellectual property</h2>
+<p>8.1. The rights to the original trading results, news texts and images, and the names and trademarks of the
+  exchanges belong to the respective exchanges and other right holders. The Portal reproduces such information
+  to the extent published by the original source, with a link to it.</p>
+<p>8.2. In the news feed, the Portal shows the headline, date and a short summary of a publication with a link
+  to its full text on the exchange’s website.</p>
+<p>8.3. The Portal’s source code is distributed under the licence specified in the
+  <a href="{{ repo_url }}" target="_blank" rel="noopener noreferrer">project repository</a>.
+  The third-party libraries used are distributed under their own licences
+  (see <a href="{% url 'portal:legal_sources' %}">“Data sources and licences”</a>).</p>
+
+<h2>9. Personal data and cookies</h2>
+<p>9.1. The processing of personal data is governed by the
+  <a href="{% url 'portal:legal_privacy' %}">Privacy Policy</a>, and the use of cookies by the
+  <a href="{% url 'portal:legal_cookies' %}">Cookie Policy</a>.</p>
+
+<h2>10. Governing law and dispute resolution</h2>
+<p>10.1. These Terms and relations connected with the use of the Portal are governed by the legislation of the
+  Republic of Kazakhstan.</p>
+<p>10.2. Disputes are resolved through negotiation. A claim is sent to the Owner at the email address given in
+  these Terms. If the dispute is not settled within 30 calendar days of receipt of the claim, it is referred to
+  a court in the manner established by the legislation of the Republic of Kazakhstan.</p>
+
+<h2>11. Changes to the Terms</h2>
+<p>11.1. The Owner may change these Terms. A new version takes effect when it is published on this page,
+  unless it states otherwise. The date of the current version is given at the end of the document.</p>
+<p>11.2. Continued use of the Portal after the Terms have been changed means acceptance of the new version.</p>
+
+<h2>12. Contacts</h2>
+<p>Please send questions, reports of inaccuracies in the data and claims to the Owner:
+  <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+{% endblock %}

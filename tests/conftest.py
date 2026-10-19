@@ -48,6 +48,19 @@ class FakeHttp:
         return self._get(url)
 
 
+@pytest.fixture(autouse=True)
+def russian_by_default():
+    """Каждый тест начинается с русского языка (язык по умолчанию).
+
+    LocaleMiddleware включает язык запроса в текущем потоке и не сбрасывает его, поэтому
+    без этого запрос на kk/en в одном тесте влиял бы на render_to_string в следующем.
+    """
+    from django.utils import translation
+
+    with translation.override('ru'):
+        yield
+
+
 @pytest.fixture
 def ets_site():
     """Сайт ETS в заглушке: октябрь 2026 с одним файлом за 07.10.2026."""
